@@ -1,0 +1,128 @@
+/*
+ * styles.css
+ *
+ * Solo le cose che Tailwind non riesce a gestire da solo:
+ * - Import dei font Google
+ * - Scrollbar personalizzata
+ * - Animazioni keyframe
+ * - Pattern decorativi
+ * - Stili strutturali della sidebar (position fixed + offset del main)
+ * - Comportamento mobile della sidebar
+ *
+ * In Angular ogni componente avrà il suo .scss,
+ * ma questi stili globali resteranno nel styles.scss principale.
+ */
+
+
+/* ── Font ──────────────────────────────────────────────────────
+   Preconnect per ridurre la latenza, poi i font veri.
+   DM Sans = corpo, Sora = titoli, JetBrains Mono = badge/codice.
+   ─────────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap');
+
+
+/* ── Scrollbar ─────────────────────────────────────────────────
+   Firefox usa scrollbar-color, Chrome/Safari il prefisso -webkit.
+   ─────────────────────────────────────────────────────────── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #dddad6 transparent;
+}
+::-webkit-scrollbar       { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #dddad6; border-radius: 99px; }
+
+
+/* ── Reset focus browser ───────────────────────────────────────
+   Tailwind gestisce i ring di focus via classe, quindi rimuovo
+   l'outline nativo che si sovrapporrebbe in modo brutto.
+   ─────────────────────────────────────────────────────────── */
+input:focus,
+select:focus,
+textarea:focus,
+button:focus {
+  outline: none;
+}
+
+
+/* ── Animazioni ────────────────────────────────────────────────
+   Due animazioni usate nelle pagine:
+   fadeUp  → elementi del form login che appaiono dal basso
+   fadeIn  → card e sezioni della dashboard
+   ─────────────────────────────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Classi di applicazione dell'animazione */
+.anim-fade-up { animation: fadeUp 0.4s ease-out both; }
+.anim-fade-in { animation: fadeIn 0.35s ease-out both; }
+
+/* Ritardi scalati: ogni elemento entra un po' dopo il precedente */
+.delay-1 { animation-delay: 0.05s; }
+.delay-2 { animation-delay: 0.10s; }
+.delay-3 { animation-delay: 0.15s; }
+.delay-4 { animation-delay: 0.20s; }
+.delay-5 { animation-delay: 0.25s; }
+.delay-6 { animation-delay: 0.30s; }
+
+
+/* ── Pattern a puntini (pannello sinistro login) ───────────────
+   Fatto interamente in CSS — niente immagini o SVG esterni.
+   ─────────────────────────────────────────────────────────── */
+.dot-pattern {
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+
+/* ── Sidebar (dashboard) ───────────────────────────────────────
+   La sidebar è fixed e occupa tutta l'altezza dello schermo.
+   Il contenuto principale ha un margin-left uguale alla sua larghezza.
+   ─────────────────────────────────────────────────────────── */
+#sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: 240px;
+  overflow-y: auto;
+  z-index: 30;
+}
+
+#mainContent {
+  margin-left: 240px;
+}
+
+/* Riga della tabella issue: sfondo leggermente diverso all'hover */
+.issue-row {
+  cursor: pointer;
+}
+.issue-row:hover td {
+  background-color: #f7f6f3;
+}
+
+
+/* ── Gestione mobile della sidebar ────────────────────────────
+   Su schermi piccoli la sidebar è nascosta fuori schermo
+   e scorre dentro con una transizione quando ha la classe .open.
+   Con Angular useremo un SidebarService + ngClass.
+   ─────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  #sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.22s ease;
+  }
+  #sidebar.open {
+    transform: translateX(0);
+  }
+  #mainContent {
+    margin-left: 0;
+  }
+}
