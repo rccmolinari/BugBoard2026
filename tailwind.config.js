@@ -1,13 +1,16 @@
 /*
- * tw-config.js
+ * tailwind.config.js
  *
- * Configurazione del tema Tailwind.
- * Con il CDN di sviluppo si usa questa variabile globale.
- * Quando migreremo ad Angular + PostCSS, questo diventa
- * il classico tailwind.config.js nella root del progetto.
+ * Traduzione del vecchio tw-config.js (che agganciava il tema al CDN).
+ * Ora che si usa Vite + PostCSS, il tema vive qui.
  */
 
-tailwind.config = {
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: [
+    './index.html',
+    './src/**/*.{vue,js,ts,jsx,tsx}',
+  ],
   theme: {
     extend: {
 
@@ -45,4 +48,5 @@ tailwind.config = {
 
     },
   },
-};
+  plugins: [],
+}

@@ -1,29 +1,118 @@
-<!DOCTYPE html>
-<html lang="it">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BugBoard26 — Accedi</title>
+<!--
+  LoginPage.vue
+  Porting di login.html + login.js.
 
-  <!-- Stili globali (font, animazioni, scrollbar) -->
-  <link rel="stylesheet" href="styles.css" />
+  La logica è **identica** all'originale:
+    - UTENTI_DEMO hardcoded come prima
+    - handleLogin() con validazione email/password
+    - 600ms di setTimeout per simulare latenza
+    - sessionStorage.setItem('bb_utente', ...)
+    - window.location.href per il redirect (sarà sostituito dal routing)
+    - togglePassword() per mostrare/nascondere
+    - setCaricamento() diventa isLoading ref
 
-  <!-- Tailwind CDN — solo per sviluppo, in produzione si usa il build PostCSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
+  Rispetto al DOM originale:
+    - i .classList.add/remove('hidden') diventano v-show con ref booleane
+    - gli id="..." non servono più, si usano le ref reattive
+-->
+<script setup>
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 
-  <!-- Tema personalizzato: colori e font del progetto -->
-  <script src="tw-config.js"></script>
-</head>
+const router = useRouter()
+/* ── Credenziali demo ──────────────────────────────────────────
+   Solo per sviluppo — da rimuovere quando il backend è pronto.
+   ─────────────────────────────────────────────────────────── */
+const UTENTI_DEMO = [
+  { email: 'admin@bugboard.io', password: 'admin123', ruolo: 'admin',    nome: 'Admin' },
+  { email: 'dev@bugboard.io',   password: 'dev123',   ruolo: 'normal',   nome: 'Dev User' },
+  { email: 'guest@bugboard.io', password: 'guest123', ruolo: 'readonly', nome: 'Guest' },
+]
 
-<body class="bg-ink-50 font-sans text-ink-800 antialiased">
 
+/* ── Stato del form ─────────────────────────────────────────── */
+const email       = ref('')
+const password    = ref('')
+const rememberMe  = ref(false)
+const showPassword = ref(false)
+
+const emailError    = ref(false)
+const passwordError = ref(false)
+const loginError    = ref(false)
+const isLoading     = ref(false)
+
+
+/* ── handleLogin ───────────────────────────────────────────────
+   Valida i campi, simula una chiamata API, poi fa il redirect.
+   ─────────────────────────────────────────────────────────── */
+function handleLogin(event) {
+  event.preventDefault()
+
+  const emailVal = email.value.trim().toLowerCase()
+  const passwordVal = password.value
+
+  // Valido prima di fare qualsiasi cosa
+  let tuttoOk = true
+
+  if (!emailVal || !emailVal.includes('@')) {
+    emailError.value = true
+    tuttoOk = false
+  } else {
+    emailError.value = false
+  }
+
+  if (!passwordVal) {
+    passwordError.value = true
+    tuttoOk = false
+  } else {
+    passwordError.value = false
+  }
+
+  if (!tuttoOk) return
+
+  // Avvio il loader e nascondo eventuali errori precedenti
+  isLoading.value = true
+  loginError.value = false
+
+  /*
+   * Simulo 600ms di latenza di rete.
+   */
+  setTimeout(() => {
+    const utente = UTENTI_DEMO.find(u => u.email === emailVal && u.password === passwordVal)
+
+    if (utente) {
+      sessionStorage.setItem('bb_utente', JSON.stringify(utente))
+      if (utente.ruolo === 'admin') {
+        router.push('/admin')
+      } else if (utente.ruolo === 'normal') {
+        router.push('/user')
+      } else {
+        router.push('/user')
+      }
+    } else {
+      isLoading.value = false
+      loginError.value = true
+      router.push('/')
+    }
+  }, 600)
+}
+
+
+/* ── togglePassword ────────────────────────────────────────────
+   Alterna la visibilità della password.
+   ─────────────────────────────────────────────────────────── */
+function togglePassword() {
+  showPassword.value = !showPassword.value
+}
+</script>
+
+<template>
   <!--
     LAYOUT LOGIN: due colonne affiancate.
     Sinistra = pannello brand (nascosto su mobile).
     Destra   = form di login.
   -->
   <div class="min-h-screen flex">
-
 
     <!-- ═══════════════════════════════════════════════════════
          PANNELLO SINISTRO — branding
@@ -35,7 +124,6 @@
       <div class="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-brand-500/10 blur-3xl pointer-events-none"></div>
       <div class="absolute bottom-32 -left-24 w-80 h-80 rounded-full bg-brand-500/5 blur-3xl pointer-events-none"></div>
 
-      <!-- Contenuto del pannello: logo, titolo, feature list, versione -->
       <div class="relative z-10 flex flex-col justify-between h-full p-10 lg:p-14">
 
         <!-- Logo -->
@@ -56,7 +144,6 @@
             dal bug critico alla richiesta di documentazione.
           </p>
 
-          <!-- Tre punti chiave del prodotto -->
           <ul class="mt-8 space-y-3">
             <li class="flex items-center gap-3 text-ink-400 text-sm">
               <span class="w-1.5 h-1.5 rounded-full bg-brand-500 flex-shrink-0"></span>
@@ -73,7 +160,6 @@
           </ul>
         </div>
 
-        <!-- Versione e ambiente (gestiti da Angular environments in produzione) -->
         <div class="flex items-center gap-2">
           <span class="font-mono text-[11px] text-ink-600 tracking-wider uppercase">v1.0.0</span>
           <span class="text-ink-700">·</span>
@@ -86,7 +172,6 @@
 
     <!-- ═══════════════════════════════════════════════════════
          PANNELLO DESTRO — il form
-         Su mobile occupa tutto lo schermo.
          ═══════════════════════════════════════════════════════ -->
     <div class="flex-1 flex flex-col items-center justify-center px-6 py-12 sm:px-10 bg-white">
 
@@ -106,11 +191,7 @@
           <p class="text-ink-400 text-sm">Inserisci le tue credenziali per accedere.</p>
         </div>
 
-        <!--
-          Il form chiama handleLogin() definita in login.js.
-          Con Angular diventerà un ReactiveForm con FormBuilder e AuthService.
-        -->
-        <form id="loginForm" onsubmit="handleLogin(event)" novalidate>
+        <form @submit="handleLogin" novalidate>
 
           <!-- Email -->
           <div class="anim-fade-up delay-2 mb-5">
@@ -118,6 +199,7 @@
               Email
             </label>
             <input
+              v-model="email"
               type="email"
               id="email"
               name="email"
@@ -129,8 +211,7 @@
                      transition-colors duration-150
                      focus:border-brand-500 focus:bg-white focus:ring-2 focus:ring-brand-500/20"
             />
-            <!-- Errore inline — mostrato via JS se il campo non è valido -->
-            <p id="emailError" class="hidden text-red-500 text-xs mt-1.5">
+            <p v-show="emailError" class="text-red-500 text-xs mt-1.5">
               Inserisci un indirizzo email valido.
             </p>
           </div>
@@ -148,7 +229,8 @@
             </div>
             <div class="relative">
               <input
-                type="password"
+                v-model="password"
+                :type="showPassword ? 'text' : 'password'"
                 id="password"
                 name="password"
                 autocomplete="current-password"
@@ -159,57 +241,70 @@
                        transition-colors duration-150
                        focus:border-brand-500 focus:bg-white focus:ring-2 focus:ring-brand-500/20"
               />
-              <!-- Pulsante mostra/nascondi — chiama togglePassword() in login.js -->
               <button type="button"
-                      onclick="togglePassword()"
+                      @click="togglePassword"
                       aria-label="Mostra/nascondi password"
                       class="absolute right-3 top-1/2 -translate-y-1/2 text-ink-400 hover:text-ink-600 transition-colors">
-                <svg id="eyeIcon"
-                     xmlns="http://www.w3.org/2000/svg"
+                <svg xmlns="http://www.w3.org/2000/svg"
                      width="16" height="16" viewBox="0 0 24 24"
                      fill="none" stroke="currentColor" stroke-width="2"
                      stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                  <circle cx="12" cy="12" r="3"/>
+                  <!-- Icona "occhio aperto" se password nascosta, "occhio barrato" se visibile -->
+                  <template v-if="!showPassword">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </template>
+                  <template v-else>
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8
+                             a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4
+                             c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07
+                             a3 3 0 1 1-4.24-4.24"/>
+                    <line x1="1" y1="1" x2="23" y2="23"/>
+                  </template>
                 </svg>
               </button>
             </div>
-            <p id="passwordError" class="hidden text-red-500 text-xs mt-1.5">
+            <p v-show="passwordError" class="text-red-500 text-xs mt-1.5">
               La password è obbligatoria.
             </p>
           </div>
 
           <!-- Ricordami -->
           <div class="anim-fade-up delay-4 mb-7 flex items-center gap-2.5">
-            <input type="checkbox" id="rememberMe" name="rememberMe"
-                   class="w-4 h-4 rounded border-ink-300 accent-brand-500 cursor-pointer" />
+            <input
+              v-model="rememberMe"
+              type="checkbox"
+              id="rememberMe"
+              name="rememberMe"
+              class="w-4 h-4 rounded border-ink-300 accent-brand-500 cursor-pointer"
+            />
             <label for="rememberMe" class="text-sm text-ink-500 cursor-pointer select-none">
               Ricordami per 30 giorni
             </label>
           </div>
 
           <!-- Errore credenziali errate -->
-          <div id="loginError"
-               class="hidden mb-5 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm">
+          <div v-show="loginError"
+               class="mb-5 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm">
             Email o password non corretti. Riprova.
           </div>
 
           <!-- Bottone submit -->
           <div class="anim-fade-up delay-5">
-            <button type="submit" id="submitBtn"
+            <button type="submit"
+                    :disabled="isLoading"
                     class="w-full py-2.5 px-6 rounded-lg bg-brand-500 hover:bg-brand-600
                            text-white font-semibold text-sm
                            transition-all duration-150 active:scale-[0.99]
                            disabled:opacity-60 disabled:cursor-not-allowed
                            flex items-center justify-center gap-2">
-              <!-- Spinner — mostrato da login.js durante il caricamento -->
-              <svg id="spinner"
-                   class="hidden animate-spin w-4 h-4"
+              <svg v-show="isLoading"
+                   class="animate-spin w-4 h-4"
                    xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
               </svg>
-              <span id="submitLabel">Accedi</span>
+              <span>{{ isLoading ? 'Accesso in corso…' : 'Accedi' }}</span>
             </button>
           </div>
 
@@ -217,7 +312,7 @@
 
         <!--
           Hint credenziali di test.
-          DA RIMUOVERE in produzione — o condizionare con Angular environments.
+          DA RIMUOVERE in produzione.
         -->
         <div class="anim-fade-up delay-6 mt-8 p-4 rounded-lg bg-ink-50 border border-ink-100">
           <p class="text-xs font-mono text-ink-400 uppercase tracking-wider mb-2">Credenziali di test</p>
@@ -240,9 +335,4 @@
     </div>
 
   </div>
-
-  <!-- Logica della pagina — caricato in fondo così il DOM è già pronto -->
-  <script src="login.js"></script>
-
-</body>
-</html>
+</template>

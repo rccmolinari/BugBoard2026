@@ -1,16 +1,19 @@
 /*
- * styles.css
+ * style.css
  *
- * Solo le cose che Tailwind non riesce a gestire da solo:
- * - Import dei font Google
- * - Scrollbar personalizzata
- * - Animazioni keyframe
- * - Pattern decorativi
- * - Stili strutturali della sidebar (position fixed + offset del main)
- * - Comportamento mobile della sidebar
+ * Stili globali: le cose che Tailwind non riesce a gestire da solo.
+ *   - Import dei font Google
+ *   - Scrollbar personalizzata
+ *   - Animazioni keyframe
+ *   - Pattern decorativi
+ *   - Stili strutturali della sidebar (position fixed + offset del main)
+ *   - Comportamento mobile della sidebar
  *
- * In Angular ogni componente avrà il suo .scss,
- * ma questi stili globali resteranno nel styles.scss principale.
+ * Rispetto al vecchio styles.css ci sono due sole differenze:
+ *   1) aggiunte le direttive @tailwind (prima c'era il CDN)
+ *   2) i selettori #sidebar / #mainContent sono diventati classi
+ *      .app-sidebar / .app-main-content, perché i componenti Vue
+ *      non espongono id globali univoci.
  */
 
 
@@ -19,6 +22,12 @@
    DM Sans = corpo, Sora = titoli, JetBrains Mono = badge/codice.
    ─────────────────────────────────────────────────────────── */
 @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap');
+
+
+/* ── Direttive Tailwind (sostituiscono il CDN) ───────────────── */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 
 /* ── Scrollbar ─────────────────────────────────────────────────
@@ -82,11 +91,11 @@ button:focus {
 }
 
 
-/* ── Sidebar (dashboard) ───────────────────────────────────────
+/* ── Sidebar (dashboard / admin) ───────────────────────────────
    La sidebar è fixed e occupa tutta l'altezza dello schermo.
    Il contenuto principale ha un margin-left uguale alla sua larghezza.
    ─────────────────────────────────────────────────────────── */
-#sidebar {
+.app-sidebar {
   position: fixed;
   top: 0;
   left: 0;
@@ -96,7 +105,7 @@ button:focus {
   z-index: 30;
 }
 
-#mainContent {
+.app-main-content {
   margin-left: 240px;
 }
 
@@ -111,18 +120,17 @@ button:focus {
 
 /* ── Gestione mobile della sidebar ────────────────────────────
    Su schermi piccoli la sidebar è nascosta fuori schermo
-   e scorre dentro con una transizione quando ha la classe .open.
-   Con Angular useremo un SidebarService + ngClass.
+   e scorre dentro con una transizione quando ha la classe .is-open.
    ─────────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
-  #sidebar {
+  .app-sidebar {
     transform: translateX(-100%);
     transition: transform 0.22s ease;
   }
-  #sidebar.open {
+  .app-sidebar.is-open {
     transform: translateX(0);
   }
-  #mainContent {
+  .app-main-content {
     margin-left: 0;
   }
 }
