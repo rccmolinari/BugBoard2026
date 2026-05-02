@@ -102,58 +102,6 @@ const mostraAssegnateAMe   = computed(() => props.utente?.ruolo === 'normal')
         Tutte le issue
       </a>
 
-      <!-- Assegnate a me (solo dashboard ha il pallino notifiche; admin no) -->
-      <a  v-if="mostraAssegnateAMe"
-         class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium
-                text-ink-500 hover:text-ink-800 hover:bg-ink-50 transition-colors duration-100">
-        <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none"
-          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-          <circle cx="12" cy="7" r="4"/>
-        </svg>
-        <span class="flex-1">Assegnate a me</span>
-        <!-- Il pallino rosso esiste solo nella dashboard. Con la logica attuale
-             resta nascosto (come nel vecchio HTML), ma lo lasciamo predisposto. -->
-        <span
-          v-if="isDashboardAttiva"
-          class="hidden w-2 h-2 rounded-full bg-red-500 flex-shrink-0"
-        ></span>
-      </a>
-
-      <div class="pt-3 pb-1">
-        <p class="px-3 pb-2 text-[10px] font-mono text-ink-300 uppercase tracking-[0.12em]">Gestione</p>
-      </div>
-
-      <!-- Nuova issue (nascosto per readonly) -->
-      <a
-        v-if="mostraNuovaIssue"
-
-        class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium
-               text-ink-500 hover:text-ink-800 hover:bg-ink-50 transition-colors duration-100"
-      >
-        <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none"
-          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"/>
-          <line x1="12" y1="8" x2="12" y2="16"/>
-          <line x1="8" y1="12" x2="16" y2="12"/>
-        </svg>
-        Nuova issue
-      </a>
-
-      <!-- Amministrazione (solo admin) -->
-      <a
-        v-if="mostraAdminLink"
-        class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-100"
-        :class="isAdminAttiva
-          ? 'text-ink-800 bg-ink-50'
-          : 'text-ink-500 hover:text-ink-800 hover:bg-ink-50'"
-      >
-        <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none"
-          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-        </svg>
-        Amministrazione
-      </a>
     </nav>
 
     <!-- Profilo utente in fondo -->

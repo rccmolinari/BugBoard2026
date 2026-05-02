@@ -273,8 +273,6 @@ function logout() {
 
         <div class="flex items-center gap-2">
           <h1 class="font-display text-ink-900 text-[15px] font-semibold">Amministrazione</h1>
-          <span class="text-ink-300 text-sm hidden sm:inline">/</span>
-          <span class="text-ink-400 text-sm hidden sm:inline">Gestione utenti</span>
         </div>
 
         <div class="flex items-center gap-2">
