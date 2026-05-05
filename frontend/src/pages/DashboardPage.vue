@@ -18,6 +18,7 @@
 -->
 <script setup>
 import { ref, computed } from 'vue'
+import { useRoute } from 'vue-router'
 import Sidebar from '../components/Sidebar.vue'
 import StatCard from '../components/StatCard.vue'
 import BadgeTipo from '../components/BadgeTipo.vue'
@@ -124,6 +125,9 @@ const cerca = ref('')
 const filtroTipo = ref('')
 const filtroStato = ref('')
 const sidebarAperta = ref(false)
+const popupSegnalazioneAperto = ref(false)
+const testoSegnalazione = ref('')
+const route = useRoute()
 
 
 /* ══════════════════════════════════════════════════════════════
@@ -147,6 +151,7 @@ const issueFiltrate = computed(() => {
     return matchTitolo && matchTipo && matchStato
   })
 })
+const soloIssue = computed(() => route.hash === '#tutte-issue')
 
 // Iniziali per l'avatar della topbar (la sidebar le calcola da sola)
 const iniziali = computed(() => {
@@ -199,6 +204,20 @@ function logout() {
   sessionStorage.removeItem('bb_utente')
   window.location.href = 'login.html'
 }
+
+function apriPopupSegnalazione() {
+  popupSegnalazioneAperto.value = true
+}
+
+function chiudiPopupSegnalazione() {
+  popupSegnalazioneAperto.value = false
+}
+
+function submitSegnalazione() {
+  console.log('Segnalazione problema:', testoSegnalazione.value)
+  testoSegnalazione.value = ''
+  chiudiPopupSegnalazione()
+}
 </script>
 
 <template>
@@ -237,7 +256,7 @@ function logout() {
         <div class="flex items-center gap-2">
           <h1 class="font-display text-ink-900 text-[15px] font-semibold">Dashboard</h1>
           <span class="text-ink-300 text-sm hidden sm:inline">/</span>
-          <span class="text-ink-400 text-sm hidden sm:inline">Panoramica</span>
+          <span class="text-ink-400 text-sm hidden sm:inline">{{ soloIssue ? 'Tutte le issue' : 'Panoramica' }}</span>
         </div>
 
         <div class="flex items-center gap-2">
@@ -277,19 +296,20 @@ function logout() {
 
 
       <!-- ── Contenuto principale ────────────────────────────── -->
-      <main class="flex-1 p-6 lg:p-8 space-y-8">
+      <main class="flex-1 p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8">
 
         <!-- Intestazione sezione + bottone nuova issue -->
-        <div class="flex items-start justify-between gap-4">
+        <div v-if="!soloIssue" class="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
           <div>
             <h2 class="font-display text-ink-900 text-xl font-bold">Panoramica progetto</h2>
             <p class="text-ink-400 text-sm mt-0.5">Situazione attuale delle issue.</p>
           </div>
           <button
             v-if="puoCreareIssue"
-            class="flex items-center gap-2 px-4 py-2.5 rounded-lg
+            @click="apriPopupSegnalazione"
+            class="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg w-full sm:w-auto
                    bg-brand-500 hover:bg-brand-600 text-white text-sm font-semibold
-                   transition-colors duration-150 flex-shrink-0 active:scale-[0.98]"
+                    transition-colors duration-150 flex-shrink-0 active:scale-[0.98]"
           >
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -302,7 +322,7 @@ function logout() {
 
 
         <!-- ── Stat cards ────────────────────────────────────── -->
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div v-if="!soloIssue" class="grid grid-cols-2 lg:grid-cols-4 gap-4">
 
           <StatCard label="Totale" :value="statTotale" subtitle="issue nel sistema"
                     icon-bg-class="bg-ink-50" value-color-class="text-ink-900" anim-delay-class="delay-1">
@@ -354,18 +374,22 @@ function logout() {
 
 
         <!-- ── Sezione tabella issue ───────────────────────────── -->
-        <div class="anim-fade-in delay-5">
+        <div id="tutte-issue" class="anim-fade-in delay-5">
 
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
             <div>
-              <h3 class="font-display text-ink-900 text-base font-semibold">Issue recenti</h3>
-              <p class="text-ink-400 text-xs mt-0.5">{{ issueFiltrate.length }} issue trovate</p>
+              <h3 class="font-display text-ink-900 text-base font-semibold">
+                {{ soloIssue ? 'Tutte le issue' : 'Issue recenti' }}
+              </h3>
+              <p class="text-ink-400 text-xs mt-0.5">
+                {{ soloIssue ? 'Elenco completo delle issue.' : `${issueFiltrate.length} issue trovate` }}
+              </p>
             </div>
 
-            <div class="flex flex-wrap items-center gap-2">
+            <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
 
               <!-- Ricerca per titolo -->
-              <div class="relative">
+              <div class="relative w-full sm:w-auto">
                 <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-ink-300 pointer-events-none"
                      viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                      stroke-linecap="round" stroke-linejoin="round">
@@ -375,17 +399,17 @@ function logout() {
                 <input v-model="cerca"
                        type="search"
                        placeholder="Cerca per titolo…"
-                       class="pl-8 pr-3 py-1.5 text-sm rounded-lg border border-ink-200
-                              bg-white text-ink-800 placeholder-ink-300
-                              focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
-                              w-44 transition-colors" />
+                        class="pl-8 pr-3 py-1.5 text-sm rounded-lg border border-ink-200
+                               bg-white text-ink-800 placeholder-ink-300
+                               focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
+                               w-full sm:w-44 transition-colors" />
               </div>
 
               <select v-model="filtroTipo"
                       class="px-2.5 py-1.5 text-sm rounded-lg border border-ink-200
-                             bg-white text-ink-600 cursor-pointer
-                             focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
-                             transition-colors">
+                              bg-white text-ink-600 cursor-pointer
+                              focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
+                              transition-colors w-full sm:w-auto">
                 <option value="">Tutti i tipi</option>
                 <option value="bug">Bug</option>
                 <option value="feature">Feature</option>
@@ -395,9 +419,9 @@ function logout() {
 
               <select v-model="filtroStato"
                       class="px-2.5 py-1.5 text-sm rounded-lg border border-ink-200
-                             bg-white text-ink-600 cursor-pointer
-                             focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
-                             transition-colors">
+                              bg-white text-ink-600 cursor-pointer
+                              focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
+                              transition-colors w-full sm:w-auto">
                 <option value="">Tutti gli stati</option>
                 <option value="todo">Todo</option>
                 <option value="in-progress">In Progress</option>
@@ -519,6 +543,45 @@ function logout() {
         </div>
 
       </main>
+    </div>
+
+    <div
+      v-if="popupSegnalazioneAperto"
+      @click="chiudiPopupSegnalazione"
+      class="fixed inset-0 z-50 bg-ink-900/50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+    >
+      <div
+        @click.stop
+        class="w-full max-w-lg h-full sm:h-auto sm:max-h-[85vh] rounded-none sm:rounded-xl bg-white border border-ink-100 shadow-xl p-5 space-y-4 overflow-y-auto"
+      >
+        <h3 class="font-display text-lg font-semibold text-ink-900">Segnala un problema</h3>
+
+        <textarea
+          v-model="testoSegnalazione"
+          rows="5"
+          placeholder="Descrivi il problema..."
+          class="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm text-ink-800
+                 placeholder-ink-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
+                 resize-none"
+        ></textarea>
+
+        <div class="flex flex-col-reverse sm:flex-row justify-end gap-2">
+          <button
+            type="button"
+            @click="chiudiPopupSegnalazione"
+            class="px-3 py-2 rounded-lg text-sm font-medium text-ink-600 hover:bg-ink-50 transition-colors w-full sm:w-auto"
+          >
+            Annulla
+          </button>
+          <button
+            type="button"
+            @click="submitSegnalazione"
+            class="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-brand-500 hover:bg-brand-600 transition-colors w-full sm:w-auto"
+          >
+            Submit
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>

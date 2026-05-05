@@ -4,6 +4,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Login from '../pages/LoginPage.vue'
 import User from '../pages/DashboardPage.vue'
 import Admin from '../pages/AdminPage.vue'
+import AdminUsers from '../pages/AdminUsersPage.vue'
 
 
 const routes = [
@@ -21,6 +22,11 @@ const routes = [
         path: '/admin',
         name: 'Admin',
         component: Admin
+    },
+    {
+        path: '/admin/users',
+        name: 'AdminUsers',
+        component: AdminUsers
     }
 ]
 

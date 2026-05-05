@@ -35,11 +35,62 @@
    ─────────────────────────────────────────────────────────── */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #dddad6 transparent;
+  scrollbar-color: #3b4a61 transparent;
 }
 ::-webkit-scrollbar       { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #dddad6; border-radius: 99px; }
+::-webkit-scrollbar-thumb { background: #3b4a61; border-radius: 99px; }
+
+/* ── Palette dark globale ──────────────────────────────────────── */
+html, body, #app {
+  background-color: #0b0f14;
+  color: #e8edf4;
+}
+
+/* Le view usano molto bg-white come surface: la porto su un tono scuro */
+.bg-white {
+  background-color: #101722 !important;
+}
+
+/* Contrasto tipografico: più distacco tra testo e sfondo */
+.text-ink-900 { color: #f5f9ff !important; }
+.text-ink-800 { color: #e7eef9 !important; }
+.text-ink-700 { color: #d6e0ef !important; }
+.text-ink-600 { color: #b8c5d9 !important; }
+.text-ink-500 { color: #9aaac1 !important; }
+.text-ink-400 { color: #8396b2 !important; }
+.text-ink-300 { color: #6b7f9b !important; }
+.text-ink-200 { color: #556a86 !important; }
+
+.bg-ink-50  { background-color: #111b29 !important; }
+.bg-ink-100 { background-color: #0f1724 !important; }
+.bg-ink-200 { background-color: #1a2738 !important; }
+.bg-ink-900 { background-color: #070c14 !important; }
+
+.border-ink-100 { border-color: #223247 !important; }
+.border-ink-200 { border-color: #2b3c54 !important; }
+
+/* Tinte semantiche adattate al tema dark */
+.bg-red-50    { background-color: #2a1518 !important; }
+.bg-blue-50   { background-color: #122032 !important; }
+.bg-amber-50  { background-color: #2a2314 !important; }
+.bg-green-50  { background-color: #13261b !important; }
+.bg-violet-50 { background-color: #211832 !important; }
+.bg-orange-50 { background-color: #2a1d14 !important; }
+
+.text-red-700, .text-red-600, .text-red-500       { color: #ff8b99 !important; }
+.text-blue-700, .text-blue-600, .text-blue-500    { color: #7fc5ff !important; }
+.text-amber-700, .text-amber-600, .text-amber-500 { color: #f2c66d !important; }
+.text-green-700, .text-green-600, .text-green-500 { color: #7de0a7 !important; }
+.text-violet-700, .text-violet-600, .text-violet-500 { color: #c4a8ff !important; }
+.text-orange-700, .text-orange-600, .text-orange-500 { color: #ffb17a !important; }
+
+.border-red-100    { border-color: #5a2730 !important; }
+.border-blue-100   { border-color: #27466c !important; }
+.border-amber-100  { border-color: #5f4d26 !important; }
+.border-green-100  { border-color: #2a5a3b !important; }
+.border-violet-100 { border-color: #4b3a6e !important; }
+.border-orange-100 { border-color: #64452b !important; }
 
 
 /* ── Reset focus browser ───────────────────────────────────────
@@ -114,7 +165,7 @@ button:focus {
   cursor: pointer;
 }
 .issue-row:hover td {
-  background-color: #f7f6f3;
+  background-color: #1b2430;
 }
 
 

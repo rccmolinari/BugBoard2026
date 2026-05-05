@@ -21,28 +21,28 @@ export default {
       },
 
       colors: {
-        /* Neutri caldi — base di tutta l'interfaccia */
+        /* Neutri dark — base di tutta l'interfaccia */
         ink: {
-          50:  '#f7f6f3',
-          100: '#eeecea',
-          200: '#dddad6',
-          300: '#c6c2bb',
-          400: '#a09990',
-          500: '#7d7570',
-          600: '#655e59',
-          700: '#524d49',
-          800: '#2e2b28',
-          900: '#1a1816',
+          50:  '#0b0f14',
+          100: '#121821',
+          200: '#1b2430',
+          300: '#273244',
+          400: '#3b4a61',
+          500: '#5b6a83',
+          600: '#7b89a0',
+          700: '#a1aec2',
+          800: '#c9d2df',
+          900: '#e8edf4',
         },
-        /* Accento teal — usato con parsimonia */
+        /* Accento ciano — ottimizzato per sfondi scuri */
         brand: {
-          50:  '#effefb',
-          100: '#c8fef4',
-          200: '#92fae8',
-          400: '#22d9c3',
-          500: '#0bbdaa',
-          600: '#089888',
-          700: '#0c7a6e',
+          50:  '#092028',
+          100: '#0f3341',
+          200: '#17556c',
+          400: '#2094ba',
+          500: '#29add8',
+          600: '#4bc0e6',
+          700: '#86daf2',
         },
       },
 

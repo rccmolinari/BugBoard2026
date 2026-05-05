@@ -4,19 +4,17 @@
   Accetta `pagina` per sapere qual è la voce attiva, e `utente` per il profilo.
 
   Props:
-    - pagina     : 'dashboard' | 'admin'  (voce attiva)
+    - pagina     : 'dashboard' | 'admin' | 'admin-users'  (voce attiva)
     - utente     : oggetto utente con { nome, ruolo }
     - isOpen     : boolean — apertura su mobile (classe .is-open)
   Emits:
     - @logout    : click sul bottone di uscita
 
-  NOTA: le regole di visibilità sono quelle già presenti nei vecchi file:
-    - "Nuova issue"      → nascosta se il ruolo è 'readonly' (vedi dashboard.js)
-    - "Amministrazione"  → visibile solo se il ruolo è 'admin'  (vedi dashboard.js)
-    - Il colore del badge ruolo deriva dalla stessa mappa usata in dashboard.js.
+  NOTA: il colore del badge ruolo deriva dalla stessa mappa usata in dashboard.js.
 -->
 <script setup>
 import { computed } from 'vue'
+import { useRoute } from 'vue-router'
 
 const props = defineProps({
   pagina: { type: String, required: true },
@@ -25,6 +23,7 @@ const props = defineProps({
 })
 
 defineEmits(['logout'])
+const route = useRoute()
 
 const iniziali = computed(() => {
   if (!props.utente?.nome) return '?'
@@ -46,13 +45,21 @@ const classeRuolo = computed(() =>
   `text-[11px] font-mono ${coloriRuolo[props.utente?.ruolo] || 'text-ink-400'}`
 )
 
-const isDashboardAttiva = computed(() => props.pagina === 'dashboard')
-const isAdminAttiva     = computed(() => props.pagina === 'admin')
+const isDashboardAttiva = computed(() => (
+  (props.pagina === 'dashboard' && route.hash !== '#tutte-issue') ||
+  (props.pagina === 'admin' && route.hash !== '#ultime-issue')
+))
+const isIssueAttiva = computed(() => (
+  (props.pagina === 'dashboard' && route.hash === '#tutte-issue') ||
+  (props.pagina === 'admin' && route.hash === '#ultime-issue')
+))
+const isGestioneUtentiAttiva = computed(() => props.pagina === 'admin-users')
 
 // Visibilità legata al ruolo (come nel vecchio inizializzaUI() del dashboard.js)
-const mostraNuovaIssue = computed(() => props.utente?.ruolo !== 'readonly')
-const mostraAdminLink  = computed(() => props.utente?.ruolo === 'admin')
-const mostraAssegnateAMe   = computed(() => props.utente?.ruolo === 'normal')
+const mostraAdminLink = computed(() => props.utente?.ruolo === 'admin')
+const dashboardPath = computed(() => (props.utente?.ruolo === 'admin' ? '/admin' : '/user'))
+const issuesPath = computed(() => (props.utente?.ruolo === 'admin' ? '/admin#ultime-issue' : '/user#tutte-issue'))
+const gestioneUtentiPath = '/admin/users'
 </script>
 
 <template>
@@ -73,7 +80,8 @@ const mostraAssegnateAMe   = computed(() => props.utente?.ruolo === 'normal')
       <p class="px-3 pt-1 pb-2 text-[10px] font-mono text-ink-300 uppercase tracking-[0.12em]">Menu</p>
 
       <!-- Dashboard -->
-      <a
+      <RouterLink
+        :to="dashboardPath"
         class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-100"
         :class="isDashboardAttiva
           ? 'text-ink-800 bg-ink-50'
@@ -85,12 +93,16 @@ const mostraAssegnateAMe   = computed(() => props.utente?.ruolo === 'normal')
           <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
         </svg>
         Dashboard
-      </a>
+      </RouterLink>
 
       <!-- Tutte le issue -->
-      <a 
-         class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium
-                text-ink-500 hover:text-ink-800 hover:bg-ink-50 transition-colors duration-100">
+      <RouterLink
+        :to="issuesPath"
+        class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-100"
+        :class="isIssueAttiva
+          ? 'text-ink-800 bg-ink-50'
+          : 'text-ink-500 hover:text-ink-800 hover:bg-ink-50'"
+      >
         <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none"
           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>
@@ -100,7 +112,25 @@ const mostraAssegnateAMe   = computed(() => props.utente?.ruolo === 'normal')
           <line x1="3" y1="18" x2="3.01" y2="18"/>
         </svg>
         Tutte le issue
-      </a>
+      </RouterLink>
+
+      <RouterLink
+        v-if="mostraAdminLink"
+        :to="gestioneUtentiPath"
+        class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-100"
+        :class="isGestioneUtentiAttiva
+          ? 'text-ink-800 bg-ink-50'
+          : 'text-ink-500 hover:text-ink-800 hover:bg-ink-50'"
+      >
+        <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M22 11h-6"/>
+          <path d="M19 8v6"/>
+        </svg>
+        Gestione utenti
+      </RouterLink>
 
     </nav>
 
