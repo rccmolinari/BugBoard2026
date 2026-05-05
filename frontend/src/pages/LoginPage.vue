@@ -308,6 +308,19 @@ function togglePassword() {
             </button>
           </div>
 
+          <div class="mt-4 text-center">
+            <p class="text-sm text-ink-500">
+              Non hai un account?
+              <button
+                type="button"
+                @click="router.push('/register')"
+                class="text-brand-600 hover:text-brand-700 font-medium transition-colors"
+              >
+                Registrati
+              </button>
+            </p>
+          </div>
+
         </form>
 
         <!--
