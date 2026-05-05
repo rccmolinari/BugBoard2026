@@ -1,14 +1,23 @@
 package bugboard.model;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+
 import java.util.List;
+
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
 @Table(name = "utente", schema = "public")
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
 public class Utente {
 
     @Id
@@ -19,9 +28,11 @@ public class Utente {
     private String email; // 'character varying(255)'
 
     @Column(nullable = false, length = 255)
+    @ToString.Exclude // Escludiamo la password nei log per sicurezza
     private String password; // 'character varying(255)'
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.OTHER) // Assicura che l'ENUM sia trattato come tipo personalizzato
     @Column(name = "role", nullable = false, columnDefinition = "utenteruolo")
     private Role role; // Il tipo ENUM definito nel dump
 
