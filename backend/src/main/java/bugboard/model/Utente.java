@@ -36,6 +36,12 @@ public class Utente {
     @Column(name = "role", nullable = false, columnDefinition = "utenteruolo")
     private Role role; // Il tipo ENUM definito nel dump
 
+    @Column(nullable = false, columnDefinition = "varchar(100)")
+    private String name;
+
+    @Column(nullable = false, columnDefinition = "varchar(100)")
+    private String surname;
+
     // Relazioni inverse (opzionali ma utili per navigare i dati in Java)
     @JsonIgnore
     @OneToMany(mappedBy = "creatore")
