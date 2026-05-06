@@ -125,7 +125,9 @@ CREATE TABLE public.utente (
     id integer NOT NULL,
     email character varying(255) NOT NULL,
     password character varying(255) NOT NULL,
-    role public.utenteruolo NOT NULL
+    role public.utenteruolo NOT NULL,
+    name character varying(100) NOT NULL,
+    surname character varying(100) NOT NULL
 );
 
 
