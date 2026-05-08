@@ -2,12 +2,12 @@
 -- PostgreSQL database dump
 --
 
-\restrict M72x0tyZrglSPYZtTQG2HqJG4uUUVYLCx6paCZPsacDRfeuHVcaDmpo25d2BeGX
+\restrict G6Dabyf5HYVNsG9gFhw4OnauF4JgPmhvDzU9KXauVoR8WnuEbbl3oXV21NnB9cx
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.6
 
--- Started on 2026-04-22 18:37:10
+-- Started on 2026-05-06 20:34:16
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -22,7 +22,7 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
--- TOC entry 855 (class 1247 OID 33200)
+-- TOC entry 852 (class 1247 OID 33200)
 -- Name: issuestato; Type: TYPE; Schema: public; Owner: postgres
 --
 
@@ -36,7 +36,7 @@ CREATE TYPE public.issuestato AS ENUM (
 ALTER TYPE public.issuestato OWNER TO postgres;
 
 --
--- TOC entry 852 (class 1247 OID 33190)
+-- TOC entry 849 (class 1247 OID 33190)
 -- Name: issuetipo; Type: TYPE; Schema: public; Owner: postgres
 --
 
@@ -51,13 +51,13 @@ CREATE TYPE public.issuetipo AS ENUM (
 ALTER TYPE public.issuetipo OWNER TO postgres;
 
 --
--- TOC entry 849 (class 1247 OID 33182)
+-- TOC entry 861 (class 1247 OID 33239)
 -- Name: utenteruolo; Type: TYPE; Schema: public; Owner: postgres
 --
 
 CREATE TYPE public.utenteruolo AS ENUM (
-    'AMMINISTRATORE',
-    'UTENTE',
+    'ADMIN',
+    'USER',
     'READONLY'
 );
 
@@ -108,7 +108,7 @@ CREATE SEQUENCE public.issue_id_seq
 ALTER SEQUENCE public.issue_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4917 (class 0 OID 0)
+-- TOC entry 4921 (class 0 OID 0)
 -- Dependencies: 219
 -- Name: issue_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
@@ -125,7 +125,9 @@ CREATE TABLE public.utente (
     id integer NOT NULL,
     email character varying(255) NOT NULL,
     password character varying(255) NOT NULL,
-    role public.utenteruolo NOT NULL
+    ruolo public.utenteruolo NOT NULL,
+    name character varying(100) NOT NULL,
+    surname character varying(100) NOT NULL
 );
 
 
@@ -148,7 +150,7 @@ CREATE SEQUENCE public.utente_id_seq
 ALTER SEQUENCE public.utente_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4918 (class 0 OID 0)
+-- TOC entry 4922 (class 0 OID 0)
 -- Dependencies: 217
 -- Name: utente_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
@@ -170,6 +172,44 @@ ALTER TABLE ONLY public.issue ALTER COLUMN id SET DEFAULT nextval('public.issue_
 --
 
 ALTER TABLE ONLY public.utente ALTER COLUMN id SET DEFAULT nextval('public.utente_id_seq'::regclass);
+
+
+--
+-- TOC entry 4915 (class 0 OID 33219)
+-- Dependencies: 220
+-- Data for Name: issue; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.issue (id, titolo, descrizione, priorita, immagine, tipo, stato, datascadenza, etichetta, commento, idcreatore, idassegnatario) FROM stdin;
+\.
+
+
+--
+-- TOC entry 4913 (class 0 OID 33208)
+-- Dependencies: 218
+-- Data for Name: utente; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.utente (id, email, password, ruolo, name, surname) FROM stdin;
+\.
+
+
+--
+-- TOC entry 4923 (class 0 OID 0)
+-- Dependencies: 219
+-- Name: issue_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.issue_id_seq', 1, false);
+
+
+--
+-- TOC entry 4924 (class 0 OID 0)
+-- Dependencies: 217
+-- Name: utente_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.utente_id_seq', 1, false);
 
 
 --
@@ -200,28 +240,28 @@ ALTER TABLE ONLY public.utente
 
 
 --
--- TOC entry 4765 (class 2606 OID 33233)
+-- TOC entry 4765 (class 2606 OID 33250)
 -- Name: issue issue_idassegnatario_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.issue
-    ADD CONSTRAINT issue_idassegnatario_fkey FOREIGN KEY (idassegnatario) REFERENCES public.utente(id);
+    ADD CONSTRAINT issue_idassegnatario_fkey FOREIGN KEY (idassegnatario) REFERENCES public.utente(id) ON DELETE SET NULL;
 
 
 --
--- TOC entry 4766 (class 2606 OID 33228)
+-- TOC entry 4766 (class 2606 OID 33245)
 -- Name: issue issue_idcreatore_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.issue
-    ADD CONSTRAINT issue_idcreatore_fkey FOREIGN KEY (idcreatore) REFERENCES public.utente(id);
+    ADD CONSTRAINT issue_idcreatore_fkey FOREIGN KEY (idcreatore) REFERENCES public.utente(id) ON DELETE CASCADE;
 
 
--- Completed on 2026-04-22 18:37:11
+-- Completed on 2026-05-06 20:34:16
 
 --
 -- PostgreSQL database dump complete
 --
 
-\unrestrict M72x0tyZrglSPYZtTQG2HqJG4uUUVYLCx6paCZPsacDRfeuHVcaDmpo25d2BeGX
+\unrestrict G6Dabyf5HYVNsG9gFhw4OnauF4JgPmhvDzU9KXauVoR8WnuEbbl3oXV21NnB9cx
 
