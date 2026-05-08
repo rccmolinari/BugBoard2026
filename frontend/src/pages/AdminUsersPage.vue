@@ -1,24 +1,10 @@
 <!--
   AdminUsersPage.vue
-  Porting di admin.html + admin.js.
-
-  Logica **identica** all'originale:
-    - Auth guard: se non sei loggato vai al login, se non sei admin vai alla dashboard
-    - Store utenti su localStorage (chiave 'bb_utenti') con seed di UTENTI_DEFAULT
-    - nuovoId() calcola il prossimo ID
-    - creaUtente(): stesse validazioni (nome, email con @, password >= 6, no duplicati)
-    - eliminaUtente(): window.confirm + filter + salvataggio
-    - mostraMessaggio/nascondiMessaggio: setTimeout di 4000ms per i successi
-    - togglePasswordForm alterna type tra password/text
-    - formattaData, coloreAvatar: identiche
-
-  Rispetto al vecchio file:
-    - Le scritture su localStorage restano, ma lo stato reattivo (`utenti`) viene
-      aggiornato in parallelo così la UI si rinfresca da sola — nessuna chiamata
-      manuale tipo renderUtenti()/aggiornaStats() in giro per le funzioni.
+  Schermata gestione utenti pronta per collegamento API/database.
 -->
 <script setup>
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import Sidebar from '../components/Sidebar.vue'
 import StatCard from '../components/StatCard.vue'
 import BadgeRuolo from '../components/BadgeRuolo.vue'
@@ -32,37 +18,12 @@ function getUtente() {
   return raw ? JSON.parse(raw) : null
 }
 
-const utente = getUtente()
+const utente = getUtente() ?? { nome: '', ruolo: '' }
+const router = useRouter()
 
-if (!utente) {
-  window.location.href = 'login.html'
-} else if (utente.ruolo !== 'admin') {
-  window.location.href = 'dashboard.html'
-}
-
-
-/* ══════════════════════════════════════════════════════════════
-   STORE UTENTI (localStorage) — stesso meccanismo dell'originale
-   ══════════════════════════════════════════════════════════════ */
-const STORAGE_KEY = 'bb_utenti'
-
-const UTENTI_DEFAULT = [
-  { id: 1, nome: 'Admin',    email: 'admin@bugboard.io', password: 'admin123', ruolo: 'admin',    default: true },
-  { id: 2, nome: 'Dev User', email: 'dev@bugboard.io',   password: 'dev123',   ruolo: 'normal',   default: false },
-  { id: 3, nome: 'Guest',    email: 'guest@bugboard.io', password: 'guest123', ruolo: 'readonly', default: false },
-]
 
 function getUtenti() {
-  const raw = localStorage.getItem(STORAGE_KEY)
-  if (!raw) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(UTENTI_DEFAULT))
-    return UTENTI_DEFAULT
-  }
-  return JSON.parse(raw)
-}
-
-function salvaUtenti(lista) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(lista))
+  return []
 }
 
 function nuovoId() {
@@ -164,9 +125,7 @@ function creaUtente() {
   }
 
   const nuovo = { id: nuovoId(), nome, email, password, ruolo, default: false }
-  const aggiornati = [...utenti.value, nuovo]
-  salvaUtenti(aggiornati)
-  utenti.value = aggiornati
+  utenti.value = [...utenti.value, nuovo]
 
   mostraMessaggio(`Utente "${nome}" creato con successo.`, 'successo')
   resetForm()
@@ -178,9 +137,7 @@ function creaUtente() {
    ══════════════════════════════════════════════════════════════ */
 function eliminaUtente(id, nome) {
   if (!confirm(`Eliminare l'utente "${nome}"?\nQuesta azione non può essere annullata.`)) return
-  const aggiornati = utenti.value.filter(u => u.id !== id)
-  salvaUtenti(aggiornati)
-  utenti.value = aggiornati
+  utenti.value = utenti.value.filter(u => u.id !== id)
 }
 
 
@@ -224,7 +181,7 @@ function inizialiDa(nome) {
 }
 
 function dataCreazione(u) {
-  return u.default ? '01 gen 2025' : formattaData(new Date().toISOString())
+  return formattaData(new Date().toISOString())
 }
 
 
@@ -234,12 +191,12 @@ function chiudiSidebar() { sidebarAperta.value = false }
 
 function logout() {
   sessionStorage.removeItem('bb_utente')
-  window.location.href = 'login.html'
+  router.replace('/')
 }
 </script>
 
 <template>
-  <div v-if="utente && utente.ruolo === 'admin'">
+  <div>
 
     <!-- Sidebar condivisa (pagina = admin) -->
     <Sidebar pagina="admin-users" :utente="utente" :is-open="sidebarAperta" @logout="logout" />
@@ -463,7 +420,7 @@ function logout() {
                         <BadgeRuolo :ruolo="u.ruolo" />
                       </td>
 
-                      <!-- Data creazione (mock) -->
+                      <!-- Data creazione -->
                       <td class="px-4 py-4 hidden lg:table-cell">
                         <span class="font-mono text-[12px] text-ink-400">
                           {{ dataCreazione(u) }}

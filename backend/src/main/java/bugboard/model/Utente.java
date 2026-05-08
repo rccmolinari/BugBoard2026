@@ -3,6 +3,9 @@ package bugboard.model;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.util.List;
+
+import org.hibernate.annotations.JdbcType;
+import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
@@ -27,9 +30,9 @@ public class Utente {
     private String surname; // Mappa la colonna 'surname' nel DB
 
     @Enumerated(EnumType.STRING)
+    @JdbcType(PostgreSQLEnumJdbcType.class)
     @Column(name = "role", nullable = false, columnDefinition = "utenteruolo")
     private Role role;
-
     @JsonIgnore
     @OneToMany(mappedBy = "creatore")
     private List<Issue> issuesCreate;

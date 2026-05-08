@@ -19,7 +19,6 @@ public class IssueService {
     }
 
     public Issue saveIssue(Issue issue) {
-        // Qui potresti aggiungere logica, tipo impostare la data automatica
         return issueRepository.save(issue);
     }
 }

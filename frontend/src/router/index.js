@@ -9,37 +9,83 @@ import AdminUsers from '../pages/AdminUsersPage.vue'
 
 
 const routes = [
-    {
-        path: '/',
-        name: 'Login',
-        component: Login
-    },
-    {
-        path: '/user',
-        name: 'User',
-        component: User
-    },
-    {
-        path: '/register',
-        name: 'Register',
-        component: Register
-    },
-    {
-        path: '/admin',
-        name: 'Admin',
-        component: Admin
-    },
-    {
-        path: '/admin/users',
-        name: 'AdminUsers',
-        component: AdminUsers
-    }
+  {
+    path: '/',
+    alias: '/login',
+    name: 'Login',
+    component: Login,
+    meta: { guestOnly: true },
+  },
+  {
+    path: '/register',
+    name: 'Register',
+    component: Register,
+    meta: { guestOnly: true },
+  },
+  {
+    path: '/user',
+    name: 'User',
+    component: User,
+    meta: { requiresAuth: true, allowedRoles: ['normal', 'readonly'] },
+  },
+  {
+    path: '/admin',
+    name: 'Admin',
+    component: Admin,
+    meta: { requiresAuth: true, allowedRoles: ['admin'] },
+  },
+  {
+    path: '/admin/users',
+    name: 'AdminUsers',
+    component: AdminUsers,
+    meta: { requiresAuth: true, allowedRoles: ['admin'] },
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    redirect: '/',
+  },
 ]
 
 
 const router = createRouter({
   history: createWebHistory(),
-  routes
+  routes,
+})
+
+function getUtenteFromStorage() {
+  const raw = sessionStorage.getItem('bb_utente')
+  if (!raw) return null
+
+  try {
+    return JSON.parse(raw)
+  } catch (error) {
+    console.error('Sessione utente non valida in sessionStorage:', error)
+    sessionStorage.removeItem('bb_utente')
+    return null
+  }
+}
+
+function homePathFor(utente) {
+  return utente?.ruolo === 'admin' ? '/admin' : '/user'
+}
+
+router.beforeEach((to) => {
+  const utente = getUtenteFromStorage()
+
+  if (to.meta.requiresAuth && !utente) {
+    return { path: '/', query: { redirect: to.fullPath } }
+  }
+
+  if (to.meta.guestOnly && utente) {
+    return homePathFor(utente)
+  }
+
+  const allowedRoles = to.meta.allowedRoles
+  if (allowedRoles && utente && !allowedRoles.includes(utente.ruolo)) {
+    return homePathFor(utente)
+  }
+
+  return true
 })
 
 export default router
