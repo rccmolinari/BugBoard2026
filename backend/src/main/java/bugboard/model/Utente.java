@@ -1,11 +1,7 @@
 package bugboard.model;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
-
+import lombok.Data;
 import java.util.List;
 
 import org.hibernate.annotations.JdbcType;
@@ -14,9 +10,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
 @Table(name = "utente", schema = "public")
-@Getter
-@Setter
-@NoArgsConstructor
+@Data
 public class Utente {
 
     @Id
@@ -27,14 +21,18 @@ public class Utente {
     private String email;
 
     @Column(nullable = false, length = 255)
-    @ToString.Exclude // Escludiamo la password nei log per sicurezza
-    private String password; // 'character varying(255)'
+    private String password;
+
+    @Column(nullable = false, length = 100)
+    private String name; // Mappa la colonna 'name' nel DB
+
+    @Column(nullable = false, length = 100)
+    private String surname; // Mappa la colonna 'surname' nel DB
 
     @Enumerated(EnumType.STRING)
     @JdbcType(PostgreSQLEnumJdbcType.class)
     @Column(name = "role", nullable = false, columnDefinition = "utenteruolo")
     private Role role;
-
     @JsonIgnore
     @OneToMany(mappedBy = "creatore")
     private List<Issue> issuesCreate;
