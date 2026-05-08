@@ -3,7 +3,6 @@ package bugboard.model;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.util.List;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
@@ -13,32 +12,39 @@ public class Utente {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id; // Il dump usa 'integer'
+    private Integer id;
 
     @Column(nullable = false, unique = true, length = 255)
-    private String email; // 'character varying(255)'
+    private String email;
 
     @Column(nullable = false, length = 255)
-    private String password; // 'character varying(255)'
+    private String password;
+
+    @Column(nullable = false, length = 100)
+    private String name; // Mappa la colonna 'name' nel DB
+
+    @Column(nullable = false, length = 100)
+    private String surname; // Mappa la colonna 'surname' nel DB
 
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false, columnDefinition = "utenteruolo")
-    private Role role; // Il tipo ENUM definito nel dump
+    private Role role;
 
-    // Relazioni inverse (opzionali ma utili per navigare i dati in Java)
     @JsonIgnore
     @OneToMany(mappedBy = "creatore")
     private List<Issue> issuesCreate;
+
     @JsonIgnore
     @OneToMany(mappedBy = "assegnatario")
-    private List<Issue> issuesAssegnate;
+    private List<Issue> issuesAssegnatario;
 
-    // L'Enum deve riflettere i valori del database[cite: 1]
-    // Se hai rinominato i valori via SQL come abbiamo fatto prima, 
-    // usa ADMIN e USER. Se hai lasciato il dump originale, usa quelli sotto.
+    @JsonIgnore
+    @OneToMany(mappedBy = "assegnatoA")
+    private List<Issue> issuesAssegnatoA;
+
     public enum Role {
-        ADMIN,          // Se hai fatto l'ALTER TYPE
-        USER,           // Se hai fatto l'ALTER TYPE
-        READONLY        // Valore originale nel dump[cite: 1]
+        ADMIN, 
+        USER, 
+        READONLY
     }
 }

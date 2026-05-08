@@ -3,6 +3,8 @@ package bugboard.model;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.time.LocalDateTime;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "issue", schema = "public")
@@ -11,7 +13,7 @@ public class Issue {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id; // Nel dump è un integer
+    private Integer id;
 
     @Column(nullable = false)
     private String titolo;
@@ -21,7 +23,8 @@ public class Issue {
 
     private Integer priorita;
 
-    private String immagine; // Mappa 'immagine character varying(500)'
+    @Column(length = 500)
+    private String immagine;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, columnDefinition = "issuetipo")
@@ -29,13 +32,18 @@ public class Issue {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, columnDefinition = "issuestato")
-    private StatoIssue stato = StatoIssue.TODO; // Il dump ha DEFAULT 'TODO'
+    private StatoIssue stato = StatoIssue.TODO;
 
     @Column(name = "datascadenza")
     private LocalDateTime dataScadenza;
 
-    // Per etichetta e commento (text[]), in Spring si usano le liste o array semplici
+    // Mapping corretto per text[] di PostgreSQL
+    @JdbcTypeCode(SqlTypes.ARRAY)
+    @Column(columnDefinition = "text[]")
     private String[] etichetta;
+
+    @JdbcTypeCode(SqlTypes.ARRAY)
+    @Column(columnDefinition = "text[]")
     private String[] commento;
 
     @ManyToOne
@@ -46,7 +54,10 @@ public class Issue {
     @JoinColumn(name = "idassegnatario")
     private Utente assegnatario;
 
-    // Gli Enum devono corrispondere esattamente al dump
+    @ManyToOne
+    @JoinColumn(name = "assegnato_a") // Questo deve corrispondere al nome nel DB
+    private Utente assegnatoA;
+
     public enum StatoIssue { TODO, IN_PROGRESS, DONE }
     public enum TipoIssue { QUESTION, BUG, DOCUMENTATION, FEATURE }
 }
