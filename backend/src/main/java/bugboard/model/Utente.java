@@ -49,6 +49,9 @@ public class Utente {
     @JsonIgnore
     @OneToMany(mappedBy = "assegnatario")
     private List<Issue> issuesAssegnate;
+    @JsonIgnore
+    @OneToMany(mappedBy = "assegnatoA")
+    private List<Issue> issuesAssegnatoA;
 
     // L'Enum deve riflettere i valori del database[cite: 1]
     // Se hai rinominato i valori via SQL come abbiamo fatto prima, 

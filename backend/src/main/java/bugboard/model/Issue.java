@@ -60,6 +60,10 @@ public class Issue {
     @JoinColumn(name = "idassegnatario")
     private Utente assegnatario;
 
+    @ManyToOne
+    @JoinColumn(name = "assegnatoA")
+    private Utente assegnatoA;
+
     // Gli Enum devono corrispondere esattamente al dump
     public enum StatoIssue { TODO, IN_PROGRESS, DONE }
     public enum TipoIssue { QUESTION, BUG, DOCUMENTATION, FEATURE }
