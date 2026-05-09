@@ -17,7 +17,7 @@ public class Issue {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id; // Nel dump è un integer
+    private Integer id;
 
     @Column(nullable = false)
     private String titolo;
@@ -38,7 +38,7 @@ public class Issue {
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.OTHER) // Assicura che l'ENUM sia trattato come tipo personalizzato
     @Column(nullable = false, columnDefinition = "issuestato")
-    private StatoIssue stato = StatoIssue.TODO; // Il dump ha DEFAULT 'TODO'
+    private StatoIssue stato = StatoIssue.TODO;
 
     @Column(name = "datascadenza")
     private LocalDateTime dataScadenza;

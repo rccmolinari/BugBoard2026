@@ -46,7 +46,13 @@
 			<optional>true</optional>
 		</dependency>
 
-		<!-- 5. Test: Per i test automatici -->
+		<!-- 5. Spring Security Crypto: Per BCrypt password hashing -->
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-crypto</artifactId>
+		</dependency>
+
+		<!-- 6. Test: Per i test automatici -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>

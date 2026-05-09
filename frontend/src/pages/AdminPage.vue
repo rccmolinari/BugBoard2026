@@ -4,7 +4,7 @@
 -->
 <script setup>
 import { ref, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import Sidebar from '../components/Sidebar.vue'
 import StatCard from '../components/StatCard.vue'
 import BadgeTipo from '../components/BadgeTipo.vue'
@@ -16,79 +16,10 @@ function getUtente() {
   return raw ? JSON.parse(raw) : null
 }
 
-const utente = getUtente()
+const utente = getUtente() ?? { nome: '', ruolo: '' }
+const router = useRouter()
 
-if (!utente) {
-  window.location.href = 'login.html'
-} else if (utente.ruolo !== 'admin') {
-  window.location.href = 'dashboard.html'
-}
-
-const ISSUE_DEMO = [
-  {
-    id: 1,
-    titolo: 'Login fallisce con caratteri speciali nella password',
-    tipo: 'bug',
-    stato: 'todo',
-    priorita: 'critical',
-    aggiuntaDa: 'Dev User',
-    dataCreazione: '2026-05-04',
-  },
-  {
-    id: 2,
-    titolo: 'Aggiungere dark mode all\'interfaccia utente',
-    tipo: 'feature',
-    stato: 'in-progress',
-    priorita: 'medium',
-    aggiuntaDa: 'Guest',
-    dataCreazione: '2026-05-01',
-  },
-  {
-    id: 3,
-    titolo: 'Documentazione API mancante per endpoint /reports',
-    tipo: 'documentation',
-    stato: 'todo',
-    priorita: 'low',
-    aggiuntaDa: 'Admin',
-    dataCreazione: '2026-05-05',
-  },
-  {
-    id: 4,
-    titolo: 'Permessi annidati non coerenti su endpoint team',
-    tipo: 'bug',
-    stato: 'done',
-    priorita: 'high',
-    aggiuntaDa: 'Dev User',
-    dataCreazione: '2026-04-29',
-  },
-  {
-    id: 5,
-    titolo: 'Upload immagine causa crash su Safari mobile',
-    tipo: 'bug',
-    stato: 'in-progress',
-    priorita: 'high',
-    aggiuntaDa: 'Guest',
-    dataCreazione: '2026-05-03',
-  },
-  {
-    id: 6,
-    titolo: 'Aggiungere esportazione CSV per la lista issue',
-    tipo: 'feature',
-    stato: 'closed',
-    priorita: 'low',
-    aggiuntaDa: 'Admin',
-    dataCreazione: '2026-04-25',
-  },
-  {
-    id: 7,
-    titolo: 'Alert email duplicati per notifiche commenti',
-    tipo: 'bug',
-    stato: 'todo',
-    priorita: 'medium',
-    aggiuntaDa: 'Dev User',
-    dataCreazione: '2026-05-05',
-  },
-]
+const issues = []
 
 const sidebarAperta = ref(false)
 const popupAssegnaAperto = ref(false)
@@ -106,13 +37,13 @@ const iniziali = computed(() => {
     .slice(0, 2)
 })
 
-const statTotale = computed(() => ISSUE_DEMO.length)
-const statTodo = computed(() => ISSUE_DEMO.filter(i => i.stato === 'todo').length)
-const statInCorso = computed(() => ISSUE_DEMO.filter(i => i.stato === 'in-progress').length)
-const statRisolte = computed(() => ISSUE_DEMO.filter(i => i.stato === 'done' || i.stato === 'closed').length)
+const statTotale = computed(() => issues.length)
+const statTodo = computed(() => issues.filter(i => i.stato === 'todo').length)
+const statInCorso = computed(() => issues.filter(i => i.stato === 'in-progress').length)
+const statRisolte = computed(() => issues.filter(i => i.stato === 'done' || i.stato === 'closed').length)
 
 const tutteIssue = computed(() => (
-  [...ISSUE_DEMO]
+  [...issues]
     .sort((a, b) => new Date(b.dataCreazione) - new Date(a.dataCreazione))
 ))
 
@@ -152,12 +83,12 @@ function chiudiSidebar() { sidebarAperta.value = false }
 
 function logout() {
   sessionStorage.removeItem('bb_utente')
-  window.location.href = 'login.html'
+  router.replace('/')
 }
 </script>
 
 <template>
-  <div v-if="utente && utente.ruolo === 'admin'">
+  <div>
     <Sidebar pagina="admin" :utente="utente" :is-open="sidebarAperta" @logout="logout" />
 
     <div

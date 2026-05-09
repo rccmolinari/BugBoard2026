@@ -1,14 +1,14 @@
 <!--
   DashboardPage.vue
-  Porting di dashboard.html + dashboard.js.
+  Dashboard utente.
 
   Logica **identica** all'originale:
-    - ISSUE_DEMO array immutato
-    - Auth guard con sessionStorage + window.location.href = 'login.html'
+    - issue prese da API/backend
+    - Accesso protetto gestito dal router
     - Stats calcolate dagli stessi filtri
     - Tabella filtrata su titolo / tipo / stato
     - isScaduta(), formattaData(), apriIssue() con lo stesso comportamento
-    - logout() svuota la sessionStorage e manda al login
+    - logout() svuota la sessionStorage e torna al login via router
 
   Rispetto al vecchio file:
     - innerHTML + getElementById → v-for e data binding reattivo
@@ -18,7 +18,7 @@
 -->
 <script setup>
 import { ref, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import Sidebar from '../components/Sidebar.vue'
 import StatCard from '../components/StatCard.vue'
 import BadgeTipo from '../components/BadgeTipo.vue'
@@ -26,96 +26,16 @@ import BadgeStato from '../components/BadgeStato.vue'
 import BadgePriorita from '../components/BadgePriorita.vue'
 
 
-/* ── Dati demo ────────────────────────────────────────────────
-   Sostituire con GET /api/issues quando il backend è pronto.
-   ─────────────────────────────────────────────────────────── */
-const ISSUE_DEMO = [
-  {
-    id: 1,
-    titolo:    'Login fallisce con caratteri speciali nella password',
-    tipo:      'bug',
-    stato:     'todo',
-    priorita:  'critical',
-    assegnata: 'Dev User',
-    scadenza:  '2025-04-30',
-    etichette: ['auth', 'sicurezza'],
-  },
-  {
-    id: 2,
-    titolo:    'Aggiungere dark mode all\'interfaccia utente',
-    tipo:      'feature',
-    stato:     'in-progress',
-    priorita:  'medium',
-    assegnata: null,
-    scadenza:  null,
-    etichette: ['frontend'],
-  },
-  {
-    id: 3,
-    titolo:    'Documentazione API mancante per endpoint /reports',
-    tipo:      'documentation',
-    stato:     'todo',
-    priorita:  'low',
-    assegnata: null,
-    scadenza:  null,
-    etichette: ['docs'],
-  },
-  {
-    id: 4,
-    titolo:    'Come funzionano i permessi per i ruoli annidati?',
-    tipo:      'question',
-    stato:     'done',
-    priorita:  null,
-    assegnata: 'Admin',
-    scadenza:  null,
-    etichette: ['sicurezza'],
-  },
-  {
-    id: 5,
-    titolo:    'Upload immagine causa crash su Safari mobile',
-    tipo:      'bug',
-    stato:     'todo',
-    priorita:  'high',
-    assegnata: 'Dev User',
-    scadenza:  '2025-04-25',
-    etichette: ['frontend', 'mobile'],
-  },
-  {
-    id: 6,
-    titolo:    'Notifiche email non vengono inviate correttamente',
-    tipo:      'bug',
-    stato:     'in-progress',
-    priorita:  'high',
-    assegnata: 'Dev User',
-    scadenza:  '2025-05-05',
-    etichette: ['backend'],
-  },
-  {
-    id: 7,
-    titolo:    'Aggiungere esportazione CSV per la lista issue',
-    tipo:      'feature',
-    stato:     'todo',
-    priorita:  'low',
-    assegnata: null,
-    scadenza:  null,
-    etichette: ['export'],
-  },
-]
+const issues = []
 
 
-/* ══════════════════════════════════════════════════════════════
-   AUTH GUARD — identico all'originale
-   ══════════════════════════════════════════════════════════════ */
 function getUtente() {
   const raw = sessionStorage.getItem('bb_utente')
   return raw ? JSON.parse(raw) : null
 }
 
-const utente = getUtente()
-
-if (!utente) {
-  window.location.href = 'login.html'
-}
+const utente = getUtente() ?? { nome: '', ruolo: '' }
+const router = useRouter()
 
 
 /* ══════════════════════════════════════════════════════════════
@@ -133,10 +53,10 @@ const route = useRoute()
 /* ══════════════════════════════════════════════════════════════
    COMPUTED — sostituiscono aggiornaStats() e renderTabella()
    ══════════════════════════════════════════════════════════════ */
-const statTotale  = computed(() => ISSUE_DEMO.length)
-const statTodo    = computed(() => ISSUE_DEMO.filter(i => i.stato === 'todo').length)
-const statProgress = computed(() => ISSUE_DEMO.filter(i => i.stato === 'in-progress').length)
-const statCritici = computed(() => ISSUE_DEMO.filter(i =>
+const statTotale  = computed(() => issues.length)
+const statTodo    = computed(() => issues.filter(i => i.stato === 'todo').length)
+const statProgress = computed(() => issues.filter(i => i.stato === 'in-progress').length)
+const statCritici = computed(() => issues.filter(i =>
   i.priorita === 'critical' &&
   i.stato !== 'done' &&
   i.stato !== 'closed'
@@ -144,7 +64,7 @@ const statCritici = computed(() => ISSUE_DEMO.filter(i =>
 
 const issueFiltrate = computed(() => {
   const q = cerca.value.toLowerCase()
-  return ISSUE_DEMO.filter(issue => {
+  return issues.filter(issue => {
     const matchTitolo = issue.titolo.toLowerCase().includes(q)
     const matchTipo   = !filtroTipo.value  || issue.tipo  === filtroTipo.value
     const matchStato  = !filtroStato.value || issue.stato === filtroStato.value
@@ -186,7 +106,7 @@ function isScaduta(issue) {
 
 function apriIssue(id) {
   console.log('Apri issue', id)
-  // TODO: window.location.href = `issue-detail.html?id=${id}`;
+  // TODO: router.push(`/issue/${id}`)
 }
 
 function inizialiDa(nome) {
@@ -202,7 +122,7 @@ function chiudiSidebar() { sidebarAperta.value = false }
 
 function logout() {
   sessionStorage.removeItem('bb_utente')
-  window.location.href = 'login.html'
+  router.replace('/')
 }
 
 function apriPopupSegnalazione() {
@@ -221,7 +141,7 @@ function submitSegnalazione() {
 </script>
 
 <template>
-  <div v-if="utente">
+  <div>
 
     <!-- Sidebar condivisa -->
     <Sidebar pagina="dashboard" :utente="utente" :is-open="sidebarAperta" @logout="logout" />
@@ -532,7 +452,7 @@ function submitSegnalazione() {
             <!-- Footer tabella -->
             <div class="border-t border-ink-100 px-5 py-3 flex items-center justify-between">
               <span class="text-xs text-ink-400">
-                Mostrate {{ issueFiltrate.length }} di {{ ISSUE_DEMO.length }}
+                Mostrate {{ issueFiltrate.length }} di {{ issues.length }}
               </span>
               <a href="#" class="text-xs font-medium text-brand-600 hover:text-brand-700 transition-colors">
                 Vedi tutte le issue →

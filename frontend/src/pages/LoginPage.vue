@@ -1,33 +1,9 @@
-<!--
-  LoginPage.vue
-  Porting di login.html + login.js.
-
-  La logica è **identica** all'originale:
-    - UTENTI_DEMO hardcoded come prima
-    - handleLogin() con validazione email/password
-    - 600ms di setTimeout per simulare latenza
-    - sessionStorage.setItem('bb_utente', ...)
-    - window.location.href per il redirect (sarà sostituito dal routing)
-    - togglePassword() per mostrare/nascondere
-    - setCaricamento() diventa isLoading ref
-
-  Rispetto al DOM originale:
-    - i .classList.add/remove('hidden') diventano v-show con ref booleane
-    - gli id="..." non servono più, si usano le ref reattive
--->
 <script setup>
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-
+import { useRoute, useRouter } from 'vue-router'
+import axios from 'axios'
 const router = useRouter()
-/* ── Credenziali demo ──────────────────────────────────────────
-   Solo per sviluppo — da rimuovere quando il backend è pronto.
-   ─────────────────────────────────────────────────────────── */
-const UTENTI_DEMO = [
-  { email: 'admin@bugboard.io', password: 'admin123', ruolo: 'admin',    nome: 'Admin' },
-  { email: 'dev@bugboard.io',   password: 'dev123',   ruolo: 'normal',   nome: 'Dev User' },
-  { email: 'guest@bugboard.io', password: 'guest123', ruolo: 'readonly', nome: 'Guest' },
-]
+const route = useRoute()
 
 
 /* ── Stato del form ─────────────────────────────────────────── */
@@ -42,59 +18,38 @@ const loginError    = ref(false)
 const isLoading     = ref(false)
 
 
-/* ── handleLogin ───────────────────────────────────────────────
-   Valida i campi, simula una chiamata API, poi fa il redirect.
-   ─────────────────────────────────────────────────────────── */
 function handleLogin(event) {
   event.preventDefault()
+  //use axios
+  axios.post('/api/login', {
+    email: email.value,
+    password: password.value
+  })
+    .then(response => {
+      const { ruolo, nome } = response.data
+      sessionStorage.setItem('bb_utente', JSON.stringify({ email: email.value, ruolo, nome }))
 
-  const emailVal = email.value.trim().toLowerCase()
-  const passwordVal = password.value
+      const redirectPath = typeof route.query.redirect === 'string' && route.query.redirect.startsWith('/')
+        ? route.query.redirect
+        : null
 
-  // Valido prima di fare qualsiasi cosa
-  let tuttoOk = true
+      if (redirectPath) {
+        router.push(redirectPath)
+        return
+      }
 
-  if (!emailVal || !emailVal.includes('@')) {
-    emailError.value = true
-    tuttoOk = false
-  } else {
-    emailError.value = false
-  }
-
-  if (!passwordVal) {
-    passwordError.value = true
-    tuttoOk = false
-  } else {
-    passwordError.value = false
-  }
-
-  if (!tuttoOk) return
-
-  // Avvio il loader e nascondo eventuali errori precedenti
-  isLoading.value = true
-  loginError.value = false
-
-  /*
-   * Simulo 600ms di latenza di rete.
-   */
-  setTimeout(() => {
-    const utente = UTENTI_DEMO.find(u => u.email === emailVal && u.password === passwordVal)
-
-    if (utente) {
-      sessionStorage.setItem('bb_utente', JSON.stringify(utente))
-      if (utente.ruolo === 'admin') {
+      if (ruolo === 'admin') {
         router.push('/admin')
-      } else if (utente.ruolo === 'normal') {
-        router.push('/user')
       } else {
         router.push('/user')
       }
-    } else {
-      isLoading.value = false
+    })
+    .catch(error => {
+      console.error('Errore durante il login:', error)
       loginError.value = true
       router.push('/')
-    }
-  }, 600)
+    })
+
 }
 
 
@@ -322,27 +277,6 @@ function togglePassword() {
           </div>
 
         </form>
-
-        <!--
-          Hint credenziali di test.
-          DA RIMUOVERE in produzione.
-        -->
-        <div class="anim-fade-up delay-6 mt-8 p-4 rounded-lg bg-ink-50 border border-ink-100">
-          <p class="text-xs font-mono text-ink-400 uppercase tracking-wider mb-2">Credenziali di test</p>
-          <div class="space-y-1">
-            <p class="text-xs text-ink-500">
-              <span class="font-mono text-ink-700">admin@bugboard.io</span>
-              <span class="mx-1 text-ink-300">/</span>
-              <span class="font-mono text-ink-700">admin123</span>
-              <span class="ml-2 px-1.5 py-0.5 bg-brand-100 text-brand-700 text-[10px] font-mono rounded">admin</span>
-            </p>
-            <p class="text-xs text-ink-500">
-              <span class="font-mono text-ink-700">dev@bugboard.io</span>
-              <span class="mx-1 text-ink-300">/</span>
-              <span class="font-mono text-ink-700">dev123</span>
-            </p>
-          </div>
-        </div>
 
       </div>
     </div>

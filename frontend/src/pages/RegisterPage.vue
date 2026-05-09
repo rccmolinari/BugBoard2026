@@ -1,10 +1,11 @@
 <!--
   RegisterPage.vue
-  Form di registrazione placeholder: UI pronta, logica backend da collegare.
+  Form di registrazione collegato al backend.
 -->
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import axios from 'axios'
 
 const router = useRouter()
 
@@ -19,6 +20,9 @@ const cognomeError = ref(false)
 const emailError = ref(false)
 const passwordError = ref(false)
 const registerInfo = ref(false)
+const registerError = ref(false)
+const registerErrorText = ref('')
+const isLoading = ref(false)
 
 function handleRegister(event) {
   event.preventDefault()
@@ -31,12 +35,46 @@ function handleRegister(event) {
   nomeError.value = !nomeVal
   cognomeError.value = !cognomeVal
   emailError.value = !emailVal || !emailVal.includes('@')
-  passwordError.value = !passwordVal
+  passwordError.value = !passwordVal || passwordVal.length < 6
 
   if (nomeError.value || cognomeError.value || emailError.value || passwordError.value) return
 
-  // Placeholder: nessuna persistenza, nessun database.
-  registerInfo.value = true
+  isLoading.value = true
+  registerInfo.value = false
+  registerError.value = false
+  registerErrorText.value = ''
+
+  axios.post('/api/register', {
+    email: emailVal,
+    password: passwordVal,
+    name: nomeVal,
+    surname: cognomeVal,
+  })
+    .then(response => {
+      if (response.data === true) {
+        registerInfo.value = true
+        setTimeout(() => {
+          router.push('/')
+        }, 900)
+        return
+      }
+
+      registerError.value = true
+      registerErrorText.value = 'Email gia\' registrata.'
+    })
+    .catch(error => {
+      registerError.value = true
+      if (error?.response?.status === 409) {
+        registerErrorText.value = 'Email gia\' registrata.'
+      } else if (error?.response?.status === 400) {
+        registerErrorText.value = 'Compila correttamente tutti i campi.'
+      } else {
+        registerErrorText.value = 'Errore durante la registrazione. Riprova.'
+      }
+    })
+    .finally(() => {
+      isLoading.value = false
+    })
 }
 
 function togglePassword() {
@@ -186,21 +224,27 @@ function togglePassword() {
                 </svg>
               </button>
             </div>
-            <p v-show="passwordError" class="text-red-500 text-xs mt-1.5">La password e' obbligatoria.</p>
+            <p v-show="passwordError" class="text-red-500 text-xs mt-1.5">La password deve avere almeno 6 caratteri.</p>
           </div>
 
-          <div v-show="registerInfo" class="mb-5 px-4 py-3 rounded-lg bg-amber-50 border border-amber-100 text-amber-600 text-sm">
-            Registrazione non attiva.
+          <div v-show="registerInfo" class="mb-5 px-4 py-3 rounded-lg bg-green-50 border border-green-100 text-green-700 text-sm">
+            Registrazione completata. Reindirizzamento al login...
+          </div>
+
+          <div v-show="registerError" class="mb-5 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm">
+            {{ registerErrorText }}
           </div>
 
           <div class="anim-fade-up delay-6">
             <button
               type="submit"
+              :disabled="isLoading"
               class="w-full py-2.5 px-6 rounded-lg bg-brand-500 hover:bg-brand-600
-                     text-white font-semibold text-sm
-                     transition-all duration-150 active:scale-[0.99]"
+                      text-white font-semibold text-sm
+                      transition-all duration-150 active:scale-[0.99]
+                      disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Registrati
+              {{ isLoading ? 'Registrazione...' : 'Registrati' }}
             </button>
           </div>
         </form>
