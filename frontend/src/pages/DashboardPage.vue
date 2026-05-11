@@ -28,6 +28,7 @@ import BadgePriorita from '../components/BadgePriorita.vue'
 
 const issues = []
 
+let nIssues = 0;
 
 function getUtente() {
   const raw = sessionStorage.getItem('bb_utente')
@@ -189,10 +190,10 @@ function submitSegnalazione() {
               <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
             </svg>
             <!-- Badge numerico — nascosto di default (come nell'originale) -->
-            <span class="hidden absolute top-1 right-1 w-4 h-4 rounded-full bg-red-500
+            <span v-if="nIssues > 0" class="absolute top-1 right-1 w-4 h-4 rounded-full bg-red-500
                          text-white text-[9px] font-mono font-bold
                          flex items-center justify-center">
-              3
+              {{ nIssues }}
             </span>
           </button>
 

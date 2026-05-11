@@ -5,7 +5,8 @@ import org.springframework.stereotype.Service;
 
 import bugboard.model.Issue;
 import bugboard.repository.IssueRepository;
-
+import bugboard.repository.UtenteRepository;
+import bugboard.model.Utente;
 import java.util.List;
 
 @Service
@@ -13,6 +14,8 @@ public class IssueService {
 
     @Autowired
     private IssueRepository issueRepository;
+    @Autowired
+    private UtenteRepository utenteRepository;
 
     public List<Issue> getAllIssues() {
         return issueRepository.findAll();
@@ -21,4 +24,23 @@ public class IssueService {
     public Issue saveIssue(Issue issue) {
         return issueRepository.save(issue);
     }
+
+    public boolean assignIssueToUser(int issueId, String userEmail, String adminEmail) {
+        Issue issue = issueRepository.findById(issueId).orElse(null);
+        Utente user = utenteRepository.findByEmail(userEmail).orElse(null);
+        Utente admin = utenteRepository.findByEmail(adminEmail).orElse(null);
+        if (issue == null) {
+            return false; // Issue non trovato
+        }
+        if (user == null) {
+            return false; // User non trovato
+        }
+        if (admin == null) {
+            return false; // Admin non trovato
+        }
+        issue.setAssegnatoA(user);
+        issue.setAssegnatoDa(admin);
+        return true;
+    }
+
 }
