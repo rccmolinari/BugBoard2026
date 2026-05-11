@@ -18,7 +18,7 @@ public interface IssueRepository extends JpaRepository<Issue, Integer> {
     List<Issue> findByAssegnatarioId(Integer idAssegnatario);
 
     // Trova tutte le issue assegnate a un utente specifico usando l'ID dal dump
-    List<Issue> findByAssegnatoA(Integer assegnatoA);
+    List<Issue> findByAssegnatoAId(Integer assegnatoAId);
 
     // Trova tutte le issue con un certo stato
     List<Issue> findByStato(Issue.StatoIssue stato);

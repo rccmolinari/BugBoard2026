@@ -13,6 +13,8 @@ public interface UtenteRepository extends JpaRepository<Utente, Integer> {
     
     // Trova un utente specifico in base all'email
     Optional<Utente> findByEmail(String email);
+
+    Optional<Utente> findById(Integer id);
     
    
     // Trova tutti gli utenti in base al ruolo

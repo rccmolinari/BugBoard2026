@@ -1,5 +1,8 @@
 package bugboard.service;
 
+import org.springframework.stereotype.Service;
+
+@Service
 public class NotifyUIService implements NotifyService {
     @Override
     public void sendNotification(String message) {

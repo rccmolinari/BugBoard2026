@@ -18,17 +18,13 @@ public class AuthService {
     @Autowired
     private UtenteRepository utenteRepository;
 
-    @Autowired
-    private NotifyService notifyService;
-
     
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     /**
      * Autentica un utente basandosi su email e password.
      * 
-     * @param email email dell'utente
-     * @param password password dell'utente (plain text)
+     * @param request payload di login
      * @return AuthResponse con id, nome, ruolo se autentico, altrimenti null
      */
     public AuthResponse login(LoginRequest request) {

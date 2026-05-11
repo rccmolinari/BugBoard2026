@@ -23,18 +23,12 @@ public class TestController {
     // Login: prende email/password dal body e torna i dati utente per la sessione frontend.
     @PostMapping("/login")
     public AuthResponse login(@RequestBody LoginRequest request) {
-        String email = request.getEmail();
-        String password = request.getPassword();
-        return authService.login(email, password);
+        return authService.login(request);
     }
 
     // Register: crea l'utente e torna true/false in base all'esito.
     @PostMapping("/register")
     public boolean register(@RequestBody RegisterRequest request) {
-        String email = request.getEmail();
-        String password = request.getPassword();
-        String name = request.getName();
-        String surname = request.getSurname();
-        return authService.register(email, password, name, surname);
+        return authService.register(request);
     }
 }

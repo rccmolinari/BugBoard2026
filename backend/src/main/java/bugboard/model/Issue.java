@@ -4,7 +4,10 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
+
+import org.hibernate.annotations.JdbcType;
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 import org.hibernate.type.SqlTypes;
 import java.time.LocalDateTime;
 
@@ -30,13 +33,15 @@ public class Issue {
     @Column(length = 500)
     private String immagine; // Mappa 'immagine character varying(500)'
 
+
     @Enumerated(EnumType.STRING)
-    @JdbcTypeCode(SqlTypes.OTHER) // Assicura che l'ENUM sia trattato come tipo personalizzato
+    @JdbcType(PostgreSQLEnumJdbcType.class)
     @Column(nullable = false, columnDefinition = "issuetipo")
     private TipoIssue tipo;
 
+
     @Enumerated(EnumType.STRING)
-    @JdbcTypeCode(SqlTypes.OTHER) // Assicura che l'ENUM sia trattato come tipo personalizzato
+    @JdbcType(PostgreSQLEnumJdbcType.class)
     @Column(nullable = false, columnDefinition = "issuestato")
     private StatoIssue stato = StatoIssue.TODO;
 
@@ -61,7 +66,7 @@ public class Issue {
     private Utente assegnatario;
 
     @ManyToOne
-    @JoinColumn(name = "assegnatoA")
+    @JoinColumn(name = "assegnato_a")
     private Utente assegnatoA;
 
     // Gli Enum devono corrispondere esattamente al dump
