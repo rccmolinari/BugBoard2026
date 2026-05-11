@@ -3,17 +3,21 @@ package bugboard.model;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.util.List;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 
 import org.hibernate.annotations.JdbcType;
 import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import java.util.List;
 
 @Entity
 @Table(name = "utente", schema = "public")
 @Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
+
 public class Utente {
 
     @Id
