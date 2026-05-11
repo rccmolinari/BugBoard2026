@@ -1,7 +1,9 @@
 package bugboard.model;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.util.List;
 
 import org.hibernate.annotations.JdbcType;
@@ -10,7 +12,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
 @Table(name = "utente", schema = "public")
-@Data
+@Getter
+@Setter
 public class Utente {
 
     @Id
@@ -39,8 +42,7 @@ public class Utente {
 
     @JsonIgnore
     @OneToMany(mappedBy = "assegnatario")
-    private List<Issue> issuesAssegnatario;
-
+    private List<Issue> issuesAssegnate;
     @JsonIgnore
     @OneToMany(mappedBy = "assegnatoA")
     private List<Issue> issuesAssegnatoA;

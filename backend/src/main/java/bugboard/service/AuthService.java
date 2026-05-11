@@ -5,6 +5,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import bugboard.dto.AuthResponse;
+import bugboard.dto.LoginRequest;
+import bugboard.dto.RegisterRequest;
 import bugboard.model.Utente;
 import bugboard.repository.UtenteRepository;
 
@@ -16,6 +18,10 @@ public class AuthService {
     @Autowired
     private UtenteRepository utenteRepository;
 
+    @Autowired
+    private NotifyService notifyService;
+
+    
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     /**
@@ -25,8 +31,8 @@ public class AuthService {
      * @param password password dell'utente (plain text)
      * @return AuthResponse con id, nome, ruolo se autentico, altrimenti null
      */
-    public AuthResponse login(String email, String password) {
-        Optional<Utente> utente = utenteRepository.findByEmail(email);
+    public AuthResponse login(LoginRequest request) {
+        Optional<Utente> utente = utenteRepository.findByEmail(request.getEmail());
 
         if (utente.isEmpty()) {
             return null;
@@ -34,7 +40,7 @@ public class AuthService {
 
         Utente u = utente.get();
 
-        if (!passwordEncoder.matches(password, u.getPassword())) {
+        if (!passwordEncoder.matches(request.getPassword(), u.getPassword())) {
             return null;
         }
 
@@ -44,6 +50,7 @@ public class AuthService {
             ruolo = "normal";
         }
 
+       
         return new AuthResponse(
             u.getId(),
             u.getName() + " " + u.getSurname(),
@@ -57,19 +64,22 @@ public class AuthService {
      * 
      * @return true se registrazione riuscita, false se email già esiste
      */
-    public boolean register(String email, String password, String name, String surname) {
-        if (utenteRepository.findByEmail(email).isPresent()) {
-            return false;
+    
+    // notifica errore registrazione per colpa dell'email già esistente
+    public boolean register(RegisterRequest request) {
+        if (utenteRepository.findByEmail(request.getEmail()).isPresent()) { 
+          return false;
         }
 
         Utente nuovo = new Utente();
-        nuovo.setEmail(email);
-        nuovo.setPassword(passwordEncoder.encode(password)); 
-        nuovo.setName(name);
-        nuovo.setSurname(surname);
+        nuovo.setEmail(request.getEmail());
+        nuovo.setPassword(passwordEncoder.encode(request.getPassword())); 
+        nuovo.setName(request.getName());
+        nuovo.setSurname(request.getSurname());
         nuovo.setRole(Utente.Role.USER);
 
         utenteRepository.save(nuovo);
+        
         return true;
     }
 }

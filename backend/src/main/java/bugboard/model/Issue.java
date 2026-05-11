@@ -7,8 +7,6 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import java.time.LocalDateTime;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "issue", schema = "public")
@@ -63,9 +61,10 @@ public class Issue {
     private Utente assegnatario;
 
     @ManyToOne
-    @JoinColumn(name = "assegnato_a") // Questo deve corrispondere al nome nel DB
+    @JoinColumn(name = "assegnatoA")
     private Utente assegnatoA;
 
+    // Gli Enum devono corrispondere esattamente al dump
     public enum StatoIssue { TODO, IN_PROGRESS, DONE }
     public enum TipoIssue { QUESTION, BUG, DOCUMENTATION, FEATURE }
 }
