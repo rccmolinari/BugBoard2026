@@ -29,7 +29,7 @@ import axios from 'axios'
 
 const issues = ref([])
 
-axios.get('/api/issues/user/' + getUtente()?.id)
+axios.get('/api/issues/user/' + getUtente()?.sessionId)
   .then(response => {
     issues.value = response.data
   })
@@ -44,7 +44,7 @@ function getUtente() {
   return raw ? JSON.parse(raw) : null
 }
 
-const utente = getUtente() ?? { nome: '', ruolo: '', id: null }
+const utente = getUtente() ?? { nome: '', sessionId: null }
 const router = useRouter()
 
 

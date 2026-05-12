@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor //genera costruttore con tutti i campi
 
 public class AuthResponse {
-    private Integer id;
-    private String nome;
-    private String ruolo;
+        private String sessionId;
+        private String nome;
+        private String ruolo;
 }

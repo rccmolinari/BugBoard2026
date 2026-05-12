@@ -5,6 +5,7 @@ import org.springframework.web.bind.annotation.*;
 import  bugboard.service.IssueService;
 import bugboard.model.Issue;
 import java.util.List;
+import bugboard.dto.AssignIssueRequest;
 /*
  * Controller per la gestione delle issue.
  */
@@ -16,8 +17,14 @@ public class IssueController {
     @Autowired
     private IssueService issueService;
 
-   @GetMapping("/user/{userId}")
-    public List<Issue> getIssuesByUserId(@PathVariable int userId) {
-        return issueService.findByAssegnatoAId(userId);
+   @GetMapping("/user/{SID}")
+    public List<Issue> getIssuesByUserId(@PathVariable int SID) {
+        return issueService.findByAssegnatoAId(SID);
     }
+
+    @PostMapping("/assign")
+    public boolean assignIssueToUser(@RequestBody AssignIssueRequest request) {
+        return issueService.assignIssueToUser(request.getIssueId(), request.getUserId(), request.getAdminId());
+    }
+
 }

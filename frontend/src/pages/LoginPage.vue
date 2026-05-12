@@ -20,18 +20,25 @@ const isLoading     = ref(false)
 
 function handleLogin(event) {
   event.preventDefault()
-  //use axios
+
   axios.post('/api/auth/login', {
     email: email.value,
     password: password.value
   })
     .then(response => {
-      const { id, ruolo, nome } = response.data
-      sessionStorage.setItem('bb_utente', JSON.stringify({ id, email: email.value, ruolo, nome }))
 
-      const redirectPath = typeof route.query.redirect === 'string' && route.query.redirect.startsWith('/')
-        ? route.query.redirect
-        : null
+      const { sessionId, nome, ruolo } = response.data
+
+      sessionStorage.setItem(
+        'bb_utente',
+        JSON.stringify({ sessionId, nome})
+      )
+
+      const redirectPath =
+        typeof route.query.redirect === 'string' &&
+        route.query.redirect.startsWith('/')
+          ? route.query.redirect
+          : null
 
       if (redirectPath) {
         router.push(redirectPath)
@@ -49,7 +56,6 @@ function handleLogin(event) {
       loginError.value = true
       router.push('/')
     })
-
 }
 
 

@@ -50,8 +50,9 @@ public class IssueService {
         return issueRepository.findByCreatoreId(creatoreId);
     }
 
-    public List<Issue> findByAssegnatoAId(Integer userid) {
-        return issueRepository.findByAssegnatoAId(userid);
+    public List<Issue> findByAssegnatoAId(Integer SID) {
+        Utente user = utenteRepository.findById(SID).orElse(null);
+        return issueRepository.findByAssegnatoAId(user.getId());
     }
 
 }

@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import bugboard.dto.AuthResponse;
 import bugboard.dto.LoginRequest;
 import bugboard.dto.RegisterRequest;
+import bugboard.model.Sessione;
 import bugboard.model.Utente;
 import bugboard.repository.UtenteRepository;
 
@@ -17,8 +18,9 @@ public class AuthService {
 
     @Autowired
     private UtenteRepository utenteRepository;
+    @Autowired
+    private SessioneService sessioneService;
 
-    
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     /**
@@ -46,12 +48,15 @@ public class AuthService {
             ruolo = "normal";
         }
 
-       
+
+        Sessione s = sessioneService.createSession(u);
+
         return new AuthResponse(
-            u.getId(),
+            s.getSid().toString(),
             u.getName() + " " + u.getSurname(),
             ruolo
         );
+
     }
 
     /**
