@@ -2,12 +2,11 @@ package bugboard.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
+import org.springframework.transaction.annotation.Transactional;
 import bugboard.model.Issue;
 import bugboard.repository.IssueRepository;
-import bugboard.repository.UtenteRepository;
-import jakarta.transaction.Transactional;
 import bugboard.model.Utente;
+import bugboard.repository.UtenteRepository;
 import java.util.List;
 
 @Service
@@ -15,6 +14,7 @@ public class IssueService {
 
     @Autowired
     private IssueRepository issueRepository;
+    
     @Autowired
     private UtenteRepository utenteRepository;
 
@@ -30,6 +30,7 @@ public class IssueService {
         Issue issue = issueRepository.findById(issueId).orElse(null);
         Utente user = utenteRepository.findByEmail(userEmail).orElse(null);
         Utente admin = utenteRepository.findByEmail(adminEmail).orElse(null);
+        
         if (issue == null) {
             return false; // Issue non trovato
         }
@@ -39,6 +40,7 @@ public class IssueService {
         if (admin == null) {
             return false; // Admin non trovato
         }
+        
         issue.setAssegnatoA(user);
         issue.setAssegnatario(admin);
         issueRepository.save(issue);
