@@ -46,6 +46,9 @@ public class IssueService {
         issueRepository.save(issue);
         return true;
     }
+    public List<Issue> getIssuesByCreatoreId(Integer creatoreId) {
+        return issueRepository.findByCreatoreId(creatoreId);
+    }
 
     public List<Issue> findByAssegnatoAId(Integer userid) {
         return issueRepository.findByAssegnatoAId(userid);

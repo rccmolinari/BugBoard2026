@@ -10,7 +10,7 @@ import bugboard.dto.RegisterRequest;
 
 /*
  * Controller auth minimale.
- * Espone login/register sotto /api e passa la palla al service.
+ * Espone login/register sotto /auth e passa la palla al service.
  */
 @RestController
 @RequestMapping("/api/auth")

@@ -7,9 +7,6 @@ import java.util.List;
 
 @Repository
 public interface NotificaRepository extends JpaRepository<Notifica, Integer> {
-    
-    // conta tutte le notifiche non lette per un user specifico
-    long countByAssegnatoAIdAndLettaFalse(Integer assegnatoA);
 
     // trova tutte le notifiche per un user specifico
     List<Notifica> findByAssegnatoAId(Integer assegnatoA);
@@ -19,4 +16,9 @@ public interface NotificaRepository extends JpaRepository<Notifica, Integer> {
 
     // trova tutte le notifiche per un issue specifico
     List<Notifica> findByIssueId(Integer issue);
+    
+    // conta tutte le notifiche non lette per un user specifico
+    long countByAssegnatoAIdAndLettaFalse(Integer assegnatoA);
+
+
 }
