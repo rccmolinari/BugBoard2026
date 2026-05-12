@@ -32,10 +32,10 @@ public class Notifica {
     @JoinColumn(name = "idassegnato_a", nullable = false)
     private Utente assegnatoA;
 
-    @Column(name = "letta", nullable = false)
+    @Column(name = "letta", nullable = false, columnDefinition = "boolean default false")
     private boolean letta = false;
     
-    @Column(name = "datacreazione", nullable = false)
+    @Column(name = "datacreazione", nullable = false, columnDefinition = "timestamp default current_timestamp")
     private LocalDateTime dataCreazione = LocalDateTime.now();
     
 }
