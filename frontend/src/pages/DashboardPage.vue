@@ -27,25 +27,37 @@ import BadgePriorita from '../components/BadgePriorita.vue'
 import axios from 'axios'
 
 
-const issues = ref([])
-
-axios.get('/api/issues/user/' + getUtente()?.sessionId)
-  .then(response => {
-    issues.value = response.data
-  })
-  .catch(error => {
-    console.error('Errore durante il caricamento delle issue:', error)
-  })
-
-let nIssues = 0;
-
 function getUtente() {
   const raw = sessionStorage.getItem('bb_utente')
-  return raw ? JSON.parse(raw) : null
+  if (!raw) return null
+
+  try {
+    return JSON.parse(raw)
+  } catch (error) {
+    console.error('Sessione utente non valida in sessionStorage:', error)
+    sessionStorage.removeItem('bb_utente')
+    return null
+  }
 }
 
-const utente = getUtente() ?? { nome: '', sessionId: null }
 const router = useRouter()
+const route = useRoute()
+const utente = getUtente() ?? { nome: '', sessionId: null }
+const issues = ref([])
+
+if (utente.sessionId) {
+  axios.get('/api/issues/user/' + utente.sessionId)
+    .then(response => {
+      issues.value = response.data
+    })
+    .catch(error => {
+      console.error('Errore durante il caricamento delle issue:', error)
+    })
+} else {
+  router.replace('/')
+}
+
+let nIssues = 0;
 
 
 /* ══════════════════════════════════════════════════════════════
@@ -57,7 +69,6 @@ const filtroStato = ref('')
 const sidebarAperta = ref(false)
 const popupSegnalazioneAperto = ref(false)
 const testoSegnalazione = ref('')
-const route = useRoute()
 
 
 /* ══════════════════════════════════════════════════════════════
@@ -131,8 +142,22 @@ function aprireSidebar()  { sidebarAperta.value = true  }
 function chiudiSidebar() { sidebarAperta.value = false }
 
 function logout() {
-  sessionStorage.removeItem('bb_utente')
-  router.replace('/')
+  const sessionId = utente?.sessionId
+
+  if (!sessionId) {
+    sessionStorage.removeItem('bb_utente')
+    router.replace('/')
+    return
+  }
+
+  axios.post('/api/auth/logout', { sessionId })
+    .catch(error => {
+      console.error('Errore durante il logout:', error)
+    })
+    .finally(() => {
+      sessionStorage.removeItem('bb_utente')
+      router.replace('/')
+    })
 }
 
 function apriPopupSegnalazione() {

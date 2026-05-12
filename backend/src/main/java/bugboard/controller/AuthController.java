@@ -1,12 +1,17 @@
 package bugboard.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import bugboard.dto.AuthResponse;
 import bugboard.dto.LoginRequest;
+import bugboard.dto.LogoutRequest;
 import bugboard.service.AuthService;
 import bugboard.dto.RegisterRequest;
+import bugboard.service.SessioneService;
 
 /*
  * Controller auth minimale.
@@ -20,15 +25,34 @@ public class AuthController {
     @Autowired
     private AuthService authService;
 
+    @Autowired
+    private SessioneService sessioneService;
+
     // Login: prende email/password dal body e torna i dati utente per la sessione frontend.
     @PostMapping("/login")
-    public AuthResponse login(@RequestBody LoginRequest request) {
-        return authService.login(request);
+    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
+        AuthResponse response = authService.login(request);
+
+        if (response == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Credenziali non valide");
+        }
+
+        return ResponseEntity.ok(response);
     }
 
     // Register: crea l'utente e torna true/false in base all'esito.
     @PostMapping("/register")
     public boolean register(@RequestBody RegisterRequest request) {
         return authService.register(request);
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(@RequestBody LogoutRequest request) {
+        if (request == null || request.getSessionId() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "SessionId mancante");
+        }
+
+        sessioneService.deleteSession(request.getSessionId());
+        return ResponseEntity.noContent().build();
     }
 }

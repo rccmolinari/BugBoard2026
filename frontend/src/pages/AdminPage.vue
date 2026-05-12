@@ -10,13 +10,22 @@ import StatCard from '../components/StatCard.vue'
 import BadgeTipo from '../components/BadgeTipo.vue'
 import BadgeStato from '../components/BadgeStato.vue'
 import BadgePriorita from '../components/BadgePriorita.vue'
+import axios from 'axios'
 
 function getUtente() {
   const raw = sessionStorage.getItem('bb_utente')
-  return raw ? JSON.parse(raw) : null
+  if (!raw) return null
+
+  try {
+    return JSON.parse(raw)
+  } catch (error) {
+    console.error('Sessione utente non valida in sessionStorage:', error)
+    sessionStorage.removeItem('bb_utente')
+    return null
+  }
 }
 
-const utente = getUtente() ?? { nome: '', ruolo: '' }
+const utente = getUtente() ?? { nome: '', sessionId: null }
 const router = useRouter()
 
 const issues = []
@@ -82,8 +91,22 @@ function aprireSidebar() { sidebarAperta.value = true }
 function chiudiSidebar() { sidebarAperta.value = false }
 
 function logout() {
-  sessionStorage.removeItem('bb_utente')
-  router.replace('/')
+  const sessionId = utente?.sessionId
+
+  if (!sessionId) {
+    sessionStorage.removeItem('bb_utente')
+    router.replace('/')
+    return
+  }
+
+  axios.post('/api/auth/logout', { sessionId })
+    .catch(error => {
+      console.error('Errore durante il logout:', error)
+    })
+    .finally(() => {
+      sessionStorage.removeItem('bb_utente')
+      router.replace('/')
+    })
 }
 </script>
 

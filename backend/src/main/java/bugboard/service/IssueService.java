@@ -7,7 +7,9 @@ import bugboard.model.Issue;
 import bugboard.repository.IssueRepository;
 import bugboard.model.Utente;
 import bugboard.repository.UtenteRepository;
+import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class IssueService {
@@ -17,6 +19,9 @@ public class IssueService {
     
     @Autowired
     private UtenteRepository utenteRepository;
+
+    @Autowired
+    private SessioneService sessioneService;
 
     public List<Issue> getAllIssues() {
         return issueRepository.findAll();
@@ -50,8 +55,11 @@ public class IssueService {
         return issueRepository.findByCreatoreId(creatoreId);
     }
 
-    public List<Issue> findByAssegnatoAId(Integer SID) {
-        Utente user = utenteRepository.findById(SID).orElse(null);
+    public List<Issue> findBySessionId(UUID sid) {
+        Utente user = sessioneService.getUtenteBySessionId(sid);
+        if (user == null) {
+            return Collections.emptyList();
+        }
         return issueRepository.findByAssegnatoAId(user.getId());
     }
 

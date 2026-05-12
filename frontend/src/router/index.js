@@ -57,7 +57,21 @@ function getUtenteFromStorage() {
   if (!raw) return null
 
   try {
-    return JSON.parse(raw)
+    const utente = JSON.parse(raw)
+    const sessioneValida =
+      typeof utente?.sessionId === 'string' &&
+      utente.sessionId.length > 0 &&
+      typeof utente?.nome === 'string' &&
+      utente.nome.length > 0 &&
+      typeof utente?.ruolo === 'string' &&
+      utente.ruolo.length > 0
+
+    if (!sessioneValida) {
+      sessionStorage.removeItem('bb_utente')
+      return null
+    }
+
+    return utente
   } catch (error) {
     console.error('Sessione utente non valida in sessionStorage:', error)
     sessionStorage.removeItem('bb_utente')

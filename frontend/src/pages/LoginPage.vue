@@ -31,19 +31,8 @@ function handleLogin(event) {
 
       sessionStorage.setItem(
         'bb_utente',
-        JSON.stringify({ sessionId, nome})
+        JSON.stringify({ sessionId, nome, ruolo })
       )
-
-      const redirectPath =
-        typeof route.query.redirect === 'string' &&
-        route.query.redirect.startsWith('/')
-          ? route.query.redirect
-          : null
-
-      if (redirectPath) {
-        router.push(redirectPath)
-        return
-      }
 
       if (ruolo === 'admin') {
         router.push('/admin')
