@@ -9,14 +9,14 @@ import java.util.List;
 public interface NotificaRepository extends JpaRepository<Notifica, Integer> {
     
     // conta tutte le notifiche non lette per un user specifico
-    long countByAssegnatoAAndLettaFalse(Integer assegnatoA);
+    long countByAssegnatoAIdAndLettaFalse(Integer assegnatoA);
 
     // trova tutte le notifiche per un user specifico
-    List<Notifica> findByAssegnatoA(Integer assegnatoA);
+    List<Notifica> findByAssegnatoAId(Integer assegnatoA);
 
     // trova tutte le notifiche assegnate da un admin specifico
-    List<Notifica> findByAssegnatario(Integer assegnatario);
+    List<Notifica> findByAssegnatarioId(Integer assegnatario);
 
     // trova tutte le notifiche per un issue specifico
-    List<Notifica> findByIssue(Integer issue);
+    List<Notifica> findByIssueId(Integer issue);
 }
