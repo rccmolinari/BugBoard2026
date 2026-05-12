@@ -44,7 +44,7 @@ function handleRegister(event) {
   registerError.value = false
   registerErrorText.value = ''
 
-  axios.post('/api/register', {
+  axios.post('/api/auth/register', {
     email: emailVal,
     password: passwordVal,
     name: nomeVal,

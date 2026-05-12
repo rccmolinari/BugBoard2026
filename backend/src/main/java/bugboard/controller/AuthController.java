@@ -10,11 +10,11 @@ import bugboard.dto.RegisterRequest;
 
 /*
  * Controller auth minimale.
- * Espone login/register sotto /api e passa la palla al service.
+ * Espone login/register sotto /auth e passa la palla al service.
  */
 @RestController
-@RequestMapping("/api")
-public class TestController {
+@RequestMapping("/api/auth")
+public class AuthController {
 
     // Service con la logica vera di autenticazione/registrazione.
     @Autowired

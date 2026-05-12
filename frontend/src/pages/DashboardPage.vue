@@ -25,8 +25,16 @@ import BadgeTipo from '../components/BadgeTipo.vue'
 import BadgeStato from '../components/BadgeStato.vue'
 import BadgePriorita from '../components/BadgePriorita.vue'
 
+let issues = ref([])
 
-const issues = []
+axios.get('/issues')
+  .then(response => {
+    issues.value = response.data
+  })
+  .catch(error => {
+    console.error('Errore nel recupero delle issue:', error)
+  })
+
 
 let nIssues = 0;
 

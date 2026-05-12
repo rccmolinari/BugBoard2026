@@ -21,7 +21,7 @@ const isLoading     = ref(false)
 function handleLogin(event) {
   event.preventDefault()
   //use axios
-  axios.post('/api/login', {
+  axios.post('/api/auth/login', {
     email: email.value,
     password: password.value
   })

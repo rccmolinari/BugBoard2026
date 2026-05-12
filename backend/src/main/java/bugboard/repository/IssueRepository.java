@@ -35,7 +35,9 @@ public interface IssueRepository extends JpaRepository<Issue, Integer> {
     // Trova le issue in base alla data di scadenza
     List<Issue> findByDataScadenzaBefore(LocalDateTime dataScadenza);
 
+    List<Issue> findByTipo(Issue.TipoIssue tipo);
     // Cerca tutte le issue in base ad una etichetta specifica
     @Query(value = "SELECT * FROM issue WHERE ?1= ANY(etichetta)", nativeQuery = true)
     List<Issue> findBySpecificEtichetta(String etichetta);
+
 }
