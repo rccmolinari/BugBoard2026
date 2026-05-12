@@ -21,13 +21,13 @@ const isLoading     = ref(false)
 function handleLogin(event) {
   event.preventDefault()
   //use axios
-  axios.post('/api/login', {
+  axios.post('/api/auth/login', {
     email: email.value,
     password: password.value
   })
     .then(response => {
-      const { ruolo, nome } = response.data
-      sessionStorage.setItem('bb_utente', JSON.stringify({ email: email.value, ruolo, nome }))
+      const { id, ruolo, nome } = response.data
+      sessionStorage.setItem('bb_utente', JSON.stringify({ id, email: email.value, ruolo, nome }))
 
       const redirectPath = typeof route.query.redirect === 'string' && route.query.redirect.startsWith('/')
         ? route.query.redirect

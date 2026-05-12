@@ -38,4 +38,5 @@ public interface IssueRepository extends JpaRepository<Issue, Integer> {
     // Cerca tutte le issue in base ad una etichetta specifica
     @Query(value = "SELECT * FROM issue WHERE ?1= ANY(etichetta)", nativeQuery = true)
     List<Issue> findBySpecificEtichetta(String etichetta);
+
 }

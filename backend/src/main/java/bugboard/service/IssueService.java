@@ -26,10 +26,10 @@ public class IssueService {
         return issueRepository.save(issue);
     }
     @Transactional
-    public boolean assignIssueToUser(int issueId, String userEmail, String adminEmail) {
+    public boolean assignIssueToUser(int issueId, int userId, int adminid) {
         Issue issue = issueRepository.findById(issueId).orElse(null);
-        Utente user = utenteRepository.findByEmail(userEmail).orElse(null);
-        Utente admin = utenteRepository.findByEmail(adminEmail).orElse(null);
+        Utente user = utenteRepository.findById(userId).orElse(null);
+        Utente admin = utenteRepository.findById(adminid).orElse(null);
         
         if (issue == null) {
             return false; // Issue non trovato
@@ -45,6 +45,10 @@ public class IssueService {
         issue.setAssegnatario(admin);
         issueRepository.save(issue);
         return true;
+    }
+
+    public List<Issue> findByAssegnatoAId(Integer userid) {
+        return issueRepository.findByAssegnatoAId(userid);
     }
 
 }

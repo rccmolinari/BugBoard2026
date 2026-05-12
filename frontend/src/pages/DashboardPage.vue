@@ -24,9 +24,18 @@ import StatCard from '../components/StatCard.vue'
 import BadgeTipo from '../components/BadgeTipo.vue'
 import BadgeStato from '../components/BadgeStato.vue'
 import BadgePriorita from '../components/BadgePriorita.vue'
+import axios from 'axios'
 
 
-const issues = []
+const issues = ref([])
+
+axios.get('/api/issues/user/' + getUtente()?.id)
+  .then(response => {
+    issues.value = response.data
+  })
+  .catch(error => {
+    console.error('Errore durante il caricamento delle issue:', error)
+  })
 
 let nIssues = 0;
 
@@ -35,7 +44,7 @@ function getUtente() {
   return raw ? JSON.parse(raw) : null
 }
 
-const utente = getUtente() ?? { nome: '', ruolo: '' }
+const utente = getUtente() ?? { nome: '', ruolo: '', id: null }
 const router = useRouter()
 
 
@@ -54,10 +63,10 @@ const route = useRoute()
 /* ══════════════════════════════════════════════════════════════
    COMPUTED — sostituiscono aggiornaStats() e renderTabella()
    ══════════════════════════════════════════════════════════════ */
-const statTotale  = computed(() => issues.length)
-const statTodo    = computed(() => issues.filter(i => i.stato === 'todo').length)
-const statProgress = computed(() => issues.filter(i => i.stato === 'in-progress').length)
-const statCritici = computed(() => issues.filter(i =>
+const statTotale  = computed(() => issues.value.length)
+const statTodo    = computed(() => issues.value.filter(i => i.stato === 'todo').length)
+const statProgress = computed(() => issues.value.filter(i => i.stato === 'in-progress').length)
+const statCritici = computed(() => issues.value.filter(i =>
   i.priorita === 'critical' &&
   i.stato !== 'done' &&
   i.stato !== 'closed'
@@ -65,7 +74,7 @@ const statCritici = computed(() => issues.filter(i =>
 
 const issueFiltrate = computed(() => {
   const q = cerca.value.toLowerCase()
-  return issues.filter(issue => {
+  return issues.value.filter(issue => {
     const matchTitolo = issue.titolo.toLowerCase().includes(q)
     const matchTipo   = !filtroTipo.value  || issue.tipo  === filtroTipo.value
     const matchStato  = !filtroStato.value || issue.stato === filtroStato.value
