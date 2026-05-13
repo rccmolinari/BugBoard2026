@@ -5,6 +5,7 @@ import bugboard.repository.SessioneRepository;
 import bugboard.model.Utente;
 import org.springframework.beans.factory.annotation.Autowired;
 import bugboard.model.Sessione;
+
 @Service
 public class SessioneService {
 
