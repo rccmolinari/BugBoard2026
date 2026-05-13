@@ -63,4 +63,14 @@ public class IssueService {
         return issueRepository.findByAssegnatoAId(user.getId());
     }
 
+    
+    @Transactional
+    public Issue CreateIssue(Issue issue, UUID sid){
+        Utente creatore = sessioneService.getUtenteBySessionId(sid);
+        if (creatore == null) {
+            return null; // Utente non trovato
+        }
+        issue.setCreatore(creatore);
+        return issueRepository.save(issue);
+    }
 }
