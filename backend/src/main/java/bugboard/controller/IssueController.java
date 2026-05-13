@@ -60,6 +60,11 @@ public ResponseEntity<Issue> createIssue(@PathVariable UUID sid, @RequestBody Cr
     return new ResponseEntity<Issue>(nuovaIssue, HttpStatus.CREATED);
 
 }
+
+    @GetMapping("{sid}")
+    public List<Issue> getAllIssues(@PathVariable UUID sid) {
+        return issueService.getAllIssues(sid);
+    }
           
 
 

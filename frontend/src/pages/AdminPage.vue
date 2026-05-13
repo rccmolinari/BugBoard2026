@@ -28,7 +28,21 @@ function getUtente() {
 const utente = getUtente() ?? { nome: '', sessionId: null }
 const router = useRouter()
 
-const issues = []
+const issues = ref([])
+
+if (utente.sessionId) {
+  axios.get('/api/issues/' + utente.sessionId)
+    .then(response => {
+      issues.value = response.data
+    })
+    .catch(error => {
+      console.error('Errore durante il caricamento delle issue:', error)
+    })
+} else {
+  router.replace('/')
+}
+
+
 
 const sidebarAperta = ref(false)
 const popupAssegnaAperto = ref(false)
@@ -46,13 +60,13 @@ const iniziali = computed(() => {
     .slice(0, 2)
 })
 
-const statTotale = computed(() => issues.length)
-const statTodo = computed(() => issues.filter(i => i.stato === 'todo').length)
-const statInCorso = computed(() => issues.filter(i => i.stato === 'in-progress').length)
-const statRisolte = computed(() => issues.filter(i => i.stato === 'done' || i.stato === 'closed').length)
+const statTotale = computed(() => issues.value.length)
+const statTodo = computed(() => issues.value.filter(i => i.stato === 'todo').length)
+const statInCorso = computed(() => issues.value.filter(i => i.stato === 'in-progress').length)
+const statRisolte = computed(() => issues.value.filter(i => i.stato === 'done' || i.stato === 'closed').length)
 
 const tutteIssue = computed(() => (
-  [...issues]
+  [...issues.value]
     .sort((a, b) => new Date(b.dataCreazione) - new Date(a.dataCreazione))
 ))
 
@@ -214,7 +228,7 @@ function logout() {
                     <th class="text-left px-4 py-3 text-[10px] font-mono text-ink-400 uppercase tracking-wider whitespace-nowrap">Priorità</th>
                     <th class="text-left px-4 py-3 text-[10px] font-mono text-ink-400 uppercase tracking-wider whitespace-nowrap">Stato</th>
                     <th class="text-left px-4 py-3 text-[10px] font-mono text-ink-400 uppercase tracking-wider whitespace-nowrap">Aggiunta da</th>
-                    <th class="text-left px-4 py-3 text-[10px] font-mono text-ink-400 uppercase tracking-wider whitespace-nowrap hidden lg:table-cell">Data</th>
+                    <th class="text-left px-4 py-3 text-[10px] font-mono text-ink-400 uppercase tracking-wider whitespace-nowrap hidden lg:table-cell">Data Scadenza</th>
                     <th class="px-4 py-3"></th>
                   </tr>
                 </thead>
@@ -236,10 +250,10 @@ function logout() {
                       <BadgeStato :stato="issue.stato" />
                     </td>
                     <td class="px-4 py-3.5 whitespace-nowrap">
-                      <span class="text-sm text-ink-600">{{ issue.aggiuntaDa }}</span>
+                      <span class="text-sm text-ink-600">{{ issue.creatore.email }}</span>
                     </td>
                     <td class="px-4 py-3.5 whitespace-nowrap hidden lg:table-cell">
-                      <span class="font-mono text-[12px] text-ink-400">{{ formattaData(issue.dataCreazione) }}</span>
+                      <span class="font-mono text-[12px] text-ink-400">{{ formattaData(issue.dataScadenza) }}</span>
                     </td>
                     <td class="px-4 py-3.5 text-right">
                       <button

@@ -3,8 +3,6 @@ package bugboard.dto;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import bugboard.model.Issue.TipoIssue;
-import bugboard.model.Issue.StatoIssue;
 
 
 
@@ -14,9 +12,9 @@ import bugboard.model.Issue.StatoIssue;
 public class CreateIssueRequest {
     private String titolo;
     private String descrizione;
-    private TipoIssue tipo; // "bug" o "feature"
+    private String tipo; // "bug" o "feature"
     private Integer priorita;
-    private StatoIssue stato; // controlla se va messa enum
+    private String stato; // controlla se va messa enum
     private String creatoreEmail; // Email dell'utente che ha creato l'issue
     
 }

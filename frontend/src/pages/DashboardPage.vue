@@ -67,8 +67,17 @@ const cerca = ref('')
 const filtroTipo = ref('')
 const filtroStato = ref('')
 const sidebarAperta = ref(false)
+// Popup segnalazione — form
 const popupSegnalazioneAperto = ref(false)
-const testoSegnalazione = ref('')
+const segnalazione = ref({
+  titolo: '',
+  descrizione: '',
+  tipo: '',
+  priorita: '',
+  stato: 'todo',
+})
+const erroreInvio = ref('')
+const invioInCorso = ref(false)
 
 
 /* ══════════════════════════════════════════════════════════════
@@ -168,10 +177,45 @@ function chiudiPopupSegnalazione() {
   popupSegnalazioneAperto.value = false
 }
 
-function submitSegnalazione() {
-  console.log('Segnalazione problema:', testoSegnalazione.value)
-  testoSegnalazione.value = ''
-  chiudiPopupSegnalazione()
+async function submitSegnalazione() {
+  erroreInvio.value = ''
+
+  if (!segnalazione.value.titolo.trim()) {
+    erroreInvio.value = 'Il titolo è obbligatorio.'
+    return
+  }
+  if (!segnalazione.value.tipo) {
+    erroreInvio.value = 'Seleziona un tipo.'
+    return
+  }
+  if (!segnalazione.value.priorita) {
+    erroreInvio.value = 'Seleziona una priorità.'
+    return
+  }
+
+  invioInCorso.value = true
+  try {
+    await axios.post('/api/issues/create/' + utente.sessionId, {
+      titolo:      segnalazione.value.titolo,
+      descrizione: segnalazione.value.descrizione,
+      tipo:        segnalazione.value.tipo,
+      priorita:    segnalazione.value.priorita,
+      stato:       segnalazione.value.stato,
+    })
+
+    // Ricarica la lista issue dopo la creazione
+    const response = await axios.get('/api/issues/user/' + utente.sessionId)
+    issues.value = response.data
+
+    // Reset e chiusura
+    segnalazione.value = { titolo: '', descrizione: '', tipo: '', priorita: '', stato: 'todo' }
+    chiudiPopupSegnalazione()
+  } catch (error) {
+    console.error('Errore durante la creazione dell\'issue:', error)
+    erroreInvio.value = 'Errore durante l\'invio. Riprova.'
+  } finally {
+    invioInCorso.value = false
+  }
 }
 </script>
 
@@ -500,43 +544,105 @@ function submitSegnalazione() {
       </main>
     </div>
 
-    <div
-      v-if="popupSegnalazioneAperto"
-      @click="chiudiPopupSegnalazione"
-      class="fixed inset-0 z-50 bg-ink-900/50 flex items-end sm:items-center justify-center p-0 sm:p-4"
-    >
-      <div
-        @click.stop
-        class="w-full max-w-lg h-full sm:h-auto sm:max-h-[85vh] rounded-none sm:rounded-xl bg-white border border-ink-100 shadow-xl p-5 space-y-4 overflow-y-auto"
-      >
-        <h3 class="font-display text-lg font-semibold text-ink-900">Segnala un problema</h3>
+<div
+  v-if="popupSegnalazioneAperto"
+  @click="chiudiPopupSegnalazione"
+  class="fixed inset-0 z-50 bg-ink-900/50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+>
+  <div
+    @click.stop
+    class="w-full max-w-lg h-full sm:h-auto sm:max-h-[85vh] rounded-none sm:rounded-xl
+           bg-white border border-ink-100 shadow-xl p-5 space-y-4 overflow-y-auto"
+  >
+    <h3 class="font-display text-lg font-semibold text-ink-900">Segnala un problema</h3>
 
-        <textarea
-          v-model="testoSegnalazione"
-          rows="5"
-          placeholder="Descrivi il problema..."
-          class="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm text-ink-800
-                 placeholder-ink-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
-                 resize-none"
-        ></textarea>
+    <!-- Titolo -->
+    <div class="space-y-1">
+      <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Titolo *</label>
+      <input
+        v-model="segnalazione.titolo"
+        type="text"
+        placeholder="Descrivi brevemente il problema…"
+        class="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm text-ink-800
+               placeholder-ink-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+      />
+    </div>
 
-        <div class="flex flex-col-reverse sm:flex-row justify-end gap-2">
-          <button
-            type="button"
-            @click="chiudiPopupSegnalazione"
-            class="px-3 py-2 rounded-lg text-sm font-medium text-ink-600 hover:bg-ink-50 transition-colors w-full sm:w-auto"
-          >
-            Annulla
-          </button>
-          <button
-            type="button"
-            @click="submitSegnalazione"
-            class="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-brand-500 hover:bg-brand-600 transition-colors w-full sm:w-auto"
-          >
-            Submit
-          </button>
-        </div>
+    <!-- Descrizione -->
+    <div class="space-y-1">
+      <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Descrizione</label>
+      <textarea
+        v-model="segnalazione.descrizione"
+        rows="4"
+        placeholder="Aggiungi dettagli, passi per riprodurre, screenshot…"
+        class="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm text-ink-800
+               placeholder-ink-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
+               resize-none"
+      ></textarea>
+    </div>
+
+    <!-- Tipo + Priorità -->
+    <div class="grid grid-cols-2 gap-3">
+      <div class="space-y-1">
+        <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Tipo *</label>
+        <select
+          v-model="segnalazione.tipo"
+          class="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm text-ink-700
+                 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 bg-white"
+        >
+          <option value="">Seleziona…</option>
+          <option value="bug">Bug</option>
+          <option value="feature">Feature</option>
+          <option value="question">Question</option>
+          <option value="documentation">Documentation</option>
+        </select>
+      </div>
+
+      <div class="space-y-1">
+        <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Priorità *</label>
+        <select
+          v-model="segnalazione.priorita"
+          class="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm text-ink-700
+                 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 bg-white"
+        >
+          <option value="">Seleziona…</option>
+          <option value="1">Low</option>
+          <option value="2">Medium</option>
+          <option value="3">High</option>
+          <option value="4">Critical</option>
+        </select>
       </div>
     </div>
+    <!-- Errore -->
+    <p v-if="erroreInvio" class="text-xs text-red-500 font-medium">{{ erroreInvio }}</p>
+
+    <!-- Azioni -->
+    <div class="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-1">
+      <button
+        type="button"
+        @click="chiudiPopupSegnalazione"
+        :disabled="invioInCorso"
+        class="px-3 py-2 rounded-lg text-sm font-medium text-ink-600
+               hover:bg-ink-50 transition-colors w-full sm:w-auto disabled:opacity-50"
+      >
+        Annulla
+      </button>
+      <button
+        type="button"
+        @click="submitSegnalazione"
+        :disabled="invioInCorso"
+        class="px-4 py-2 rounded-lg text-sm font-semibold text-white
+               bg-brand-500 hover:bg-brand-600 transition-colors w-full sm:w-auto
+               disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+      >
+        <svg v-if="invioInCorso" class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2">
+          <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+        </svg>
+        {{ invioInCorso ? 'Invio…' : 'Invia segnalazione' }}
+      </button>
+    </div>
+  </div>
+</div>
   </div>
 </template>

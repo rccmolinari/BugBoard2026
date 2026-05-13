@@ -11,7 +11,7 @@ import bugboard.dto.CreateIssueRequest;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
-
+import bugboard.model.Issue.*;
 @Service
 public class IssueService {
 
@@ -24,8 +24,12 @@ public class IssueService {
     @Autowired
     private SessioneService sessioneService;
 
-    public List<Issue> getAllIssues() {
-        return issueRepository.findAll();
+    public List<Issue> getAllIssues(UUID sid) {
+        Utente user = sessioneService.getUtenteBySessionId(sid);
+        if(user.getRole() == Utente.Role.ADMIN){
+            return issueRepository.findAllWithCreatoreAndDataScadenza();
+        }
+        return null;
     }
 
     public Issue saveIssue(Issue issue) {
@@ -64,22 +68,34 @@ public class IssueService {
         return issueRepository.findByAssegnatoAId(user.getId());
     }
 
-
     @Transactional
-    public Issue createIssue(CreateIssueRequest request, UUID sid){
+    public Issue createIssue(CreateIssueRequest request, UUID sid) {
+        // 1. Recupero l'utente dalla sessione
         Utente creatore = sessioneService.getUtenteBySessionId(sid);
         if (creatore == null) {
-            return null; // Utente non trovato
+            return null; // O lancia un'eccezione personalizzata
         }
+
         Issue nuovaIssue = new Issue();
         nuovaIssue.setTitolo(request.getTitolo());
         nuovaIssue.setDescrizione(request.getDescrizione());
-        nuovaIssue.setTipo(request.getTipo());
         nuovaIssue.setPriorita(request.getPriorita());
-        nuovaIssue.setStato(request.getStato());
         nuovaIssue.setCreatore(creatore);
 
-     
+        // 2. Conversione Tipo con gestione null
+        if (request.getTipo() != null) {
+            nuovaIssue.setTipo(Issue.TipoIssue.fromValue(request.getTipo()));
+        }
+
+        // 3. Conversione Stato con gestione null (default a TODO se vuoto)
+        if (request.getStato() != null) {
+            nuovaIssue.setStato(Issue.StatoIssue.fromValue(request.getStato()));
+        } else {
+            nuovaIssue.setStato(Issue.StatoIssue.TODO);
+        }
+
+        // Qui puoi aggiungere altri campi come immagini o etichette se presenti nel DTO
+        
         return issueRepository.save(nuovaIssue); 
     }
 }

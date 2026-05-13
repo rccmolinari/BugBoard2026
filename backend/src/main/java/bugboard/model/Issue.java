@@ -7,8 +7,8 @@ import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
 import org.hibernate.type.SqlTypes;
-import org.hibernate.annotations.JdbcType;
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.JdbcType;
 import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 import java.time.LocalDateTime;
 
@@ -18,7 +18,6 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-
 public class Issue {
 
     @Id
@@ -34,14 +33,12 @@ public class Issue {
     private Integer priorita;
 
     @Column(length = 500)
-    private String immagine; // Mappa 'immagine character varying(500)'
-
+    private String immagine;
 
     @Enumerated(EnumType.STRING)
     @JdbcType(PostgreSQLEnumJdbcType.class)
     @Column(nullable = false, columnDefinition = "issuetipo")
     private TipoIssue tipo;
-
 
     @Enumerated(EnumType.STRING)
     @JdbcType(PostgreSQLEnumJdbcType.class)
@@ -51,13 +48,12 @@ public class Issue {
     @Column(name = "datascadenza")
     private LocalDateTime dataScadenza;
 
-    // Per etichetta e commento (text[]), in Spring si usano le liste o array semplici
-    @JdbcTypeCode(SqlTypes.ARRAY) // Assicura che sia trattato come array    
-    @Column(name = "etichetta", columnDefinition = "text[]") // Specifica il tipo array nel database
+    @JdbcTypeCode(SqlTypes.ARRAY)
+    @Column(name = "etichetta", columnDefinition = "text[]")
     private String[] etichetta;
     
-    @JdbcTypeCode(SqlTypes.ARRAY) // Assicura che sia trattato come array
-    @Column(name = "commento", columnDefinition = "text[]") // Specifica il tipo array nel database
+    @JdbcTypeCode(SqlTypes.ARRAY)
+    @Column(name = "commento", columnDefinition = "text[]")
     private String[] commento;
 
     @ManyToOne
@@ -72,7 +68,27 @@ public class Issue {
     @JoinColumn(name = "assegnato_a")
     private Utente assegnatoA;
 
-    // Gli Enum devono corrispondere esattamente al dump
-    public enum StatoIssue { TODO, IN_PROGRESS, DONE }
-    public enum TipoIssue { QUESTION, BUG, DOCUMENTATION, FEATURE }
+    // --- ENUM INTERNI CON FROMVALUE ---
+
+    public enum StatoIssue { 
+        TODO, IN_PROGRESS, DONE;
+
+        public static StatoIssue fromValue(String value) {
+            for (StatoIssue s : StatoIssue.values()) {
+                if (s.name().equalsIgnoreCase(value)) return s;
+            }
+            throw new IllegalArgumentException("Stato non valido: " + value);
+        }
+    }
+
+    public enum TipoIssue { 
+        QUESTION, BUG, DOCUMENTATION, FEATURE;
+
+        public static TipoIssue fromValue(String value) {
+            for (TipoIssue t : TipoIssue.values()) {
+                if (t.name().equalsIgnoreCase(value)) return t;
+            }
+            throw new IllegalArgumentException("Tipo non valido: " + value);
+        }
+    }
 }

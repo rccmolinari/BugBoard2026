@@ -40,4 +40,7 @@ public interface IssueRepository extends JpaRepository<Issue, Integer> {
     @Query(value = "SELECT * FROM issue WHERE ?1= ANY(etichetta)", nativeQuery = true)
     List<Issue> findBySpecificEtichetta(String etichetta);
 
+    @Query("SELECT i FROM Issue i LEFT JOIN FETCH i.creatore")
+    List<Issue> findAllWithCreatoreAndDataScadenza();
+
 }
