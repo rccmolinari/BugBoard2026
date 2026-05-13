@@ -7,6 +7,7 @@ import bugboard.model.Issue;
 import bugboard.repository.IssueRepository;
 import bugboard.model.Utente;
 import bugboard.repository.UtenteRepository;
+import bugboard.dto.CreateIssueRequest;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -63,14 +64,22 @@ public class IssueService {
         return issueRepository.findByAssegnatoAId(user.getId());
     }
 
-    
+
     @Transactional
-    public Issue CreateIssue(Issue issue, UUID sid){
+    public Issue createIssue(CreateIssueRequest request, UUID sid){
         Utente creatore = sessioneService.getUtenteBySessionId(sid);
         if (creatore == null) {
             return null; // Utente non trovato
         }
-        issue.setCreatore(creatore);
-        return issueRepository.save(issue);
+        Issue nuovaIssue = new Issue();
+        nuovaIssue.setTitolo(request.getTitolo());
+        nuovaIssue.setDescrizione(request.getDescrizione());
+        nuovaIssue.setTipo(request.getTipo());
+        nuovaIssue.setPriorita(request.getPriorita());
+        nuovaIssue.setStato(request.getStato());
+        nuovaIssue.setCreatore(creatore);
+
+     
+        return issueRepository.save(nuovaIssue); 
     }
 }

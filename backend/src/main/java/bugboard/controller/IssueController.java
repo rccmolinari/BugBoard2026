@@ -2,6 +2,9 @@ package bugboard.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
+import bugboard.dto.CreateIssueRequest;
 import bugboard.service.IssueService;
 import bugboard.service.SessioneService;
 import bugboard.model.Utente;
@@ -43,5 +46,24 @@ public class IssueController {
              admin.getId()    
         );
     }
+
+@PostMapping("/create/{sid}")
+public ResponseEntity<Issue> createIssue(@PathVariable UUID sid, @RequestBody CreateIssueRequest request) {
+ 
+    Utente creatore = sessioneService.getUtenteBySessionId(sid);
+    if (creatore == null) {
+        return  new ResponseEntity<Issue>(HttpStatus.UNAUTHORIZED);
+    }
+
+    Issue nuovaIssue = issueService.createIssue(request, sid);
+    
+    return new ResponseEntity<Issue>(nuovaIssue, HttpStatus.CREATED);
+
+}
+          
+
+
+
+
 
 }
