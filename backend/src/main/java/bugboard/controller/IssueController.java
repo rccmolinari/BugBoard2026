@@ -2,16 +2,19 @@ package bugboard.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.HttpStatus;
+
 import bugboard.dto.CreateIssueRequest;
+import bugboard.dto.AssignIssueRequest;
+
 import bugboard.service.IssueService;
 import bugboard.service.SessioneService;
+
 import bugboard.model.Utente;
 import bugboard.model.Issue;
+
 import java.util.List;
 import java.util.UUID;
-import bugboard.dto.AssignIssueRequest;
+
 /*
  * Controller per la gestione delle issue.
  */
@@ -47,19 +50,23 @@ public class IssueController {
         );
     }
 
-@PostMapping("/create/{sid}")
-public ResponseEntity<Issue> createIssue(@PathVariable UUID sid, @RequestBody CreateIssueRequest request) {
+    @PostMapping("/create/{sid}")
+    public Issue createIssue(@PathVariable UUID sid, @RequestBody CreateIssueRequest request) {
  
-    Utente creatore = sessioneService.getUtenteBySessionId(sid);
-    if (creatore == null) {
-        return  new ResponseEntity<Issue>(HttpStatus.UNAUTHORIZED);
+       Utente creatore = sessioneService.getUtenteBySessionId(sid);
+       if (creatore == null) {
+          return  null;
+       }
+
+       return issueService.createIssue(request, sid);
     }
 
-    Issue nuovaIssue = issueService.createIssue(request, sid);
-    
-    return new ResponseEntity<Issue>(nuovaIssue, HttpStatus.CREATED);
+    @GetMapping("{sid}}")
+    public List<Issue> getAllIssues(@PathVariable UUID sid) {
+        return issueService.getAllIssues(sid);
+    }
 
-}
+
           
 
 

@@ -1,9 +1,13 @@
 package bugboard.service;
+
 import java.util.UUID;
+
 import org.springframework.stereotype.Service;
 import bugboard.repository.SessioneRepository;
-import bugboard.model.Utente;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
+
+import bugboard.model.Utente;
 import bugboard.model.Sessione;
 
 @Service
@@ -20,6 +24,7 @@ public class SessioneService {
         return sessioneRepository.findUtenteBySid(sid);
     }
 
+    @Transactional
     public void deleteSession(UUID sid) {
         sessioneRepository.deleteBySid(sid);
     }

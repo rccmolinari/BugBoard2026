@@ -73,6 +73,25 @@ public class Issue {
     private Utente assegnatoA;
 
     // Gli Enum devono corrispondere esattamente al dump
-    public enum StatoIssue { TODO, IN_PROGRESS, DONE }
-    public enum TipoIssue { QUESTION, BUG, DOCUMENTATION, FEATURE }
+    public enum StatoIssue { 
+        TODO, IN_PROGRESS, DONE;
+
+        public static StatoIssue fromValue(String value) {
+            for (StatoIssue s : StatoIssue.values()) {
+                if (s.name().equalsIgnoreCase(value)) return s;
+            }
+            throw new IllegalArgumentException("Stato non valido: " + value);
+        }
+    }
+
+    public enum TipoIssue { 
+        QUESTION, BUG, DOCUMENTATION, FEATURE;
+
+        public static TipoIssue fromValue(String value) {
+            for (TipoIssue t : TipoIssue.values()) {
+                if (t.name().equalsIgnoreCase(value)) return t;
+            }
+            throw new IllegalArgumentException("Tipo non valido: " + value);
+        }
+    }
 }

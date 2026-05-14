@@ -3,11 +3,17 @@ package bugboard.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import bugboard.model.Issue;
-import bugboard.repository.IssueRepository;
+import bugboard.model.Issue.StatoIssue;
+import bugboard.model.Issue.TipoIssue;
 import bugboard.model.Utente;
+
+import bugboard.repository.IssueRepository;
 import bugboard.repository.UtenteRepository;
+
 import bugboard.dto.CreateIssueRequest;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -24,8 +30,12 @@ public class IssueService {
     @Autowired
     private SessioneService sessioneService;
 
-    public List<Issue> getAllIssues() {
-        return issueRepository.findAll();
+    public List<Issue> getAllIssues(UUID sid) {
+        Utente user = sessioneService.getUtenteBySessionId(sid);
+        if(user.getRole() == Utente.Role.ADMIN){
+            return issueRepository.findAllWithCreatoreAndDataScadenza();
+        }
+        return null;
     }
 
     public Issue saveIssue(Issue issue) {
@@ -57,12 +67,15 @@ public class IssueService {
     }
 
     public List<Issue> findBySessionId(UUID sid) {
+        // 
         Utente user = sessioneService.getUtenteBySessionId(sid);
         if (user == null) {
             return Collections.emptyList();
         }
         return issueRepository.findByAssegnatoAId(user.getId());
     }
+
+
 
 
     @Transactional
@@ -74,9 +87,17 @@ public class IssueService {
         Issue nuovaIssue = new Issue();
         nuovaIssue.setTitolo(request.getTitolo());
         nuovaIssue.setDescrizione(request.getDescrizione());
-        nuovaIssue.setTipo(request.getTipo());
+        if(request.getTipo() != null){
+           nuovaIssue.setTipo(Issue.TipoIssue.valueOf(request.getTipo())); 
+        }
+
+        if(request.getStato() != null){
+           nuovaIssue.setStato(Issue.StatoIssue.valueOf(request.getStato()));
+        } else {
+            nuovaIssue.setStato(Issue.StatoIssue.TODO);
+        }
+
         nuovaIssue.setPriorita(request.getPriorita());
-        nuovaIssue.setStato(request.getStato());
         nuovaIssue.setCreatore(creatore);
 
      

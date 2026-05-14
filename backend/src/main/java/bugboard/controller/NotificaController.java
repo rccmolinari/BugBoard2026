@@ -1,17 +1,15 @@
 package bugboard.controller;
 
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.http.ResponseEntity;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.*;
 
-import bugboard.model.Notifica;
 import bugboard.model.Utente;
-import bugboard.service.NotificaService;
+import bugboard.service.NotifyUIService;
 import bugboard.service.SessioneService;
+
+import bugboard.dto.Notify;
 
 import java.util.List;
 import java.util.UUID;
@@ -25,7 +23,7 @@ import java.util.UUID;
 public class NotificaController {
     
     @Autowired
-    private NotificaService notificaService;
+    private NotifyUIService notifyUIService;
 
     @Autowired
     private SessioneService sessioneService;
@@ -35,16 +33,15 @@ public class NotificaController {
      */
 
     @GetMapping("/{sid}")
-    public ResponseEntity<List<Notifica>> getMieNotifiche(@PathVariable UUID sid) {
+    public List<Notify> getMieNotifiche(@PathVariable UUID sid) {
         
-          Utente utente =sessioneService.getUtenteBySessionId(sid);
+          Utente utente = sessioneService.getUtenteBySessionId(sid);
 
           if(utente == null){
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+            return null;
           }
 
-          List<Notifica> notifica = notificaService.getNoticaPerUtente(utente.getId());
-          return new ResponseEntity<>(notifica, HttpStatus.OK);
+          return notifyUIService.getNotificaPerUtente(utente.getId());
     }
     
 
@@ -52,12 +49,7 @@ public class NotificaController {
      * Segna una notifica come letta successivamente trigger su postgress cancella il record
      */
     @PutMapping("/leggi/{id}")
-     public ResponseEntity<Void> leggiNotifica(@PathVariable int id) {
-        boolean success = notificaService.segnaComeLetta(id);
-        if (success) {
-            return new ResponseEntity<>(HttpStatus.OK);
-        } else {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
+     public boolean leggiNotifica(@PathVariable int id) {
+        return notifyUIService.segnaComeLetta(id);
     }
 }
