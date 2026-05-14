@@ -68,12 +68,7 @@ public class Issue {
     @JoinColumn(name = "assegnato_a")
     private Utente assegnatoA;
 
-<<<<<<< HEAD
     // Gli Enum devono corrispondere esattamente al dump
-=======
-    // --- ENUM INTERNI CON FROMVALUE ---
-
->>>>>>> 41df1ad8e3cc78781e315ae4c4626176d87f8b65
     public enum StatoIssue { 
         TODO, IN_PROGRESS, DONE;
 
@@ -95,8 +90,4 @@ public class Issue {
             throw new IllegalArgumentException("Tipo non valido: " + value);
         }
     }
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> 41df1ad8e3cc78781e315ae4c4626176d87f8b65

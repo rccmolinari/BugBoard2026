@@ -41,11 +41,6 @@ if (utente.sessionId) {
 } else {
   router.replace('/')
 }
-<<<<<<< HEAD
-=======
-
-
->>>>>>> 41df1ad8e3cc78781e315ae4c4626176d87f8b65
 
 const sidebarAperta = ref(false)
 const popupAssegnaAperto = ref(false)
