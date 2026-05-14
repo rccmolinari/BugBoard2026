@@ -5,8 +5,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import bugboard.model.Issue;
-import bugboard.model.Issue.StatoIssue;
-import bugboard.model.Issue.TipoIssue;
 import bugboard.model.Utente;
 
 import bugboard.repository.IssueRepository;
@@ -79,11 +77,13 @@ public class IssueService {
 
 
     @Transactional
-    public Issue createIssue(CreateIssueRequest request, UUID sid){
+    public Issue createIssue(CreateIssueRequest request, UUID sid) {
+        // 1. Recupero l'utente dalla sessione
         Utente creatore = sessioneService.getUtenteBySessionId(sid);
         if (creatore == null) {
-            return null; // Utente non trovato
+            return null; // O lancia un'eccezione personalizzata
         }
+
         Issue nuovaIssue = new Issue();
         nuovaIssue.setTitolo(request.getTitolo());
         nuovaIssue.setDescrizione(request.getDescrizione());
@@ -100,7 +100,20 @@ public class IssueService {
         nuovaIssue.setPriorita(request.getPriorita());
         nuovaIssue.setCreatore(creatore);
 
-     
+        // 2. Conversione Tipo con gestione null
+        if (request.getTipo() != null) {
+            nuovaIssue.setTipo(Issue.TipoIssue.fromValue(request.getTipo()));
+        }
+
+        // 3. Conversione Stato con gestione null (default a TODO se vuoto)
+        if (request.getStato() != null) {
+            nuovaIssue.setStato(Issue.StatoIssue.fromValue(request.getStato()));
+        } else {
+            nuovaIssue.setStato(Issue.StatoIssue.TODO);
+        }
+
+        // Qui puoi aggiungere altri campi come immagini o etichette se presenti nel DTO
+        
         return issueRepository.save(nuovaIssue); 
     }
 }

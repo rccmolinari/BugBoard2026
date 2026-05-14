@@ -19,7 +19,11 @@ const stili = {
 
 const cls = computed(() => stili[props.priorita] || 'bg-ink-50 text-ink-400 border-ink-200')
 const testo = computed(() =>
+<<<<<<< HEAD
   props.priorita ? props.priorita.charAt(0).toUpperCase() + props.priorita.toString() : ''
+=======
+  props.priorita ? props.priorita.toString() : ''
+>>>>>>> 41df1ad8e3cc78781e315ae4c4626176d87f8b65
 )
 </script>
 

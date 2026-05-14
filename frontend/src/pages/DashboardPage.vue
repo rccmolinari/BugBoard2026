@@ -68,6 +68,7 @@ const filtroTipo = ref('')
 const filtroStato = ref('')
 // Popup segnalazione — form
 const sidebarAperta = ref(false)
+// Popup segnalazione — form
 const popupSegnalazioneAperto = ref(false)
 const segnalazione = ref({
   titolo: '',
@@ -645,5 +646,36 @@ async function submitSegnalazione() {
         </div>
       </div>
     </div>
+    <!-- Errore -->
+    <p v-if="erroreInvio" class="text-xs text-red-500 font-medium">{{ erroreInvio }}</p>
+
+    <!-- Azioni -->
+    <div class="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-1">
+      <button
+        type="button"
+        @click="chiudiPopupSegnalazione"
+        :disabled="invioInCorso"
+        class="px-3 py-2 rounded-lg text-sm font-medium text-ink-600
+               hover:bg-ink-50 transition-colors w-full sm:w-auto disabled:opacity-50"
+      >
+        Annulla
+      </button>
+      <button
+        type="button"
+        @click="submitSegnalazione"
+        :disabled="invioInCorso"
+        class="px-4 py-2 rounded-lg text-sm font-semibold text-white
+               bg-brand-500 hover:bg-brand-600 transition-colors w-full sm:w-auto
+               disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+      >
+        <svg v-if="invioInCorso" class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2">
+          <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+        </svg>
+        {{ invioInCorso ? 'Invio…' : 'Invia segnalazione' }}
+      </button>
+    </div>
+  </div>
+</div>
   </div>
 </template>

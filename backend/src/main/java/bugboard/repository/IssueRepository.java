@@ -41,7 +41,10 @@ public interface IssueRepository extends JpaRepository<Issue, Integer> {
     @Query(value = "SELECT * FROM issue WHERE ?1= ANY(etichetta)", nativeQuery = true)
     List<Issue> findBySpecificEtichetta(String etichetta);
 
+<<<<<<< HEAD
     // Trova tutte le issue con creatore e data di scadenza usando una query personalizzata
+=======
+>>>>>>> 41df1ad8e3cc78781e315ae4c4626176d87f8b65
     @Query("SELECT i FROM Issue i LEFT JOIN FETCH i.creatore")
     List<Issue> findAllWithCreatoreAndDataScadenza();
 

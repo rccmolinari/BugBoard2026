@@ -3,7 +3,10 @@ package bugboard.dto;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+<<<<<<< HEAD
 
+=======
+>>>>>>> 41df1ad8e3cc78781e315ae4c4626176d87f8b65
 
 
 
