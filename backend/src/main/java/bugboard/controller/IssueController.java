@@ -16,7 +16,7 @@ import bugboard.model.Issue;
 
 import java.util.List;
 import java.util.UUID;
-import java.time.LocalDate;
+
 /*
  * Controller per la gestione delle issue.
  */

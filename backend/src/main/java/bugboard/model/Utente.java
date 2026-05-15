@@ -9,6 +9,9 @@ import lombok.AllArgsConstructor;
 import org.hibernate.annotations.JdbcType;
 import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import bugboard.model.Issue.TipoIssue;
+
 import java.util.List;
 
 @Entity
@@ -52,8 +55,13 @@ public class Utente {
     private List<Issue> issuesAssegnatoA;
 
     public enum Role {
-        ADMIN, 
-        USER, 
-        READONLY
+        ADMIN, USER, READONLY;
+
+        public static Role fromValue(String value) {
+            for (Role r : Role.values()) {
+                if (r.name().equalsIgnoreCase(value)) return r;
+            }
+            throw new IllegalArgumentException("Tipo non valido: " + value);
+        }
     }
 }
