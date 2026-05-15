@@ -67,7 +67,7 @@ public class NotifyUIService implements NotifyService {
         return false;
     }
 
-    public long contaNotificheNonLette(Integer utenteId) {
+    public int contaNotificheNonLette(Integer utenteId) {
         return notificaRepository.countByAssegnatoAIdAndLettaFalse(utenteId);
     }
 

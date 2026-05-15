@@ -29,6 +29,19 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  input,
+  textarea,
+  select {
+    color: #e7eef9;            /* testo chiaro coerente al dark */
+    background-color: transparent;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: #6b7f9b;
+  }
+}
 
 /* ── Scrollbar ─────────────────────────────────────────────────
    Firefox usa scrollbar-color, Chrome/Safari il prefisso -webkit.

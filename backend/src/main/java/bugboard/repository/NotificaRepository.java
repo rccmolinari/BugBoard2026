@@ -18,7 +18,7 @@ public interface NotificaRepository extends JpaRepository<Notifica, Integer> {
     List<Notifica> findByIssueId(Integer issue);
     
     // conta tutte le notifiche non lette per un user specifico
-    long countByAssegnatoAIdAndLettaFalse(Integer assegnatoA);
+    int countByAssegnatoAIdAndLettaFalse(Integer assegnatoA);
 
 
 }

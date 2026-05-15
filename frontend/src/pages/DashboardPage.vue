@@ -25,7 +25,7 @@ import BadgeTipo from '../components/BadgeTipo.vue'
 import BadgeStato from '../components/BadgeStato.vue'
 import BadgePriorita from '../components/BadgePriorita.vue'
 import axios from 'axios'
-
+import { onMounted, onUnmounted } from 'vue'
 
 function getUtente() {
   const raw = sessionStorage.getItem('bb_utente')
@@ -57,7 +57,27 @@ if (utente.sessionId) {
   router.replace('/')
 }
 
-let nIssues = 0;
+
+
+const nIssues = ref(0)
+
+let intervalId = null
+
+onMounted(() => {
+  intervalId = setInterval(async () => {
+    try {
+      const response = await axios.get('/api/notifies/number/' + utente.sessionId)
+      nIssues.value = response.data
+      console.log('Notifiche non lette:', nIssues.value)
+    } catch (e) {
+      console.error(e)
+    }
+  }, 5000)
+})
+
+onUnmounted(() => {
+  clearInterval(intervalId)
+})
 
 
 /* ══════════════════════════════════════════════════════════════
@@ -677,5 +697,4 @@ async function submitSegnalazione() {
     </div>
   </div>
 </div>
-  </div>
 </template>

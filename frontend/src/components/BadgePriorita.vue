@@ -1,8 +1,3 @@
-<!--
-  BadgePriorita.vue
-  Traduzione diretta della funzione badgePriorita() del vecchio dashboard.js.
-  Se la priorità è null/undefined mostra il trattino "—" (come l'originale).
--->
 <script setup>
 import { computed } from 'vue'
 
@@ -17,14 +12,25 @@ const stili = {
   4: 'bg-green-50 text-green-600 border-green-100',
 }
 
-const cls = computed(() => stili[props.priorita] || 'bg-ink-50 text-ink-400 border-ink-200')
+const etichette = {
+  1: 'ALTA',
+  2: 'MEDIA',
+  3: 'BASSA',
+  4: 'MINIMA',
+}
+
+const cls = computed(() =>
+  stili[props.priorita] || 'bg-ink-50 text-ink-400 border-ink-200'
+)
+
 const testo = computed(() =>
-  props.priorita ? props.priorita.charAt(0).toUpperCase() + props.priorita.toString() : ''
+  props.priorita ? etichette[props.priorita] : ''
 )
 </script>
 
 <template>
   <span v-if="!priorita" class="text-ink-200 text-sm">—</span>
+
   <span
     v-else
     class="inline-flex px-2 py-0.5 rounded text-[11px] font-mono font-medium border"

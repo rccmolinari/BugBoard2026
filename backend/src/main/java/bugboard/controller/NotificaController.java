@@ -17,7 +17,7 @@ import java.util.UUID;
 
 
 @RestController
-@RequestMapping("/api/notifiche")
+@RequestMapping("/api/notifies")
 @CrossOrigin(origins = "*")
 
 public class NotificaController {
@@ -29,21 +29,29 @@ public class NotificaController {
     private SessioneService sessioneService;
 
     /**
-     * recuoera notifiche utente assegnato a sid
+     * recuoera numero notifiche non lette per   utente assegnato a sid
      */
 
-    @GetMapping("/{sid}")
-    public List<Notify> getMieNotifiche(@PathVariable UUID sid) {
+    @GetMapping("/number/{sid}")
+    public int countIssues(@PathVariable UUID sid) {
         
           Utente utente = sessioneService.getUtenteBySessionId(sid);
 
           if(utente == null){
-            return null;
+            return 0;
           }
 
-          return notifyUIService.getNotificaPerUtente(utente.getId());
+          return notifyUIService.contaNotificheNonLette(utente.getId());
     }
-    
+
+    @GetMapping("/list/{sid}")
+    public List<Notify> getMieNotifiche(@PathVariable UUID sid) {
+        Utente utente = sessioneService.getUtenteBySessionId(sid);
+        if (utente == null) {
+            return List.of();
+        }
+        return notifyUIService.getNotificaPerUtente(utente.getId());
+    }
 
     /**
      * Segna una notifica come letta successivamente trigger su postgress cancella il record

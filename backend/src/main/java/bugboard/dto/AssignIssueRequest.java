@@ -1,14 +1,19 @@
 package bugboard.dto;
 
+import java.util.UUID;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import java.time.LocalDate;
+
 @Data //genera metodi getter setter tostring e equals
 @NoArgsConstructor //genera costruttore vuoto
 @AllArgsConstructor //genera costruttore con tutti i campi
 
 public class AssignIssueRequest {
     private int issueId;
-    private int userId;
-    private int adminId;
+    private String userEmail;
+    private UUID adminSID;
+    private LocalDate dataScadenza;
 }

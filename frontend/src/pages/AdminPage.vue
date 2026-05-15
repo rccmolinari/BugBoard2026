@@ -46,8 +46,13 @@ const sidebarAperta = ref(false)
 const popupAssegnaAperto = ref(false)
 const issueSelezionata = ref(null)
 const dataAssegnazione = ref('')
+const emailAssegnatario = ref('')
 const route = useRoute()
-
+const oggi = new Date().toISOString().split('T')[0]
+const assignError = ref('')
+const isAssigning = ref(false)
+const assignSuccess = ref(false)
+const dataScadenza = ref('')
 const iniziali = computed(() => {
   if (!utente?.nome) return '?'
   return utente.nome
@@ -86,6 +91,7 @@ function formattaData(iso) {
 function apriPopupAssegna(issue) {
   issueSelezionata.value = issue
   dataAssegnazione.value = ''
+  dataScadenza.value = ''
   popupAssegnaAperto.value = true
 }
 
@@ -94,9 +100,51 @@ function chiudiPopupAssegna() {
   issueSelezionata.value = null
 }
 
-function submitAssegnazione() {
-  console.log('Assegna issue:', issueSelezionata.value?.id, 'data:', dataAssegnazione.value)
-  chiudiPopupAssegna()
+async function submitAssegnazione() {
+  isAssigning.value = true
+  assignError.value = ''
+  assignSuccess.value = false
+
+  try {
+    const payload = {
+      issueId: issueSelezionata.value?.id,
+      userEmail: emailAssegnatario.value,
+      adminSID: utente.sessionId,
+      dataScadenza: dataScadenza.value || null,
+    }
+    if(dataScadenza.value <= oggi) {
+      assignError.value = 'La data di scadenza non deve essere inferiori ad oggi'
+      isAssigning.value = false
+      return
+    }
+    const response = await axios.put(
+      `/api/issues/assign/${utente.sessionId}`,
+      payload
+    )
+
+    if (response.data === true) {
+      assignSuccess.value = true
+
+      setTimeout(() => {
+        chiudiPopupAssegna()
+        emailAssegnatario.value = ''
+        dataAssegnazione.value = ''
+        dataScadenza.value = ''
+        assignSuccess.value = false
+      }, 900)
+
+      const res = await axios.get('/api/issues/' + utente.sessionId)
+      issues.value = res.data
+    } else {
+      assignError.value = 'Assegnazione fallita'
+    }
+
+  } catch (error) {
+    assignError.value =
+      error?.response?.data?.message || 'Errore durante assegnazione'
+  } finally {
+    isAssigning.value = false
+  }
 }
 
 function aprireSidebar() { sidebarAperta.value = true }
@@ -271,7 +319,6 @@ function logout() {
         </div>
       </main>
     </div>
-
     <div
       v-if="popupAssegnaAperto"
       @click="chiudiPopupAssegna"
@@ -286,12 +333,35 @@ function logout() {
         </h3>
 
         <input
-          v-model="dataAssegnazione"
+          v-model="dataScadenza"
           type="date"
+          :min="oggi"
           class="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm text-ink-800
                  focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
         />
 
+      <div>
+      <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">
+        Email utente a cui assegnare
+      </label>
+
+      <input
+        v-model="emailAssegnatario"
+        type="email"
+        placeholder="utente@email.com"
+        class="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm text-ink-800
+              focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+      />
+    </div>
+
+      <div v-if="assignError"
+      class="px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm">
+    {{ assignError }}
+    </div>
+    <div v-show="assignSuccess"
+        class="px-4 py-3 rounded-lg bg-green-50 border border-green-100 text-green-700 text-sm">
+      Issue assegnata con successo!
+    </div>
         <div class="flex flex-col-reverse sm:flex-row justify-end gap-2">
           <button
             type="button"
@@ -300,13 +370,26 @@ function logout() {
           >
             Annulla
           </button>
-          <button
-            type="button"
-            @click="submitAssegnazione"
-            class="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-brand-500 hover:bg-brand-600 transition-colors w-full sm:w-auto"
-          >
-            Submit
-          </button>
+            <button
+    type="button"
+    @click="submitAssegnazione"
+    :disabled="isAssigning"
+    class="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-brand-500 hover:bg-brand-600
+          transition-colors w-full sm:w-auto flex items-center justify-center gap-2"
+  >
+    <svg v-if="isAssigning"
+        class="animate-spin w-4 h-4"
+        xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+      <circle class="opacity-25" cx="12" cy="12" r="10"
+              stroke="currentColor" stroke-width="4"/>
+      <path class="opacity-75" fill="currentColor"
+            d="M4 12a8 8 0 018-8v8H4z"/>
+    </svg>
+
+    <span>
+      {{ isAssigning ? 'Assegnazione…' : 'Submit' }}
+    </span>
+  </button>
         </div>
       </div>
     </div>

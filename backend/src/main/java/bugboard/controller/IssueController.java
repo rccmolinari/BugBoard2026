@@ -14,7 +14,7 @@ import bugboard.model.Issue;
 
 import java.util.List;
 import java.util.UUID;
-
+import java.time.LocalDate;
 /*
  * Controller per la gestione delle issue.
  */
@@ -35,18 +35,17 @@ public class IssueController {
         return issueService.findBySessionId(sid);
     }
 
-    @PostMapping("/assign/{sid}")
+    @PutMapping("/assign/{sid}")
     public boolean assignIssueToUser(@PathVariable UUID sid, @RequestBody AssignIssueRequest request) {
-        Utente admin = sessioneService.getUtenteBySessionId(sid);
 
-        if(admin == null){
-            return false;
-        }
-        
+        Utente admin = sessioneService.getUtenteBySessionId(sid);
+        if (admin == null) return false;
+
         return issueService.assignIssueToUser(
-             request.getIssueId(),
-             request.getUserId(),
-             admin.getId()    
+            request.getIssueId(),
+            request.getUserEmail(),
+            request.getDataScadenza(),
+            sid
         );
     }
 
@@ -61,7 +60,7 @@ public class IssueController {
        return issueService.createIssue(request, sid);
     }
 
-    @GetMapping("{sid}}")
+    @GetMapping("{sid}")
     public List<Issue> getAllIssues(@PathVariable UUID sid) {
         return issueService.getAllIssues(sid);
     }

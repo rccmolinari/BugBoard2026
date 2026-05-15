@@ -1,4 +1,5 @@
 package bugboard.service;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -12,6 +13,8 @@ import bugboard.repository.UtenteRepository;
 
 import bugboard.dto.CreateIssueRequest;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -39,24 +42,25 @@ public class IssueService {
     public Issue saveIssue(Issue issue) {
         return issueRepository.save(issue);
     }
+
     @Transactional
-    public boolean assignIssueToUser(int issueId, int userId, int adminid) {
+    public boolean assignIssueToUser(int issueId, String userEmail, LocalDate expiringDate, UUID adminSID) {
+
         Issue issue = issueRepository.findById(issueId).orElse(null);
-        Utente user = utenteRepository.findById(userId).orElse(null);
-        Utente admin = utenteRepository.findById(adminid).orElse(null);
-        
-        if (issue == null) {
-            return false; // Issue non trovato
+        Optional<Utente> utente = utenteRepository.findByEmail(userEmail);
+        Utente admin = sessioneService.getUtenteBySessionId(adminSID);
+
+        if (issue == null || utente.isEmpty() || admin == null) {
+            return false;
         }
-        if (user == null) {
-            return false; // User non trovato
+
+        if (expiringDate != null) {
+            issue.setDataScadenza(expiringDate.atTime(23, 59, 59));
         }
-        if (admin == null) {
-            return false; // Admin non trovato
-        }
-        
-        issue.setAssegnatoA(user);
+
+        issue.setAssegnatoA(utente.get());
         issue.setAssegnatario(admin);
+
         issueRepository.save(issue);
         return true;
     }
