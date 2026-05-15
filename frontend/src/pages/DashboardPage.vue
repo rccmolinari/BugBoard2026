@@ -44,11 +44,13 @@ const router = useRouter()
 const route = useRoute()
 const utente = getUtente() ?? { nome: '', sessionId: null }
 const issues = ref([])
-
+const dataScadenza = ref(null)
+const assegnatoDa = ref('')
 if (utente.sessionId) {
   axios.get('/api/issues/user/' + utente.sessionId)
     .then(response => {
       issues.value = response.data
+      console.log('Issue caricate:', issues.value)
     })
     .catch(error => {
       console.error('Errore durante il caricamento delle issue:', error)
@@ -523,22 +525,22 @@ async function submitSegnalazione() {
                     </td>
 
                     <td class="px-4 py-3.5 whitespace-nowrap">
-                      <div v-if="issue.assegnata" class="flex items-center gap-2">
+                      <div v-if="issue.assegnatoDa" class="flex items-center gap-2">
                         <div class="w-5 h-5 rounded-full bg-brand-500/20 flex items-center justify-center flex-shrink-0">
                           <span class="text-[9px] font-mono text-brand-700 font-medium">
-                            {{ inizialiDa(issue.assegnata) }}
+                            {{ inizialiDa(issue.assegnatoDa) }}
                           </span>
                         </div>
-                        <span class="text-sm text-ink-600">{{ issue.assegnata }}</span>
+                        <span class="text-sm text-ink-600">{{ issue.assegnatoDa}}</span>
                       </div>
                       <span v-else class="text-ink-300 text-sm">—</span>
                     </td>
 
                     <td class="px-4 py-3.5 whitespace-nowrap hidden lg:table-cell">
-                      <span v-if="issue.scadenza"
+                      <span v-if="issue.dataScadenza"
                             class="font-mono text-[12px]"
                             :class="isScaduta(issue) ? 'text-red-500 font-medium' : 'text-ink-400'">
-                        {{ formattaData(issue.scadenza) }}
+                        {{ formattaData(issue.dataScadenza) }}
                       </span>
                       <span v-else class="text-ink-200 text-sm">—</span>
                     </td>

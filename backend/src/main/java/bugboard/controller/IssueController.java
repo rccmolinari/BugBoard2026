@@ -4,6 +4,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import bugboard.dto.CreateIssueRequest;
+import bugboard.dto.IssueResponse;
+import bugboard.dto.IssueResponseUser;
 import bugboard.dto.AssignIssueRequest;
 
 import bugboard.service.IssueService;
@@ -31,7 +33,7 @@ public class IssueController {
     private SessioneService sessioneService;
 
    @GetMapping("/user/{sid}")
-    public List<Issue> getIssuesBySessionId(@PathVariable UUID sid) {
+    public List<IssueResponseUser> getIssuesBySessionId(@PathVariable UUID sid) {
         return issueService.findBySessionId(sid);
     }
 
@@ -61,7 +63,7 @@ public class IssueController {
     }
 
     @GetMapping("{sid}")
-    public List<Issue> getAllIssues(@PathVariable UUID sid) {
+    public List<IssueResponse> getAllIssues(@PathVariable UUID sid) {
         return issueService.getAllIssues(sid);
     }
 

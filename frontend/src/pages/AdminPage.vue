@@ -274,6 +274,7 @@ function logout() {
                     <th class="text-left px-4 py-3 text-[10px] font-mono text-ink-400 uppercase tracking-wider whitespace-nowrap">Priorità</th>
                     <th class="text-left px-4 py-3 text-[10px] font-mono text-ink-400 uppercase tracking-wider whitespace-nowrap">Stato</th>
                     <th class="text-left px-4 py-3 text-[10px] font-mono text-ink-400 uppercase tracking-wider whitespace-nowrap">Aggiunta da</th>
+                                        <th class="text-left px-4 py-3 text-[10px] font-mono text-ink-400 uppercase tracking-wider whitespace-nowrap">Assegnata a</th>
                     <th class="text-left px-4 py-3 text-[10px] font-mono text-ink-400 uppercase tracking-wider whitespace-nowrap hidden lg:table-cell">Data Scadenza</th>
                     <th class="px-4 py-3"></th>
                   </tr>
@@ -296,7 +297,10 @@ function logout() {
                       <BadgeStato :stato="issue.stato" />
                     </td>
                     <td class="px-4 py-3.5 whitespace-nowrap">
-                      <span class="text-sm text-ink-600">{{ issue.creatore.email }}</span>
+                      <span class="text-sm text-ink-600">{{ issue.creatore}}</span>
+                    </td>
+                    <td class="px-4 py-3.5 whitespace-nowrap">
+                      <span class="text-sm text-ink-600">{{ issue.assegnatoA }}</span>
                     </td>
                     <td class="px-4 py-3.5 whitespace-nowrap hidden lg:table-cell">
                       <span class="font-mono text-[12px] text-ink-400">{{ formattaData(issue.dataScadenza) }}</span>

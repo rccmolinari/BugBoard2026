@@ -12,9 +12,12 @@ import bugboard.repository.IssueRepository;
 import bugboard.repository.UtenteRepository;
 
 import bugboard.dto.CreateIssueRequest;
+import bugboard.dto.IssueResponse;
+import bugboard.dto.IssueResponseUser;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -31,12 +34,37 @@ public class IssueService {
     @Autowired
     private SessioneService sessioneService;
 
-    public List<Issue> getAllIssues(UUID sid) {
+    public List<IssueResponse> getAllIssues(UUID sid) {
+
         Utente user = sessioneService.getUtenteBySessionId(sid);
-        if(user.getRole() == Utente.Role.ADMIN){
-            return issueRepository.findAllWithCreatoreAndDataScadenza();
+        if (user == null) return Collections.emptyList();
+
+        List<Issue> issues = issueRepository.findAllWithCreatoreAndDataScadenza();
+
+        if (user.getRole() != Utente.Role.ADMIN) {
+            return Collections.emptyList();
         }
-        return null;
+
+        List<IssueResponse> response = new ArrayList<>();
+
+        for (Issue i : issues) {
+            response.add(new IssueResponse(
+                i.getId(),
+                i.getTitolo(),
+                i.getTipo() != null ? i.getTipo().toString() : null,
+                i.getPriorita(),
+                i.getStato() != null ? i.getStato().toString() : null,
+                i.getCreatore() != null
+                    ? i.getCreatore().getEmail()
+                    : null,
+                i.getAssegnatoA() != null
+                    ? i.getAssegnatoA().getEmail()
+                    : null,
+                i.getDataScadenza()
+            ));
+        }
+
+        return response;
     }
 
     public Issue saveIssue(Issue issue) {
@@ -68,15 +96,31 @@ public class IssueService {
         return issueRepository.findByCreatoreId(creatoreId);
     }
 
-    public List<Issue> findBySessionId(UUID sid) {
-        // 
-        Utente user = sessioneService.getUtenteBySessionId(sid);
-        if (user == null) {
-            return Collections.emptyList();
-        }
-        return issueRepository.findByAssegnatoAId(user.getId());
-    }
+        public List<IssueResponseUser> findBySessionId(UUID sid) {
 
+            Utente user = sessioneService.getUtenteBySessionId(sid);
+
+            if (user == null) {
+                return Collections.emptyList();
+            }
+
+            List<Issue> issues = issueRepository.findByAssegnatoAId(user.getId());
+            List<IssueResponseUser> response = new ArrayList<>();
+            for (Issue i : issues) {
+                response.add(new IssueResponseUser(
+                    i.getId(),
+                    i.getTitolo(),
+                    i.getTipo() != null ? i.getTipo().toString() : null,
+                    i.getPriorita(),
+                    i.getStato() != null ? i.getStato().toString() : null,
+                    i.getAssegnatario() != null
+                        ? i.getAssegnatario().getEmail()
+                        : null,
+                    i.getDataScadenza()
+                ));
+            }
+            return response;
+        }
 
 
 
