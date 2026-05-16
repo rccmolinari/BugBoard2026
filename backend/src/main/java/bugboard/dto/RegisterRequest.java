@@ -14,4 +14,5 @@ public class RegisterRequest {
     private String password;
     private String name;
     private String surname;
+    private String role; // user admin o readonly
 }

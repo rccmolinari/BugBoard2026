@@ -63,13 +63,13 @@ public class AuthService {
      * Registra un nuovo utente.
      * La password viene hashata con BCrypt prima di salvare.
      * 
-     * @return true se registrazione riuscita, false se email già esiste
+     * @return l'utente registrato se la registrazione è riuscita, null se l'email è già esistente
      */
     
     // notifica errore registrazione per colpa dell'email già esistente
-    public boolean register(RegisterRequest request) {
+    public Utente register(RegisterRequest request) {
         if (utenteRepository.findByEmail(request.getEmail()).isPresent()) { 
-          return false;
+          return null;
         }
 
         Utente nuovo = new Utente();
@@ -79,8 +79,12 @@ public class AuthService {
         nuovo.setSurname(request.getSurname());
         nuovo.setRole(Utente.Role.USER);
 
-        utenteRepository.save(nuovo);
-        
-        return true;
+        try {
+                nuovo.setRole(Utente.Role.fromValue(request.getRole()));
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Ruolo non valido: " + request.getRole());
+            }
+
+            return utenteRepository.save(nuovo);
     }
 }

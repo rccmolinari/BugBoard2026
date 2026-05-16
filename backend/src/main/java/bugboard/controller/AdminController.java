@@ -6,10 +6,10 @@ import org.springframework.web.bind.annotation.*;
 import bugboard.model.Utente;
 
 
-import bugboard.service.AdminService;
+import bugboard.service.AuthService;
 import bugboard.service.SessioneService;
 
-import bugboard.dto.UserRegistrationRequest;
+import bugboard.dto.RegisterRequest;
 
 import java.util.UUID;
 
@@ -19,13 +19,13 @@ import java.util.UUID;
 public class AdminController {
 
     @Autowired
-    private AdminService adminService;
+    private AuthService authService;
 
     @Autowired
     private SessioneService sessioneService;
 
     @PostMapping("/create-user/{sid}")
-    public Utente creaUtente(@PathVariable UUID sid, @RequestBody UserRegistrationRequest request) {
+    public Utente creaUtente(@PathVariable UUID sid, @RequestBody RegisterRequest request) {
 
         // verifichiamo la sessione 
         Utente admin = sessioneService.getUtenteBySessionId(sid);
@@ -35,11 +35,7 @@ public class AdminController {
                 
                  return null;
         }
-         
-        return adminService.creaNuovoUtente(request);
-
-
-
+        return authService.register(request);
     }
 
 
