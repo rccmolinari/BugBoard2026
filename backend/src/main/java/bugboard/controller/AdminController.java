@@ -32,8 +32,7 @@ public class AdminController {
 
         // controllo se utente è admin
         if (admin == null || !admin.getRole().name().equalsIgnoreCase("ADMIN")) {
-                
-                 return null;
+                return null;
         }
         return authService.register(request);
     }

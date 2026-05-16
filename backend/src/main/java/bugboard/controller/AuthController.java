@@ -11,6 +11,7 @@ import bugboard.dto.LoginRequest;
 import bugboard.dto.LogoutRequest;
 import bugboard.service.AuthService;
 import bugboard.dto.RegisterRequest;
+import bugboard.model.Utente;
 import bugboard.service.SessioneService;
 
 /*
@@ -42,7 +43,7 @@ public class AuthController {
 
     // Register: crea l'utente e torna true/false in base all'esito.
     @PostMapping("/register")
-    public boolean register(@RequestBody RegisterRequest request) {
+    public Utente register(@RequestBody RegisterRequest request) {
         return authService.register(request);
     }
 
