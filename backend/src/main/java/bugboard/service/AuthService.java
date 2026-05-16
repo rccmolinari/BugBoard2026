@@ -67,9 +67,9 @@ public class AuthService {
      */
     
     // notifica errore registrazione per colpa dell'email già esistente
-    public Utente register(RegisterRequest request) {
+    public boolean register(RegisterRequest request) {
         if (utenteRepository.findByEmail(request.getEmail()).isPresent()) { 
-          return null;
+          return false;
         }
 
         Utente nuovo = new Utente();
@@ -79,12 +79,7 @@ public class AuthService {
         nuovo.setSurname(request.getSurname());
         nuovo.setRole(Utente.Role.USER);
 
-        try {
-                nuovo.setRole(Utente.Role.fromValue(request.getRole()));
-            } catch (IllegalArgumentException e) {
-                throw new IllegalArgumentException("Ruolo non valido: " + request.getRole());
-            }
-
-            return utenteRepository.save(nuovo);
+         utenteRepository.save(nuovo);
+         return true;
     }
 }

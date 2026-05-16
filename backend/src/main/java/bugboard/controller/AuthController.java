@@ -43,7 +43,7 @@ public class AuthController {
 
     // Register: crea l'utente e torna true/false in base all'esito.
     @PostMapping("/register")
-    public Utente register(@RequestBody RegisterRequest request) {
+    public boolean register(@RequestBody RegisterRequest request) {
         return authService.register(request);
     }
 
