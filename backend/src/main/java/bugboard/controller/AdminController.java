@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.*;
 import bugboard.model.Utente;
 
 
-import bugboard.service.AdminService;
+import bugboard.service.UserService;
 import bugboard.service.SessioneService;
 
 import bugboard.dto.RegisterRequest;
@@ -19,7 +19,7 @@ import java.util.UUID;
 public class AdminController {
 
     @Autowired
-    private AdminService adminService;
+    private UserService adminService;
 
     @Autowired
     private SessioneService sessioneService;

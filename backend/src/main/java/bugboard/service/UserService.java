@@ -13,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 @Service
-public class AdminService {
+public class UserService {
 
     @Autowired
     private UtenteRepository utenteRepository;
