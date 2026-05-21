@@ -9,7 +9,7 @@ import bugboard.dto.LoginRequest;
 import bugboard.dto.RegisterRequest;
 import bugboard.model.Sessione;
 import bugboard.model.Utente;
-import bugboard.repository.UtenteRepository;
+import bugboard.repository.UserRepository;
 
 import java.util.Optional;
 
@@ -17,7 +17,7 @@ import java.util.Optional;
 public class AuthService {
 
     @Autowired
-    private UtenteRepository utenteRepository;
+    private UserRepository utenteRepository;
     @Autowired
     private SessioneService sessioneService;
 

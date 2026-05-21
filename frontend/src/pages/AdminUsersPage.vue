@@ -3,14 +3,14 @@
   Schermata gestione utenti pronta per collegamento API/database.
 -->
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import Sidebar from '../components/Sidebar.vue'
 import StatCard from '../components/StatCard.vue'
 import BadgeRuolo from '../components/BadgeRuolo.vue'
 import axios from 'axios'
 
-
+onMounted(() => getUtenti())
 /* ══════════════════════════════════════════════════════════════
    AUTH GUARD — solo gli amministratori possono vedere la pagina.
    ══════════════════════════════════════════════════════════════ */
@@ -32,19 +32,20 @@ const router = useRouter()
 
 
 function getUtenti() {
-  return []
+  axios.get(`/api/user/all/${utente.sessionId}`)
+    .then(response => {
+      utenti.value = response.data
+    })
+    .catch(error => {
+      console.error('Errore durante il recupero degli utenti:', error)
+      return []
+    })
 }
-
-function nuovoId() {
-  const lista = utenti.value
-  return lista.length ? Math.max(...lista.map(u => u.id)) + 1 : 1
-}
-
 
 /* ══════════════════════════════════════════════════════════════
    STATE REATTIVO
    ══════════════════════════════════════════════════════════════ */
-const utenti = ref(getUtenti())
+const utenti = ref([])
 
 // Filtri tabella
 const cerca = ref('')
@@ -54,7 +55,7 @@ const filtroRuolo = ref('')
 const inputNome = ref('')
 const inputEmail = ref('')
 const inputPassword = ref('')
-const inputRuolo = ref('normal')
+const inputRuolo = ref('USER')
 const showPasswordForm = ref(false)
 
 // Messaggio di feedback del form
@@ -79,9 +80,9 @@ const iniziali = computed(() => {
 
 // Stats
 const statTotale   = computed(() => utenti.value.length)
-const statAdmin    = computed(() => utenti.value.filter(u => u.ruolo === 'admin').length)
-const statNormal   = computed(() => utenti.value.filter(u => u.ruolo === 'normal').length)
-const statReadonly = computed(() => utenti.value.filter(u => u.ruolo === 'readonly').length)
+const statAdmin    = computed(() => utenti.value.filter(u => u.role === 'ADMIN').length)
+const statUser    = computed(() => utenti.value.filter(u => u.role === 'USER').length)
+const statReadonly = computed(() => utenti.value.filter(u => u.role === 'READONLY').length)
 
 // Lista filtrata (sostituisce renderUtenti())
 const utentiFiltrati = computed(() => {
@@ -89,12 +90,12 @@ const utentiFiltrati = computed(() => {
   let lista = utenti.value
   if (q) {
     lista = lista.filter(u =>
-      u.nome.toLowerCase().includes(q) ||
+      u.name.toLowerCase().includes(q) ||
       u.email.toLowerCase().includes(q)
     )
   }
   if (filtroRuolo.value) {
-    lista = lista.filter(u => u.ruolo === filtroRuolo.value)
+    lista = lista.filter(u => u.role === filtroRuolo.value)
   }
   return lista
 })
@@ -117,14 +118,16 @@ const classeMessaggio = computed(() => {
    CREA UTENTE — stesse validazioni dell'originale
    ══════════════════════════════════════════════════════════════ */
 function creaUtente() {
-  const nome     = inputNome.value.trim()
+  const nome     = inputNome.value.trim().split(' ')[0] || ''
+  const cognome = inputNome.value.split(' ').slice(1).join(' ').trim() || ''
   const email    = inputEmail.value.trim().toLowerCase()
   const password = inputPassword.value
   const ruolo    = inputRuolo.value
-
+  console.log(ruolo)
   nascondiMessaggio()
 
   if (!nome) { mostraMessaggio('Il nome è obbligatorio.', 'errore'); return }
+  if (!cognome) { mostraMessaggio('Il cognome è obbligatorio.', 'errore'); return }
   if (!email || !email.includes('@')) { mostraMessaggio('Inserisci un\'email valida.', 'errore'); return }
   if (!password || password.length < 6) { mostraMessaggio('La password deve avere almeno 6 caratteri.', 'errore'); return }
 
@@ -132,13 +135,21 @@ function creaUtente() {
     mostraMessaggio('Esiste già un utente con questa email.', 'errore')
     return
   }
-
-  const nuovo = { id: nuovoId(), nome, email, password, ruolo, default: false }
-  utenti.value = [...utenti.value, nuovo]
-
-  mostraMessaggio(`Utente "${nome}" creato con successo.`, 'successo')
-  resetForm()
+  axios.post(`/api/user/create/${utente.sessionId}`, { name: nome, surname: cognome, email, password, role: ruolo })
+    .then(response => {
+      mostraMessaggio(`Utente "${nome} ${cognome}" creato con successo!`, 'successo')
+    })
+    .catch(error => {
+      console.error('Errore durante la creazione dell\'utente:', error)
+      mostraMessaggio('Si è verificato un errore durante la creazione dell\'utente.', 'errore')
+    })
+    .finally(() => {
+      resetForm()
+      getUtenti() 
+    })
 }
+
+
 
 
 /* ══════════════════════════════════════════════════════════════
@@ -170,7 +181,7 @@ function resetForm() {
   inputNome.value = ''
   inputEmail.value = ''
   inputPassword.value = ''
-  inputRuolo.value = 'normal'
+  inputRuolo.value = 'USER'
 }
 
 
@@ -182,7 +193,7 @@ function formattaData(iso) {
 }
 
 function coloreAvatar(ruolo) {
-  return { admin: 'bg-brand-500', normal: 'bg-blue-400', readonly: 'bg-ink-400' }[ruolo] || 'bg-ink-400'
+  return { ADMIN: 'bg-brand-500', USER: 'bg-blue-400', READONLY: 'bg-ink-400' }[ruolo] || 'bg-ink-400'
 }
 
 function inizialiDa(nome) {
@@ -311,7 +322,7 @@ function logout() {
             </template>
           </StatCard>
 
-          <StatCard label="Normali" :value="statNormal" subtitle="utenti del team"
+          <StatCard label="User" :value="statUser" subtitle="utenti del team"
                     icon-bg-class="bg-blue-50" value-color-class="text-blue-500" anim-delay-class="delay-3">
             <template #icon>
               <svg class="w-3.5 h-3.5 text-blue-400" viewBox="0 0 24 24" fill="none"
@@ -372,9 +383,9 @@ function logout() {
                                focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
                                transition-colors">
                   <option value="">Tutti i ruoli</option>
-                  <option value="admin">Admin</option>
-                  <option value="normal">Normale</option>
-                  <option value="readonly">Readonly</option>
+                  <option value="ADMIN">Admin</option>
+                  <option value="USER">User</option>
+                  <option value="READONLY">Readonly</option>
                 </select>
               </div>
             </div>
@@ -388,7 +399,6 @@ function logout() {
                       <th class="text-left px-5 py-3 text-[10px] font-mono text-ink-400 uppercase tracking-wider">Utente</th>
                       <th class="text-left px-4 py-3 text-[10px] font-mono text-ink-400 uppercase tracking-wider">Email</th>
                       <th class="text-left px-4 py-3 text-[10px] font-mono text-ink-400 uppercase tracking-wider whitespace-nowrap">Ruolo</th>
-                      <th class="text-left px-4 py-3 text-[10px] font-mono text-ink-400 uppercase tracking-wider whitespace-nowrap hidden lg:table-cell">Creato il</th>
                       <th class="px-4 py-3"></th>
                     </tr>
                   </thead>
@@ -419,13 +429,13 @@ function logout() {
                       <td class="px-5 py-4">
                         <div class="flex items-center gap-3">
                           <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-                               :class="coloreAvatar(u.ruolo)">
+                               :class="coloreAvatar(u.role)">
                             <span class="font-mono text-[11px] font-medium text-white">
-                              {{ inizialiDa(u.nome) }}
+                              {{ inizialiDa(u.name) }}
                             </span>
                           </div>
                           <div>
-                            <p class="text-sm font-medium text-ink-800">{{ u.nome }}</p>
+                            <p class="text-sm font-medium text-ink-800">{{ u.name }} {{ u.surname }}</p>
                             <span v-if="u.default" class="text-[10px] font-mono text-ink-400">
                               account di sistema
                             </span>
@@ -440,22 +450,16 @@ function logout() {
 
                       <!-- Badge ruolo -->
                       <td class="px-4 py-4">
-                        <BadgeRuolo :ruolo="u.ruolo" />
+                        <BadgeRuolo :ruolo="u.role" />
                       </td>
 
-                      <!-- Data creazione -->
-                      <td class="px-4 py-4 hidden lg:table-cell">
-                        <span class="font-mono text-[12px] text-ink-400">
-                          {{ dataCreazione(u) }}
-                        </span>
-                      </td>
 
                       <!-- Azioni -->
                       <td class="px-4 py-4 text-right">
                         <span v-if="u.default" class="text-[11px] font-mono text-ink-300 pr-1">protetto</span>
                         <button
                           v-else
-                          @click="eliminaUtente(u.id, u.nome)"
+                          @click="eliminaUtente(u.id, u.name)"
                           class="opacity-0 group-hover:opacity-100 transition-opacity
                                  inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg
                                  text-xs font-medium text-red-600
@@ -508,6 +512,7 @@ function logout() {
                               transition-colors duration-150
                               focus:border-brand-500 focus:bg-white focus:ring-2 focus:ring-brand-500/20" />
               </div>
+
 
               <!-- Email -->
               <div class="mb-4">
@@ -577,14 +582,14 @@ function logout() {
                                text-ink-800 text-sm cursor-pointer
                                transition-colors duration-150
                                focus:border-brand-500 focus:bg-white focus:ring-2 focus:ring-brand-500/20">
-                  <option value="normal">Normale — accesso standard</option>
-                  <option value="admin">Admin — accesso completo</option>
-                  <option value="readonly">Readonly — solo lettura</option>
+                  <option value="USER">User — accesso standard</option>
+                  <option value="ADMIN">Admin — accesso completo</option>
+                  <option value="READONLY">Readonly — solo lettura</option>
                 </select>
                 <p class="text-xs text-ink-400 mt-2 leading-relaxed">
-                  <strong class="text-ink-500">Normale:</strong> può creare e commentare issue.
-                  <strong class="text-ink-500">Admin:</strong> gestisce utenti e assegna issue.
-                  <strong class="text-ink-500">Readonly:</strong> solo visualizzazione.
+                  <strong class="text-ink-500">User:</strong> 
+                  <strong class="text-ink-500">Admin:</strong> 
+                  <strong class="text-ink-500">Readonly:</strong> 
                 </p>
               </div>
 

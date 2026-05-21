@@ -9,7 +9,7 @@ import bugboard.model.Issue;
 import bugboard.model.Utente;
 
 import bugboard.repository.IssueRepository;
-import bugboard.repository.UtenteRepository;
+import bugboard.repository.UserRepository;
 
 import bugboard.dto.CreateIssueRequest;
 import bugboard.dto.IssueResponse;
@@ -29,7 +29,7 @@ public class IssueService {
     private IssueRepository issueRepository;
     
     @Autowired
-    private UtenteRepository utenteRepository;
+    private UserRepository utenteRepository;
 
     @Autowired
     private SessioneService sessioneService;
