@@ -7,10 +7,12 @@ import bugboard.model.Utente;
 
 
 import bugboard.service.UserService;
-import bugboard.service.SessioneService;
+
+
 import bugboard.dto.AllUserResponse;
-import java.util.List;
 import bugboard.dto.RegisterRequest;
+
+import java.util.List;
 
 import java.util.UUID;
 
@@ -23,7 +25,6 @@ public class UserController {
 
     @PostMapping("/create/{sid}")
     public Utente creaNuovoUtente(@PathVariable UUID sid, @RequestBody RegisterRequest request) {
-
 
         return userService.creaNuovoUtente(sid, request);
     }

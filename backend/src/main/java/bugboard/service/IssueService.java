@@ -16,7 +16,7 @@ import bugboard.dto.IssueResponse;
 import bugboard.dto.IssueResponseUser;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -165,4 +165,9 @@ public class IssueService {
         
         return issueRepository.save(nuovaIssue); 
     }
+
+    public Issue getIssueById(int id) {
+        return issueRepository.findById(id).orElse(null);
+    }
+
 }

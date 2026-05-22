@@ -11,6 +11,8 @@ import java.time.LocalDateTime;
 
 @Repository
 public interface IssueRepository extends JpaRepository<Issue, Integer> {
+
+    
     // Trova tutte le issue create da un utente specifico usando l'ID dal dump
     List<Issue> findByCreatoreId(Integer idCreatore);
     

@@ -1,11 +1,12 @@
 package bugboard.controller;
 
-import org.springframework.web.bind.annotation.RestController;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.*;
 
 import bugboard.model.Utente;
+import bugboard.model.Issue;
+
+import bugboard.service.IssueService;
 import bugboard.service.NotifyUIService;
 import bugboard.service.SessioneService;
 
@@ -19,7 +20,6 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/notifies")
 @CrossOrigin(origins = "*")
-
 public class NotificaController {
     
     @Autowired
@@ -28,10 +28,12 @@ public class NotificaController {
     @Autowired
     private SessioneService sessioneService;
 
+    @Autowired
+    private IssueService issueService;
+
     /**
      * recuoera numero notifiche non lette per   utente assegnato a sid
      */
-
     @GetMapping("/number/{sid}")
     public int countIssues(@PathVariable UUID sid) {
         
@@ -60,4 +62,27 @@ public class NotificaController {
      public boolean leggiNotifica(@PathVariable int id) {
         return notifyUIService.segnaComeLetta(id);
     }
+
+    
+
+    @GetMapping("/apri/{id}/{sid}")
+    public Issue apriNotifica(@PathVariable int id, @PathVariable UUID sid) {
+        Utente utente = sessioneService.getUtenteBySessionId(sid);
+
+        if(utente != null) {
+            Integer idIssue = notifyUIService.getIssueDaNotifica(id);
+
+            if(idIssue != null) {
+                notifyUIService.segnaComeLetta(id);
+                return issueService.getIssueById(idIssue);           
+            }
+        }
+
+
+        return null;
+    }
+
+
+
+
 }

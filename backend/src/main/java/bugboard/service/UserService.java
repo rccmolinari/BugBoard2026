@@ -1,16 +1,16 @@
 package bugboard.service;
 
-
 import bugboard.dto.RegisterRequest;
+import bugboard.dto.AllUserResponse;
 
 import bugboard.model.Utente;
 
 import bugboard.repository.UserRepository;
-import bugboard.dto.AllUserResponse;
+
 import java.util.List;
 import java.util.ArrayList;
 import java.util.UUID;
-import bugboard.service.SessioneService;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

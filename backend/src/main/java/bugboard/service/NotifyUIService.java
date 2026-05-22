@@ -28,11 +28,11 @@ public class NotifyUIService implements NotifyService {
     private NotificaRepository notificaRepository;
 
     public List<Notify> getNotificaPerUtente(Integer utenteId) {
-      List<Notifica> notifica = notificaRepository.findByAssegnatoAId(utenteId);
-          
       
-      //Convertiamo notifica in dto
-      return notifica.stream().map(n -> {
+        List<Notifica> notifica = notificaRepository.findByAssegnatoAId(utenteId);
+          
+        //Convertiamo notifica in dto
+        return notifica.stream().map(n -> {
             Notify dto = new Notify();
             dto.setId(n.getId());
             dto.setDataCreazione(n.getDataCreazione());
@@ -71,4 +71,22 @@ public class NotifyUIService implements NotifyService {
         return notificaRepository.countByAssegnatoAIdAndLettaFalse(utenteId);
     }
 
+
+    /**
+     * recupera l'id  dell'issue associata a una notifica ci serve a sapere quando utente ci clicca
+     */
+    public Integer getIssueDaNotifica(int id) {
+        Optional<Notifica> opt  = notificaRepository.findById(id);
+        if (opt.isPresent()) {
+            Notifica n = opt.get();
+            if(n.getIssue() != null) {
+                return n.getIssue().getId();
+            } else {
+                return null;
+            } 
+        } else {
+                return null;
+        }
+    }
+    
 }
