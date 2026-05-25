@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
 import org.hibernate.type.SqlTypes;
+import org.hibernate.type.descriptor.jdbc.BinaryJdbcType;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.JdbcType;
 import org.hibernate.dialect.PostgreSQLEnumJdbcType;
@@ -31,9 +32,13 @@ public class Issue {
     private String descrizione;
 
     private Integer priorita;
+    
+    @Column(name = "immagine", columnDefinition = "bytea")
+    @JdbcType(BinaryJdbcType.class)
+    private byte[] immagine;
 
-    @Column()
-    private String immagine;
+    @Column(name = "immagine_content_type", length = 50)
+    private String immagineContentType;
 
     @Enumerated(EnumType.STRING)
     @JdbcType(PostgreSQLEnumJdbcType.class)

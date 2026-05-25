@@ -1,9 +1,12 @@
 package bugboard.service;
+
+import java.io.IOException;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import bugboard.model.Issue;
 import bugboard.model.Utente;
@@ -16,7 +19,6 @@ import bugboard.dto.IssueResponse;
 import bugboard.dto.IssueResponseUser;
 
 import java.time.LocalDate;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -27,7 +29,7 @@ public class IssueService {
 
     @Autowired
     private IssueRepository issueRepository;
-    
+
     @Autowired
     private UserRepository utenteRepository;
 
@@ -35,16 +37,12 @@ public class IssueService {
     private SessioneService sessioneService;
 
     public List<IssueResponse> getAllIssues(UUID sid) {
-
         Utente user = sessioneService.getUtenteBySessionId(sid);
-        if (user == null) return Collections.emptyList();
-
-        List<Issue> issues = issueRepository.findAllWithCreatoreAndDataScadenza();
-
-        if (user.getRole() != Utente.Role.ADMIN) {
+        if (user == null || user.getRole() != Utente.Role.ADMIN) {
             return Collections.emptyList();
         }
 
+        List<Issue> issues = issueRepository.findAllWithCreatoreAndDataScadenza();
         List<IssueResponse> response = new ArrayList<>();
 
         for (Issue i : issues) {
@@ -54,16 +52,11 @@ public class IssueService {
                 i.getTipo() != null ? i.getTipo().toString() : null,
                 i.getPriorita(),
                 i.getStato() != null ? i.getStato().toString() : null,
-                i.getCreatore() != null
-                    ? i.getCreatore().getEmail()
-                    : null,
-                i.getAssegnatoA() != null
-                    ? i.getAssegnatoA().getEmail()
-                    : null,
+                i.getCreatore() != null ? i.getCreatore().getEmail() : null,
+                i.getAssegnatoA() != null ? i.getAssegnatoA().getEmail() : null,
                 i.getDataScadenza()
             ));
         }
-
         return response;
     }
 
@@ -73,14 +66,11 @@ public class IssueService {
 
     @Transactional
     public boolean assignIssueToUser(int issueId, String userEmail, LocalDate expiringDate, UUID adminSID) {
-
         Issue issue = issueRepository.findById(issueId).orElse(null);
         Optional<Utente> utente = utenteRepository.findByEmail(userEmail);
         Utente admin = sessioneService.getUtenteBySessionId(adminSID);
 
-        if (issue == null || utente.isEmpty() || admin == null) {
-            return false;
-        }
+        if (issue == null || utente.isEmpty() || admin == null) return false;
 
         if (expiringDate != null) {
             issue.setDataScadenza(expiringDate.atTime(23, 59, 59));
@@ -88,7 +78,6 @@ public class IssueService {
 
         issue.setAssegnatoA(utente.get());
         issue.setAssegnatario(admin);
-
         issueRepository.save(issue);
         return true;
     }
@@ -98,38 +87,31 @@ public class IssueService {
     }
 
     public List<IssueResponseUser> findBySessionId(UUID sid) {
+        Utente user = sessioneService.getUtenteBySessionId(sid);
+        if (user == null) return Collections.emptyList();
 
-            Utente user = sessioneService.getUtenteBySessionId(sid);
+        List<Issue> issues = issueRepository.findByAssegnatoAId(user.getId());
+        List<IssueResponseUser> response = new ArrayList<>();
 
-            if (user == null) {
-                return Collections.emptyList();
-            }
-
-            List<Issue> issues = issueRepository.findByAssegnatoAId(user.getId());
-            List<IssueResponseUser> response = new ArrayList<>();
-            for (Issue i : issues) {
-                response.add(new IssueResponseUser(
-                    i.getId(),
-                    i.getTitolo(),
-                    i.getTipo() != null ? i.getTipo().toString() : null,
-                    i.getPriorita(),
-                    i.getStato() != null ? i.getStato().toString() : null,
-                    i.getAssegnatario() != null
-                        ? i.getAssegnatario().getEmail()
-                        : null,
-                    i.getDataScadenza()
-                ));
-            }
-            return response;
+        for (Issue i : issues) {
+            response.add(new IssueResponseUser(
+                i.getId(),
+                i.getTitolo(),
+                i.getTipo() != null ? i.getTipo().toString() : null,
+                i.getPriorita(),
+                i.getStato() != null ? i.getStato().toString() : null,
+                i.getAssegnatario() != null ? i.getAssegnatario().getEmail() : null,
+                i.getDataScadenza(),
+                i.getImmagine() != null  // hasImmagine
+            ));
         }
-
+        return response;
+    }
 
     @Transactional
-    public Issue createIssue(CreateIssueRequest request, UUID sid) {
+    public Issue createIssue(CreateIssueRequest request, UUID sid, MultipartFile immagineFile) {
         Utente creatore = sessioneService.getUtenteBySessionId(sid);
-        if (creatore == null) {
-            return null;
-        }
+        if (creatore == null) return null;
 
         Issue nuovaIssue = new Issue();
         nuovaIssue.setTitolo(request.getTitolo());
@@ -137,18 +119,21 @@ public class IssueService {
         nuovaIssue.setPriorita(request.getPriorita());
         nuovaIssue.setCreatore(creatore);
 
-        // fromValue è case-insensitive → accetta "bug", "BUG", "Bug"
         if (request.getTipo() != null) {
             nuovaIssue.setTipo(Issue.TipoIssue.fromValue(request.getTipo()));
         }
 
-        if (request.getStato() != null) {
-            nuovaIssue.setStato(Issue.StatoIssue.fromValue(request.getStato()));
-        } else {
-            nuovaIssue.setStato(Issue.StatoIssue.TODO);
-        }
-        if(request.getImmagine() != null) {
-            nuovaIssue.setImmagine(request.getImmagine());
+        nuovaIssue.setStato(request.getStato() != null
+            ? Issue.StatoIssue.fromValue(request.getStato())
+            : Issue.StatoIssue.TODO);
+
+        if (immagineFile != null && !immagineFile.isEmpty()) {
+            try {
+                nuovaIssue.setImmagine(immagineFile.getBytes());
+                nuovaIssue.setImmagineContentType(immagineFile.getContentType());
+            } catch (IOException e) {
+                // immagine ignorata, issue creata comunque
+            }
         }
 
         return issueRepository.save(nuovaIssue);
@@ -158,4 +143,5 @@ public class IssueService {
         return issueRepository.findById(id).orElse(null);
     }
 
+    
 }

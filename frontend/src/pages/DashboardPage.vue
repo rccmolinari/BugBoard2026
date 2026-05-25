@@ -81,25 +81,17 @@ const popupSegnalazioneAperto = ref(false)
 const segnalazione = ref({
   titolo: '',
   descrizione: '',
-  immagine: null,
+  immagine: null,   
   tipo: '',
   priorita: ''
 })
 
+
 const handleImageUpload = (event) => {
-  const file = event.target.files[0]
-
-  if (!file) return
-
-  const reader = new FileReader()
-
-  reader.onload = () => {
-    segnalazione.value.immagine = reader.result
-  }
-
-  reader.readAsDataURL(file)
+  segnalazione.value.immagine = event.target.files[0] ?? null
 }
 const erroreInvio = ref('')
+const confermaInvio = ref('')
 const invioInCorso = ref(false)
 
 // Popup notifiche
@@ -238,13 +230,18 @@ async function apriDettaglioNotifica(n) {
   }
 }
 
+function chiudiDettaglioNotifica() {
+  notificaSelezionata.value = null
+  issueNotifica.value = null
+  erroreDettaglio.value = ''
+}
+
 
 /* ══════════════════════════════════════════════════════════════
    SIDEBAR MOBILE + LOGOUT
    ══════════════════════════════════════════════════════════════ */
 function aprireSidebar() { sidebarAperta.value = true  }
 function chiudiSidebar() { sidebarAperta.value = false }
-
 function logout() {
   const sessionId = utente?.sessionId
   if (!sessionId) {
@@ -266,11 +263,21 @@ function logout() {
 /* ══════════════════════════════════════════════════════════════
    POPUP NUOVA SEGNALAZIONE
    ══════════════════════════════════════════════════════════════ */
-function apriPopupSegnalazione()  { popupSegnalazioneAperto.value = true  }
-function chiudiPopupSegnalazione() { popupSegnalazioneAperto.value = false }
+function apriPopupSegnalazione()  {
+  erroreInvio.value = ''
+  confermaInvio.value = ''
+  popupSegnalazioneAperto.value = true
+}
+
+function chiudiPopupSegnalazione() {
+  popupSegnalazioneAperto.value = false
+  erroreInvio.value = ''
+  confermaInvio.value = ''
+}
 
 async function submitSegnalazione() {
   erroreInvio.value = ''
+  confermaInvio.value = ''
 
   if (!segnalazione.value.titolo.trim()) {
     erroreInvio.value = 'Il titolo è obbligatorio.'
@@ -287,19 +294,26 @@ async function submitSegnalazione() {
 
   invioInCorso.value = true
   try {
-    await axios.post('/api/issues/create/' + utente.sessionId, {
-      titolo:      segnalazione.value.titolo,
-      descrizione: segnalazione.value.descrizione,
-      tipo:        segnalazione.value.tipo,
-      priorita:    segnalazione.value.priorita,
-      stato:       segnalazione.value.stato,
-    })
+    const formData = new FormData()
+    formData.append('titolo',      segnalazione.value.titolo)
+    formData.append('descrizione', segnalazione.value.descrizione ?? '')
+    formData.append('tipo',        segnalazione.value.tipo)
+    formData.append('priorita',    segnalazione.value.priorita)
+    formData.append('stato',       'todo')
+    if (segnalazione.value.immagine) {
+      formData.append('immagine', segnalazione.value.immagine)
+    }
+
+    await axios.put('/api/issues/create/' + utente.sessionId, formData)
 
     const response = await axios.get('/api/issues/user/' + utente.sessionId)
     issues.value = response.data
 
-    segnalazione.value = { titolo: '', descrizione: '', tipo: '', priorita: '', stato: 'todo' }
-    chiudiPopupSegnalazione()
+    confermaInvio.value = 'Segnalazione inviata con successo.'
+    segnalazione.value = { titolo: '', descrizione: '', immagine: null, tipo: '', priorita: '' }
+    setTimeout(() => {
+      chiudiPopupSegnalazione()
+    }, 900)
   } catch (error) {
     console.error('Errore durante la creazione dell\'issue:', error)
     erroreInvio.value = 'Errore durante l\'invio. Riprova.'
@@ -307,11 +321,30 @@ async function submitSegnalazione() {
     invioInCorso.value = false
   }
 }
+
+onMounted(() => {
+  axios.get('api/issues/12/immagine')
+    .then(response => {
+      console.log('Immagine issue 12:', response.data)
+    })
+    .catch(error => {
+      console.error('Errore durante il caricamento dell\'immagine:', error)
+    })
+})
+
+
 </script>
 
 <template>
   <div>
-
+    <!--  
+<img
+  v-if="issueNotifica.hasImmagine"
+  :src="`/api/issues/${issueNotifica.id}/immagine`"
+  alt="Immagine allegata"
+  class="w-full rounded-lg border border-ink-100 object-contain max-h-64"
+/>
+-->
     <!-- Sidebar condivisa -->
     <Sidebar pagina="dashboard" :utente="utente" :is-open="sidebarAperta" @logout="logout" />
 
@@ -793,6 +826,7 @@ async function submitSegnalazione() {
                      focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 bg-white"
             >
               <option value="">Seleziona…</option>
+              <option value="0">Minimal</option>
               <option value="1">Low</option>
               <option value="2">Medium</option>
               <option value="3">High</option>
@@ -802,7 +836,8 @@ async function submitSegnalazione() {
         </div>
 
         <!-- Errore -->
-        <p v-if="erroreInvio" class="text-xs text-red-500 font-medium">{{ erroreInvio }}</p>
+        <p v-if="erroreInvio" class="mb-5 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm">{{ erroreInvio }}</p>
+        <p v-if="confermaInvio" class="mb-5 px-4 py-3 rounded-lg bg-emerald-50 border border-emerald-100 text-emerald-700 text-sm">{{ confermaInvio }}</p>
 
         <!-- Azioni -->
         <div class="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-1">
@@ -941,7 +976,14 @@ async function submitSegnalazione() {
                   <span class="text-sm text-ink-600">{{ issueNotifica.assegnatoDa }}</span>
                 </div>
               </div>
-
+              <div v-if="issueNotifica.immagineContentType" class="space-y-1">
+                <span class="text-[10px] font-mono text-ink-400 uppercase tracking-wider block">Immagine allegata</span>
+                <img 
+                  :src="`/api/issues/${issueNotifica.id}/immagine`" 
+                  alt="Screenshot allegato" 
+                  class="w-full h-auto max-h-64 object-contain rounded-lg border border-ink-100 bg-ink-900/5 shadow-sm"
+                />
+              </div>
               <div v-if="issueNotifica.dataScadenza" class="space-y-0.5">
                 <span class="text-[10px] font-mono text-ink-400 uppercase tracking-wider">Scadenza</span>
                 <p class="font-mono text-[12px]"

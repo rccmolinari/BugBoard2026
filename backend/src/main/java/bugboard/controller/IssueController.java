@@ -11,12 +11,15 @@ import bugboard.dto.AssignIssueRequest;
 import bugboard.service.IssueService;
 import bugboard.service.SessioneService;
 
+import bugboard.repository.IssueRepository;
+
 import bugboard.model.Utente;
 import bugboard.model.Issue;
 
 import java.util.List;
 import java.util.UUID;
-
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
 /*
  * Controller per la gestione delle issue.
  */
@@ -51,22 +54,54 @@ public class IssueController {
         );
     }
 
-    @PostMapping("/create/{sid}")
-    public Issue createIssue(@PathVariable UUID sid, @RequestBody CreateIssueRequest request) {
- 
-       Utente creatore = sessioneService.getUtenteBySessionId(sid);
-       if (creatore == null) {
-          return  null;
-       }
 
-       return issueService.createIssue(request, sid);
+    @PutMapping(value = "/create/{sid}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public Issue createIssue(
+            @PathVariable UUID sid,
+            @RequestParam String titolo,
+            @RequestParam(required = false) String descrizione,
+            @RequestParam String tipo,
+            @RequestParam Integer priorita,
+            @RequestParam(required = false, defaultValue = "todo") String stato,
+            @RequestParam(required = false) MultipartFile immagine) {
+
+        Utente creatore = sessioneService.getUtenteBySessionId(sid);
+        if (creatore == null) return null;
+
+        CreateIssueRequest request = new CreateIssueRequest();
+        request.setTitolo(titolo);
+        request.setDescrizione(descrizione);
+        request.setTipo(tipo);
+        request.setPriorita(priorita);
+        request.setStato(stato);
+
+        return issueService.createIssue(request, sid, immagine);
     }
-
     @GetMapping("{sid}")
     public List<IssueResponse> getAllIssues(@PathVariable UUID sid) {
         return issueService.getAllIssues(sid);
     }
+    @GetMapping("/{id}/immagine")
+        public org.springframework.http.ResponseEntity<byte[]> getImmagineIssue(@PathVariable Integer id) {
+            // 1. Recupera la issue tramite il service (o direttamente dal repository se non hai il metodo nel service)
+            // Nota: Assicurati che il tuo issueService abbia un modo per trovare la issue singola per ID
+            Issue issue = issueService.getIssueById(id); 
+            
+            if (issue == null || issue.getImmagine() == null) {
+                return org.springframework.http.ResponseEntity.notFound().build();
+            }
 
+            // 2. Recupera il content type salvato (es. image/png), altrimenti usa un default sicuro
+            String contentType = issue.getImmagineContentType();
+            if (contentType == null) {
+                contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
+            }
+
+            // 3. Costruisci la risposta HTTP con i byte dell'immagine e gli header corretti
+            return org.springframework.http.ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(contentType))
+                    .body(issue.getImmagine());
+        }
 
           
 
