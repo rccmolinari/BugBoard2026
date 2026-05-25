@@ -4,6 +4,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import bugboard.dto.IssueResponse;
 import bugboard.model.Issue;
 
 import java.util.List;
@@ -46,5 +47,18 @@ public interface IssueRepository extends JpaRepository<Issue, Integer> {
     // Trova tutte le issue con creatore e data di scadenza usando una query personalizzata
     @Query("SELECT i FROM Issue i LEFT JOIN FETCH i.creatore")
     List<Issue> findAllWithCreatoreAndDataScadenza();
-
+    
+    @Query("SELECT new bugboard.dto.IssueResponse(" +
+        "i.id, " +
+        "i.titolo, " +
+        "CASE WHEN i.tipo IS NOT NULL THEN i.tipo.toString() ELSE null END, " +
+        "i.priorita, " +
+        "CASE WHEN i.stato IS NOT NULL THEN i.stato.toString() ELSE null END, " +
+        "c.email, " +
+        "a.email, " +
+        "i.dataScadenza) " +
+        "FROM Issue i " +
+        "LEFT JOIN i.creatore c " +
+        "LEFT JOIN i.assegnatoA a")
+    List<IssueResponse> findAllIssuesSenzaImmagine();
 }

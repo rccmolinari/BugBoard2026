@@ -16,6 +16,7 @@ import bugboard.repository.IssueRepository;
 import bugboard.model.Utente;
 import bugboard.model.Issue;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.MediaType;
@@ -34,6 +35,9 @@ public class IssueController {
 
     @Autowired
     private SessioneService sessioneService;
+
+    @Autowired
+    private IssueRepository issueRepository;
 
    @GetMapping("/user/{sid}")
     public List<IssueResponseUser> getIssuesBySessionId(@PathVariable UUID sid) {
@@ -78,8 +82,14 @@ public class IssueController {
         return issueService.createIssue(request, sid, immagine);
     }
     @GetMapping("{sid}")
-    public List<IssueResponse> getAllIssues(@PathVariable UUID sid) {
-        return issueService.getAllIssues(sid);
+    public List<IssueResponse> getAllIssues(UUID sid) {
+        Utente user = sessioneService.getUtenteBySessionId(sid);
+        if (user == null || user.getRole() != Utente.Role.ADMIN) {
+            return Collections.emptyList();
+        }
+
+        // Il database restituisce già la lista pulita e ottimizzata dei DTO
+        return issueRepository.findAllIssuesSenzaImmagine();
     }
     @GetMapping("/{id}/immagine")
         public org.springframework.http.ResponseEntity<byte[]> getImmagineIssue(@PathVariable Integer id) {

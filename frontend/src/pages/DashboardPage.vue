@@ -322,15 +322,6 @@ async function submitSegnalazione() {
   }
 }
 
-onMounted(() => {
-  axios.get('api/issues/12/immagine')
-    .then(response => {
-      console.log('Immagine issue 12:', response.data)
-    })
-    .catch(error => {
-      console.error('Errore durante il caricamento dell\'immagine:', error)
-    })
-})
 
 
 </script>
