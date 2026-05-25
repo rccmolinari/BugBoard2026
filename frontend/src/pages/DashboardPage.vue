@@ -1,21 +1,3 @@
-<!--
-  DashboardPage.vue
-  Dashboard utente.
-
-  Logica **identica** all'originale:
-    - issue prese da API/backend
-    - Accesso protetto gestito dal router
-    - Stats calcolate dagli stessi filtri
-    - Tabella filtrata su titolo / tipo / stato
-    - isScaduta(), formattaData(), apriIssue() con lo stesso comportamento
-    - logout() svuota la sessionStorage e torna al login via router
-
-  Rispetto al vecchio file:
-    - innerHTML + getElementById → v-for e data binding reattivo
-    - classList.add/remove('hidden') → ref booleane (sidebar mobile)
-    - escapeHtml() non serve: Vue fa escape automatico nelle interpolazioni {{ }}
-    - badge helpers → componenti <BadgeTipo>, <BadgeStato>, <BadgePriorita>
--->
 <script setup>
 import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -133,7 +115,7 @@ const erroreDettaglio = ref('')
 
 
 /* ══════════════════════════════════════════════════════════════
-   COMPUTED — sostituiscono aggiornaStats() e renderTabella()
+   COMPUTED 
    ══════════════════════════════════════════════════════════════ */
 const statTotale   = computed(() => issues.value.length)
 const statTodo     = computed(() => issues.value.filter(i => i.stato === 'todo').length)
@@ -854,7 +836,7 @@ async function submitSegnalazione() {
 
     <!-- ═══════════════════════════════════════════════════════════
          POPUP DETTAGLIO NOTIFICA
-         La notifica viene segnata come letta dal backend dentro /apri,
+         La notifica viene segnata come letta dal backend 
          quindi qui mostriamo solo i dati e un bottone di chiusura.
          ═══════════════════════════════════════════════════════════ -->
     <div
