@@ -124,46 +124,34 @@ public class IssueService {
         }
 
 
-
     @Transactional
     public Issue createIssue(CreateIssueRequest request, UUID sid) {
-        // 1. Recupero l'utente dalla sessione
         Utente creatore = sessioneService.getUtenteBySessionId(sid);
         if (creatore == null) {
-            return null; // O lancia un'eccezione personalizzata
+            return null;
         }
 
         Issue nuovaIssue = new Issue();
         nuovaIssue.setTitolo(request.getTitolo());
         nuovaIssue.setDescrizione(request.getDescrizione());
-        if(request.getTipo() != null){
-           nuovaIssue.setTipo(Issue.TipoIssue.valueOf(request.getTipo())); 
-        }
-
-        if(request.getStato() != null){
-           nuovaIssue.setStato(Issue.StatoIssue.valueOf(request.getStato()));
-        } else {
-            nuovaIssue.setStato(Issue.StatoIssue.TODO);
-        }
-
         nuovaIssue.setPriorita(request.getPriorita());
         nuovaIssue.setCreatore(creatore);
 
-        // 2. Conversione Tipo con gestione null
+        // fromValue è case-insensitive → accetta "bug", "BUG", "Bug"
         if (request.getTipo() != null) {
             nuovaIssue.setTipo(Issue.TipoIssue.fromValue(request.getTipo()));
         }
 
-        // 3. Conversione Stato con gestione null (default a TODO se vuoto)
         if (request.getStato() != null) {
             nuovaIssue.setStato(Issue.StatoIssue.fromValue(request.getStato()));
         } else {
             nuovaIssue.setStato(Issue.StatoIssue.TODO);
         }
+        if(request.getImmagine() != null) {
+            nuovaIssue.setImmagine(request.getImmagine());
+        }
 
-        // Qui puoi aggiungere altri campi come immagini o etichette se presenti nel DTO
-        
-        return issueRepository.save(nuovaIssue); 
+        return issueRepository.save(nuovaIssue);
     }
 
     public Issue getIssueById(int id) {

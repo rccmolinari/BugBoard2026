@@ -32,7 +32,7 @@ public class Issue {
 
     private Integer priorita;
 
-    @Column(length = 500)
+    @Column()
     private String immagine;
 
     @Enumerated(EnumType.STRING)

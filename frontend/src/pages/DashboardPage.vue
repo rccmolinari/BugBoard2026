@@ -46,6 +46,7 @@ const utente = getUtente() ?? { nome: '', sessionId: null }
 const issues = ref([])
 const dataScadenza = ref(null)
 const assegnatoDa = ref('')
+
 if (utente.sessionId) {
   axios.get('/api/issues/user/' + utente.sessionId)
     .then(response => {
@@ -59,8 +60,6 @@ if (utente.sessionId) {
   router.replace('/')
 }
 
-
-
 const nIssues = ref(0)
 
 let intervalId = null
@@ -70,11 +69,16 @@ onMounted(() => {
     try {
       const response = await axios.get('/api/notifies/number/' + utente.sessionId)
       nIssues.value = response.data
-      console.log('Notifiche non lette:', nIssues.value)
+
+      // Se il dropdown è aperto, ricarica anche la lista
+      if (popupNotificheAperto.value) {
+        const res = await axios.get('/api/notifies/list/' + utente.sessionId)
+        notifiche.value = res.data
+      }
     } catch (e) {
       console.error(e)
     }
-  }, 5000)
+  }, 2500)
 })
 
 onUnmounted(() => {
@@ -88,33 +92,62 @@ onUnmounted(() => {
 const cerca = ref('')
 const filtroTipo = ref('')
 const filtroStato = ref('')
-// Popup segnalazione — form
 const sidebarAperta = ref(false)
-// Popup segnalazione — form
+
+// Popup segnalazione
 const popupSegnalazioneAperto = ref(false)
 const segnalazione = ref({
   titolo: '',
   descrizione: '',
+  immagine: null,
   tipo: '',
-  priorita: '',
-  stato: 'todo',
+  priorita: ''
 })
+
+const handleImageUpload = (event) => {
+  const file = event.target.files[0]
+
+  if (!file) return
+
+  const reader = new FileReader()
+
+  reader.onload = () => {
+    segnalazione.value.immagine = reader.result
+  }
+
+  reader.readAsDataURL(file)
+}
 const erroreInvio = ref('')
 const invioInCorso = ref(false)
+
+// Popup notifiche
+const popupNotificheAperto = ref(false)
+const notifiche = ref([])
+const caricamentoNotifiche = ref(false)
+
+// Popup dettaglio notifica
+const notificaSelezionata = ref(null)   // oggetto { id, titolo, ... } della notifica
+const issueNotifica = ref(null)         // oggetto Issue restituito da /apri
+const caricamentoDettaglio = ref(false)
+const erroreDettaglio = ref('')
 
 
 /* ══════════════════════════════════════════════════════════════
    COMPUTED — sostituiscono aggiornaStats() e renderTabella()
    ══════════════════════════════════════════════════════════════ */
-const statTotale  = computed(() => issues.value.length)
-const statTodo    = computed(() => issues.value.filter(i => i.stato === 'todo').length)
+const statTotale   = computed(() => issues.value.length)
+const statTodo     = computed(() => issues.value.filter(i => i.stato === 'todo').length)
 const statProgress = computed(() => issues.value.filter(i => i.stato === 'in-progress').length)
-const statCritici = computed(() => issues.value.filter(i =>
+const statCritici  = computed(() => issues.value.filter(i =>
   i.priorita === 'critical' &&
   i.stato !== 'done' &&
   i.stato !== 'closed'
 ).length)
-
+const notificheOrdinate = computed(() =>
+  [...notifiche.value].sort((a, b) =>
+    new Date(b.dataCreazione) - new Date(a.dataCreazione)
+  )
+)
 const issueFiltrate = computed(() => {
   const q = cerca.value.toLowerCase()
   return issues.value.filter(issue => {
@@ -124,9 +157,9 @@ const issueFiltrate = computed(() => {
     return matchTitolo && matchTipo && matchStato
   })
 })
+
 const soloIssue = computed(() => route.hash === '#tutte-issue')
 
-// Iniziali per l'avatar della topbar (la sidebar le calcola da sola)
 const iniziali = computed(() => {
   if (!utente?.nome) return '?'
   return utente.nome
@@ -137,13 +170,21 @@ const iniziali = computed(() => {
     .slice(0, 2)
 })
 
-// Ruolo readonly: nasconde il bottone "Nuova issue" (come inizializzaUI() originale)
 const puoCreareIssue = computed(() => utente?.ruolo !== 'readonly')
 
 
 /* ══════════════════════════════════════════════════════════════
-   UTILITY — identiche all'originale
+   UTILITY
    ══════════════════════════════════════════════════════════════ */
+
+function formattaDataOra(iso) {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleString('it-IT', {
+    day: '2-digit', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit'
+  })
+}
+
 function formattaData(iso) {
   if (!iso) return '—'
   return new Date(iso).toLocaleDateString('it-IT', {
@@ -163,25 +204,72 @@ function apriIssue(id) {
 }
 
 function inizialiDa(nome) {
+  if (!nome) return '?'
   return nome.split(' ').map(p => p[0]).join('').toUpperCase().slice(0, 2)
+}
+
+
+
+
+/* ══════════════════════════════════════════════════════════════
+   NOTIFICHE
+   ══════════════════════════════════════════════════════════════ */
+
+// GET /api/notifies/list/{sid} — apre/chiude il dropdown e carica la lista
+async function getNotifiche() {
+  if (popupNotificheAperto.value) {
+    popupNotificheAperto.value = false
+    return
+  }
+  popupNotificheAperto.value = true
+  caricamentoNotifiche.value = true
+  try {
+    const response = await axios.get('/api/notifies/list/' + utente.sessionId)
+    notifiche.value = response.data
+  } catch (error) {
+    console.error('Errore durante il caricamento delle notifiche:', error)
+  } finally {
+    caricamentoNotifiche.value = false
+  }
+}
+
+// GET /api/notifies/apri/{id}/{sid}
+// Il backend segna già la notifica come letta e ritorna l'Issue associata.
+async function apriDettaglioNotifica(n) {
+  notificaSelezionata.value = n
+  issueNotifica.value = null
+  erroreDettaglio.value = ''
+  caricamentoDettaglio.value = true
+
+  try {
+    const response = await axios.get(`/api/notifies/apri/${n.id}/${utente.sessionId}`)
+    issueNotifica.value = response.data
+
+    // Aggiorna subito lista e contatore: il backend ha già segnato come letta
+    notifiche.value = notifiche.value.filter(item => item.id !== n.id)
+    nIssues.value = Math.max(0, nIssues.value - 1)
+  } catch (error) {
+    console.error('Errore durante l\'apertura della notifica:', error)
+    erroreDettaglio.value = 'Impossibile caricare i dettagli. Riprova.'
+  } finally {
+    caricamentoDettaglio.value = false
+  }
 }
 
 
 /* ══════════════════════════════════════════════════════════════
    SIDEBAR MOBILE + LOGOUT
    ══════════════════════════════════════════════════════════════ */
-function aprireSidebar()  { sidebarAperta.value = true  }
+function aprireSidebar() { sidebarAperta.value = true  }
 function chiudiSidebar() { sidebarAperta.value = false }
 
 function logout() {
   const sessionId = utente?.sessionId
-
   if (!sessionId) {
     sessionStorage.removeItem('bb_utente')
     router.replace('/')
     return
   }
-
   axios.post('/api/auth/logout', { sessionId })
     .catch(error => {
       console.error('Errore durante il logout:', error)
@@ -192,13 +280,12 @@ function logout() {
     })
 }
 
-function apriPopupSegnalazione() {
-  popupSegnalazioneAperto.value = true
-}
 
-function chiudiPopupSegnalazione() {
-  popupSegnalazioneAperto.value = false
-}
+/* ══════════════════════════════════════════════════════════════
+   POPUP NUOVA SEGNALAZIONE
+   ══════════════════════════════════════════════════════════════ */
+function apriPopupSegnalazione()  { popupSegnalazioneAperto.value = true  }
+function chiudiPopupSegnalazione() { popupSegnalazioneAperto.value = false }
 
 async function submitSegnalazione() {
   erroreInvio.value = ''
@@ -226,11 +313,9 @@ async function submitSegnalazione() {
       stato:       segnalazione.value.stato,
     })
 
-    // Ricarica la lista issue dopo la creazione
     const response = await axios.get('/api/issues/user/' + utente.sessionId)
     issues.value = response.data
 
-    // Reset e chiusura
     segnalazione.value = { titolo: '', descrizione: '', tipo: '', priorita: '', stato: 'todo' }
     chiudiPopupSegnalazione()
   } catch (error) {
@@ -283,20 +368,97 @@ async function submitSegnalazione() {
 
         <div class="flex items-center gap-2">
 
-          <!-- Campana notifiche -->
-          <button class="relative p-2 rounded-lg text-ink-500 hover:text-ink-800 hover:bg-ink-50 transition-colors">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-            </svg>
-            <!-- Badge numerico — nascosto di default (come nell'originale) -->
-            <span v-if="nIssues > 0" class="absolute top-1 right-1 w-4 h-4 rounded-full bg-red-500
-                         text-white text-[9px] font-mono font-bold
-                         flex items-center justify-center">
-              {{ nIssues }}
-            </span>
-          </button>
+          <!-- ── Campana notifiche ──────────────────────────── -->
+          <div class="relative">
+            <button
+              @click="getNotifiche"
+              class="relative p-2 rounded-lg text-ink-500 hover:text-ink-800 hover:bg-ink-50 transition-colors"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+              </svg>
+              <span v-if="nIssues > 0"
+                    class="absolute top-1 right-1 w-4 h-4 rounded-full bg-red-500
+                           text-white text-[9px] font-mono font-bold
+                           flex items-center justify-center">
+                {{ nIssues }}
+              </span>
+            </button>
+
+            <!-- Dropdown notifiche -->
+            <transition name="fade-drop">
+              <div
+                v-if="popupNotificheAperto"
+                class="absolute right-0 top-full mt-2 w-72 bg-white rounded-xl
+                       border border-ink-100 shadow-xl z-50 overflow-hidden"
+              >
+                <!-- Header dropdown -->
+                <div class="flex items-center justify-between px-4 py-3 border-b border-ink-100">
+                  <span class="text-[10px] font-mono font-semibold text-ink-500 uppercase tracking-wider">
+                    Notifiche
+                  </span>
+                  <button
+                    @click="popupNotificheAperto = false"
+                    class="text-ink-300 hover:text-ink-600 transition-colors"
+                  >
+                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2.5"
+                         stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18"/>
+                      <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                  </button>
+                </div>
+
+                <!-- Corpo scrollabile -->
+                <div class="max-h-72 overflow-y-auto divide-y divide-ink-50">
+
+                  <!-- Caricamento -->
+                  <div v-if="caricamentoNotifiche" class="flex items-center justify-center py-8">
+                    <svg class="w-5 h-5 animate-spin text-ink-300" viewBox="0 0 24 24"
+                         fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                    </svg>
+                  </div>
+
+                  <!-- Empty state -->
+                  <div
+                    v-else-if="notifiche.length === 0"
+                    class="flex flex-col items-center gap-2 py-8 text-ink-300"
+                  >
+                    <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="1.5"
+                         stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                      <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                    </svg>
+                    <p class="text-xs">Nessuna notifica</p>
+                  </div>
+
+                  <!-- Lista notifiche -->
+                  <div
+                    v-else
+                    v-for="n in notificheOrdinate"
+                    :key="n.id"
+                    @click="apriDettaglioNotifica(n)"
+                    class="flex items-start gap-3 px-4 py-3 hover:bg-ink-50 transition-colors cursor-pointer"
+                  >
+                    <div class="w-1.5 h-1.5 rounded-full bg-brand-500 mt-1.5 flex-shrink-0"></div>
+                    <span class="text-sm text-ink-700 leading-snug">{{formattaDataOra(n.dataCreazione)}} : {{ n.messaggio }}</span>
+                    <svg class="w-3.5 h-3.5 text-ink-200 ml-auto mt-0.5 flex-shrink-0"
+                         viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="9 18 15 12 9 6"/>
+                    </svg>
+                  </div>
+
+                </div>
+              </div>
+            </transition>
+          </div>
+          <!-- ── Fine campana notifiche ─────────────────────── -->
 
           <div class="w-px h-5 bg-ink-200 mx-1"></div>
 
@@ -331,7 +493,7 @@ async function submitSegnalazione() {
             @click="apriPopupSegnalazione"
             class="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg w-full sm:w-auto
                    bg-brand-500 hover:bg-brand-600 text-white text-sm font-semibold
-                    transition-colors duration-150 flex-shrink-0 active:scale-[0.98]"
+                   transition-colors duration-150 flex-shrink-0 active:scale-[0.98]"
           >
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -421,17 +583,17 @@ async function submitSegnalazione() {
                 <input v-model="cerca"
                        type="search"
                        placeholder="Cerca per titolo…"
-                        class="pl-8 pr-3 py-1.5 text-sm rounded-lg border border-ink-200
-                               bg-white text-ink-800 placeholder-ink-300
-                               focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
-                               w-full sm:w-44 transition-colors" />
+                       class="pl-8 pr-3 py-1.5 text-sm rounded-lg border border-ink-200
+                              bg-white text-ink-800 placeholder-ink-300
+                              focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
+                              w-full sm:w-44 transition-colors" />
               </div>
 
               <select v-model="filtroTipo"
                       class="px-2.5 py-1.5 text-sm rounded-lg border border-ink-200
-                              bg-white text-ink-600 cursor-pointer
-                              focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
-                              transition-colors w-full sm:w-auto">
+                             bg-white text-ink-600 cursor-pointer
+                             focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
+                             transition-colors w-full sm:w-auto">
                 <option value="">Tutti i tipi</option>
                 <option value="bug">Bug</option>
                 <option value="feature">Feature</option>
@@ -441,9 +603,9 @@ async function submitSegnalazione() {
 
               <select v-model="filtroStato"
                       class="px-2.5 py-1.5 text-sm rounded-lg border border-ink-200
-                              bg-white text-ink-600 cursor-pointer
-                              focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
-                              transition-colors w-full sm:w-auto">
+                             bg-white text-ink-600 cursor-pointer
+                             focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
+                             transition-colors w-full sm:w-auto">
                 <option value="">Tutti gli stati</option>
                 <option value="todo">Todo</option>
                 <option value="in-progress">In Progress</option>
@@ -531,7 +693,7 @@ async function submitSegnalazione() {
                             {{ inizialiDa(issue.assegnatoDa) }}
                           </span>
                         </div>
-                        <span class="text-sm text-ink-600">{{ issue.assegnatoDa}}</span>
+                        <span class="text-sm text-ink-600">{{ issue.assegnatoDa }}</span>
                       </div>
                       <span v-else class="text-ink-300 text-sm">—</span>
                     </td>
@@ -567,6 +729,10 @@ async function submitSegnalazione() {
       </main>
     </div>
 
+
+    <!-- ═══════════════════════════════════════════════════════════
+         POPUP NUOVA SEGNALAZIONE
+         ═══════════════════════════════════════════════════════════ -->
     <div
       v-if="popupSegnalazioneAperto"
       @click="chiudiPopupSegnalazione"
@@ -575,128 +741,279 @@ async function submitSegnalazione() {
       <div
         @click.stop
         class="w-full max-w-lg h-full sm:h-auto sm:max-h-[85vh] rounded-none sm:rounded-xl
-           bg-white border border-ink-100 shadow-xl p-5 space-y-4 overflow-y-auto"
+               bg-white border border-ink-100 shadow-xl p-5 space-y-4 overflow-y-auto"
       >
         <h3 class="font-display text-lg font-semibold text-ink-900">Segnala un problema</h3>
 
         <!-- Titolo -->
-    <div class="space-y-1">
-      <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Titolo *</label>
-      <input
-        v-model="segnalazione.titolo"
-        type="text"
-        placeholder="Descrivi brevemente il problema…"
-        class="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm text-ink-800
-               placeholder-ink-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
-      />
-    </div>
-
-    <!-- Descrizione -->
-    <div class="space-y-1">
-      <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Descrizione</label>
-
-        <textarea
-          v-model="segnalazione.descrizione"
-          rows="4"
-          placeholder="Aggiungi dettagli, passi per riprodurre, screenshot…"
-          class="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm text-ink-800
-                 placeholder-ink-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
-                 resize-none"
-        ></textarea>
-
+        <div class="space-y-1">
+          <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Titolo *</label>
+          <input
+            v-model="segnalazione.titolo"
+            type="text"
+            placeholder="Descrivi brevemente il problema…"
+            class="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm text-ink-800
+                   placeholder-ink-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+          />
         </div>
 
-    <!-- Tipo + Priorità -->
-    <div class="grid grid-cols-2 gap-3">
-      <div class="space-y-1">
-        <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Tipo *</label>
-        <select
-          v-model="segnalazione.tipo"
-          class="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm text-ink-700
-                 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 bg-white"
-        >
-          <option value="">Seleziona…</option>
-          <option value="bug">Bug</option>
-          <option value="feature">Feature</option>
-          <option value="question">Question</option>
-          <option value="documentation">Documentation</option>
-        </select>
-      </div>
+        <!-- Descrizione -->
+        <div class="space-y-1">
+          <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Descrizione</label>
+          <textarea
+            v-model="segnalazione.descrizione"
+            rows="4"
+            placeholder="Aggiungi dettagli, passi per riprodurre, screenshot…"
+            class="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm text-ink-800
+                   placeholder-ink-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
+                   resize-none"
+          ></textarea>
+        </div>
+        <!-- Immagine -->
+        <div class="space-y-1">
+          <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">
+            Immagine
+          </label>
 
-      <div class="space-y-1">
-        <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Priorità *</label>
-        <select
-          v-model="segnalazione.priorita"
-          class="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm text-ink-700
-                 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 bg-white"
-        >
-          <option value="">Seleziona…</option>
-          <option value="1">Low</option>
-          <option value="2">Medium</option>
-          <option value="3">High</option>
-          <option value="4">Critical</option>
-        </select>
-      </div>
-    </div>
-    <!-- Errore -->
-    <p v-if="erroreInvio" class="text-xs text-red-500 font-medium">{{ erroreInvio }}</p>
+          <input
+            type="file"
+            accept="image/*"
+            @change="handleImageUpload"
+            class="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm text-ink-800
+                  file:mr-4 file:rounded-md file:border-0
+                  file:bg-brand-500 file:px-4 file:py-2
+                  file:text-white hover:file:bg-brand-600
+                  focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+          />
+        </div>
+        <!-- Tipo + Priorità -->
+        <div class="grid grid-cols-2 gap-3">
+          <div class="space-y-1">
+            <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Tipo *</label>
+            <select
+              v-model="segnalazione.tipo"
+              class="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm text-ink-700
+                     focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 bg-white"
+            >
+              <option value="">Seleziona…</option>
+              <option value="bug">Bug</option>
+              <option value="feature">Feature</option>
+              <option value="question">Question</option>
+              <option value="documentation">Documentation</option>
+            </select>
+          </div>
 
-    <!-- Azioni -->
-    <div class="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-1">
-        <div class="flex flex-col-reverse sm:flex-row justify-end gap-2">
+          <div class="space-y-1">
+            <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Priorità *</label>
+            <select
+              v-model="segnalazione.priorita"
+              class="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm text-ink-700
+                     focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 bg-white"
+            >
+              <option value="">Seleziona…</option>
+              <option value="1">Low</option>
+              <option value="2">Medium</option>
+              <option value="3">High</option>
+              <option value="4">Critical</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Errore -->
+        <p v-if="erroreInvio" class="text-xs text-red-500 font-medium">{{ erroreInvio }}</p>
+
+        <!-- Azioni -->
+        <div class="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-1">
           <button
             type="button"
             @click="chiudiPopupSegnalazione"
             :disabled="invioInCorso"
             class="px-3 py-2 rounded-lg text-sm font-medium text-ink-600
-                  hover:bg-ink-50 transition-colors w-full sm:w-auto disabled:opacity-50"
+                   hover:bg-ink-50 transition-colors w-full sm:w-auto disabled:opacity-50"
           >
-      
             Annulla
           </button>
           <button
             type="button"
             @click="submitSegnalazione"
-            class="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-brand-500 hover:bg-brand-600 transition-colors w-full sm:w-auto"
+            :disabled="invioInCorso"
+            class="flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold
+                   text-white bg-brand-500 hover:bg-brand-600 transition-colors w-full sm:w-auto
+                   disabled:opacity-60 disabled:cursor-not-allowed"
           >
-          <svg v-if="invioInCorso" class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none"
-             stroke="currentColor" stroke-width="2">
-             <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-          </svg>
-          {{ invioInCorso ? 'Invio…' : 'Invia segnalazione' }}
+            <svg v-if="invioInCorso" class="w-4 h-4 animate-spin" viewBox="0 0 24 24"
+                 fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+            </svg>
+            {{ invioInCorso ? 'Invio…' : 'Invia segnalazione' }}
           </button>
         </div>
       </div>
     </div>
-    <!-- Errore -->
-    <p v-if="erroreInvio" class="text-xs text-red-500 font-medium">{{ erroreInvio }}</p>
 
-    <!-- Azioni -->
-    <div class="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-1">
-      <button
-        type="button"
-        @click="chiudiPopupSegnalazione"
-        :disabled="invioInCorso"
-        class="px-3 py-2 rounded-lg text-sm font-medium text-ink-600
-               hover:bg-ink-50 transition-colors w-full sm:w-auto disabled:opacity-50"
+
+    <!-- ═══════════════════════════════════════════════════════════
+         POPUP DETTAGLIO NOTIFICA
+         La notifica viene segnata come letta dal backend dentro /apri,
+         quindi qui mostriamo solo i dati e un bottone di chiusura.
+         ═══════════════════════════════════════════════════════════ -->
+    <div
+      v-if="notificaSelezionata"
+      @click.self="chiudiDettaglioNotifica"
+      class="fixed inset-0 z-[60] bg-ink-900/50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+    >
+      <div
+        class="w-full max-w-lg h-full sm:h-auto sm:max-h-[85vh] rounded-none sm:rounded-xl
+               bg-white border border-ink-100 shadow-xl flex flex-col overflow-hidden"
       >
-        Annulla
-      </button>
-      <button
-        type="button"
-        @click="submitSegnalazione"
-        :disabled="invioInCorso"
-        class="px-4 py-2 rounded-lg text-sm font-semibold text-white
-               bg-brand-500 hover:bg-brand-600 transition-colors w-full sm:w-auto
-               disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-      >
-        <svg v-if="invioInCorso" class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none"
-             stroke="currentColor" stroke-width="2">
-          <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-        </svg>
-        {{ invioInCorso ? 'Invio…' : 'Invia segnalazione' }}
-      </button>
+        <!-- Header -->
+        <div class="flex items-center justify-between px-5 py-4 border-b border-ink-100 flex-shrink-0">
+          <div class="flex items-center gap-2">
+            <div class="w-2 h-2 rounded-full bg-brand-500"></div>
+            <h3 class="font-display text-base font-semibold text-ink-900">
+              Dettaglio notifica
+            </h3>
+          </div>
+          <button
+            @click="chiudiDettaglioNotifica"
+            class="p-1.5 rounded-lg text-ink-300 hover:text-ink-600 hover:bg-ink-50 transition-colors"
+          >
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2.5"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Corpo scrollabile -->
+        <div class="flex-1 overflow-y-auto p-5 space-y-5">
+
+          <!-- Titolo notifica -->
+          <div class="space-y-1">
+            <span class="text-[10px] font-mono text-ink-400 uppercase tracking-wider">Notifica</span>
+            <p class="text-sm font-medium text-ink-800">{{ notificaSelezionata.titolo }}</p>
+          </div>
+
+          <!-- Caricamento issue -->
+          <div v-if="caricamentoDettaglio" class="flex items-center justify-center py-10">
+            <svg class="w-6 h-6 animate-spin text-ink-300" viewBox="0 0 24 24"
+                 fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+            </svg>
+          </div>
+
+          <!-- Errore caricamento -->
+          <div v-else-if="erroreDettaglio"
+               class="rounded-xl border border-red-100 bg-red-50 px-4 py-4 text-center">
+            <p class="text-sm text-red-500">{{ erroreDettaglio }}</p>
+          </div>
+
+          <!-- Dati issue associata -->
+          <div
+            v-else-if="issueNotifica"
+            class="rounded-xl border border-ink-100 bg-ink-50/50 divide-y divide-ink-100"
+          >
+            <!-- Sub-header issue -->
+            <div class="px-4 py-2.5 flex items-center justify-between">
+              <span class="text-[10px] font-mono text-ink-400 uppercase tracking-wider">Issue associata</span>
+              <span class="font-mono text-[11px] text-ink-400">#{{ issueNotifica.id }}</span>
+            </div>
+
+            <div class="px-4 py-3 space-y-3">
+
+              <div class="space-y-0.5">
+                <span class="text-[10px] font-mono text-ink-400 uppercase tracking-wider">Titolo</span>
+                <p class="text-sm text-ink-800 font-medium">{{ issueNotifica.titolo }}</p>
+              </div>
+
+              <div v-if="issueNotifica.descrizione" class="space-y-0.5">
+                <span class="text-[10px] font-mono text-ink-400 uppercase tracking-wider">Descrizione</span>
+                <p class="text-sm text-ink-600 leading-relaxed">{{ issueNotifica.descrizione }}</p>
+              </div>
+
+              <div class="grid grid-cols-3 gap-3">
+                <div class="space-y-1">
+                  <span class="text-[10px] font-mono text-ink-400 uppercase tracking-wider">Tipo</span>
+                  <BadgeTipo :tipo="issueNotifica.tipo" />
+                </div>
+                <div class="space-y-1">
+                  <span class="text-[10px] font-mono text-ink-400 uppercase tracking-wider">Priorità</span>
+                  <BadgePriorita :priorita="issueNotifica.priorita" />
+                </div>
+                <div class="space-y-1">
+                  <span class="text-[10px] font-mono text-ink-400 uppercase tracking-wider">Stato</span>
+                  <BadgeStato :stato="issueNotifica.stato" />
+                </div>
+              </div>
+
+              <div v-if="issueNotifica.assegnatoDa" class="space-y-0.5">
+                <span class="text-[10px] font-mono text-ink-400 uppercase tracking-wider">Assegnata da</span>
+                <div class="flex items-center gap-2 mt-1">
+                  <div class="w-5 h-5 rounded-full bg-brand-500/20 flex items-center justify-center flex-shrink-0">
+                    <span class="text-[9px] font-mono text-brand-700 font-medium">
+                      {{ inizialiDa(issueNotifica.assegnatoDa) }}
+                    </span>
+                  </div>
+                  <span class="text-sm text-ink-600">{{ issueNotifica.assegnatoDa }}</span>
+                </div>
+              </div>
+
+              <div v-if="issueNotifica.dataScadenza" class="space-y-0.5">
+                <span class="text-[10px] font-mono text-ink-400 uppercase tracking-wider">Scadenza</span>
+                <p class="font-mono text-[12px]"
+                   :class="isScaduta(issueNotifica) ? 'text-red-500 font-medium' : 'text-ink-500'">
+                  {{ formattaData(issueNotifica.dataScadenza) }}
+                </p>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Fallback: /apri ha ritornato null -->
+          <div v-else class="rounded-xl border border-ink-100 bg-ink-50/50 px-4 py-6 text-center">
+            <p class="text-sm text-ink-300">Nessuna issue associata a questa notifica.</p>
+          </div>
+
+        </div>
+
+        <!-- Footer -->
+        <div class="flex-shrink-0 border-t border-ink-100 px-5 py-4 flex items-center justify-between">
+          <!-- Badge "già letta" — appare non appena il caricamento finisce -->
+          <span v-if="!caricamentoDettaglio && !erroreDettaglio"
+                class="flex items-center gap-1.5 text-xs text-emerald-600 font-medium">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2.5"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            Segnata come letta
+          </span>
+          <span v-else class="flex-1"></span>
+
+          <button
+            @click="chiudiDettaglioNotifica"
+            class="px-4 py-2 rounded-lg text-sm font-semibold text-white
+                   bg-brand-500 hover:bg-brand-600 transition-colors"
+          >
+            Chiudi
+          </button>
+        </div>
+      </div>
     </div>
+
   </div>
-</div>
 </template>
+
+<style scoped>
+.fade-drop-enter-active,
+.fade-drop-leave-active {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.fade-drop-enter-from,
+.fade-drop-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+</style>

@@ -42,7 +42,7 @@ public class NotifyUIService implements NotifyService {
                 dto.setTitoloIssue(n.getIssue().getTitolo());
                 
                 String titolo = n.getIssue().getTitolo();
-                dto.setMessaggio("Ti è stata assegnata la issue: " + titolo);
+                dto.setMessaggio("Ti è stata assegnata la issue  '" + titolo + "'");
             
             } else {
                 dto.setMessaggio("Nuova notifica dal sistema");
