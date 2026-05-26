@@ -61,4 +61,5 @@ public interface IssueRepository extends JpaRepository<Issue, Integer> {
         "LEFT JOIN i.creatore c " +
         "LEFT JOIN i.assegnatoA a")
     List<IssueResponse> findAllIssuesSenzaImmagine();
+
 }

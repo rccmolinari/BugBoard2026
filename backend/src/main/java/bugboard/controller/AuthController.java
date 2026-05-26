@@ -9,9 +9,9 @@ import org.springframework.web.server.ResponseStatusException;
 import bugboard.dto.AuthResponse;
 import bugboard.dto.LoginRequest;
 import bugboard.dto.LogoutRequest;
-import bugboard.service.AuthService;
 import bugboard.dto.RegisterRequest;
-import bugboard.model.Utente;
+
+import bugboard.service.AuthService;
 import bugboard.service.SessioneService;
 
 /*

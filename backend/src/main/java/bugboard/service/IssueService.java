@@ -17,12 +17,15 @@ import bugboard.repository.UserRepository;
 import bugboard.dto.CreateIssueRequest;
 import bugboard.dto.IssueResponse;
 import bugboard.dto.IssueResponseUser;
+import bugboard.dto.IssueSpecific;
+import bugboard.dto.IssueSpecificAdmin;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+
 
 @Service
 public class IssueService {
@@ -142,6 +145,120 @@ public class IssueService {
     public Issue getIssueById(int id) {
         return issueRepository.findById(id).orElse(null);
     }
+    
+
+    public IssueSpecific getIssueSpecific(Issue issue) {
+
+        if (issue == null) {
+            return null;
+        }
+
+        IssueSpecific issueSpecific = new IssueSpecific();
+        issueSpecific.setId(issue.getId());
+        issueSpecific.setTitolo(issue.getTitolo());
+        issueSpecific.setDescrizione(issue.getDescrizione());
+        issueSpecific.setImmagine(issue.getImmagine());
+        issueSpecific.setImmagineContentType(issue.getImmagineContentType());
+        issueSpecific.setPriorita(issue.getPriorita());
+        issueSpecific.setEtichetta(issue.getEtichetta());
+        issueSpecific.setCommento(issue.getCommento());
+        issueSpecific.setDataScadenza(issue.getDataScadenza());
+    
+        // prendiamo email invece di intero oggetto utente
+        if(issue.getAssegnatario() != null) {
+            issueSpecific.setEmailAssegnatario(issue.getAssegnatario().getEmail());
+        }
+        
+        // convertiamo tipo da enum a string
+        if(issue.getTipo() != null) {
+            issueSpecific.setTipo(issue.getTipo().toString());
+        }
+
+        // convertiamo stato da enum a string
+        if(issue.getStato() != null) {
+            issueSpecific.setStato(issue.getStato().toString());
+        }
+
+        return issueSpecific;
+    }
+    
+
+
+    public IssueSpecificAdmin getIssueSpecificAdmin(Issue issue) {
+        
+        if(issue == null) {
+            return null;
+        }
+        
+        IssueSpecificAdmin issueSpecific = new IssueSpecificAdmin();
+        issueSpecific.setId(issue.getId());
+        issueSpecific.setTitolo(issue.getTitolo());
+        issueSpecific.setDescrizione(issue.getDescrizione());
+        issueSpecific.setPriorita(issue.getPriorita());
+        issueSpecific.setDataScadenza(issue.getDataScadenza());
+        issueSpecific.setImmagine(issue.getImmagine());
+        issueSpecific.setImmagineContentType(issue.getImmagineContentType());
+        issueSpecific.setEtichetta(issue.getEtichetta());
+        issueSpecific.setCommento(issue.getCommento());
+
+        // convertiamo enum a string 
+        if(issue.getTipo() != null) {
+            issueSpecific.setTipo(issue.getTipo().toString());
+        }
+
+        // convertiamo enum a string
+        if(issue.getStato() != null) {
+            issueSpecific.setStato(issue.getStato().toString());
+        }
+        
+        // prendiamo solo email dell'assegnatario invece dell'intero oggetto utente
+        if(issue.getAssegnatario() != null) {
+            issueSpecific.setEmailAssegnatario(issue.getAssegnatario().getEmail());
+        }
+
+        // prendiamo solo email dell'utente a cui è stata assegnata la issue invece dell'intero oggetto utente
+        if(issue.getAssegnatoA() != null) {
+            issueSpecific.setEmailAssegnatoA(issue.getAssegnatoA().getEmail());
+        }
+
+        // prendiamo solo email del creatore della issue invece dell'intero oggetto utente
+        issueSpecific.setEmailCreatore(issue.getCreatore().getEmail());
+
+        return issueSpecific;
+    }
+    
+    @Transactional
+    public boolean aggiungiCommento(int idIssue, String testo, UUID sid) {
+        
+        Utente utente = sessioneService.getUtenteBySessionId(sid);
+        if(utente == null) {
+            return false;
+        }
+
+        Issue issue = issueRepository.findById(idIssue).orElse(null);
+        if(issue != null && testo != null && !testo.trim().isEmpty()) {
+            
+            String[] commentiAttuali = issue.getCommento();
+            String[] commentoNuovo; 
+            
+            if(commentiAttuali == null || commentiAttuali.length == 0) {
+                commentoNuovo = new String[] {testo};
+            } else {
+                commentoNuovo = new String[commentiAttuali.length + 1];
+                // copiamo commenti vecchi nel nuovo
+                System.arraycopy(commentiAttuali, 0, commentoNuovo, 0, commentiAttuali.length);
+                // inseriamo in fondo all'array il commento nuovo
+                commentoNuovo[commentiAttuali.length] = testo;
+            }
+            
+            issue.setCommento(commentoNuovo);
+            issueRepository.save(issue);
+            return true;
+        }
+            
+            return false;
+    }
+
 
     
 }

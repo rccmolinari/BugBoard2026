@@ -7,6 +7,8 @@ import bugboard.dto.CreateIssueRequest;
 import bugboard.dto.IssueResponse;
 import bugboard.dto.IssueResponseUser;
 import bugboard.dto.AssignIssueRequest;
+import bugboard.dto.IssueSpecific;
+import bugboard.dto.IssueSpecificAdmin;
 
 import bugboard.service.IssueService;
 import bugboard.service.SessioneService;
@@ -112,7 +114,46 @@ public class IssueController {
                     .contentType(MediaType.parseMediaType(contentType))
                     .body(issue.getImmagine());
         }
+        
+        @GetMapping("/dettagli/{id}/{sid}")
+        public IssueSpecific getDettagliIssue(@PathVariable Integer id, @PathVariable UUID sid) {
+            Utente utente = sessioneService.getUtenteBySessionId(sid);
+            
+            if(utente != null) {
+                Issue idIssue = issueService.getIssueById(id);
 
+                if(idIssue != null){
+                  return issueService.getIssueSpecific(idIssue);  
+                } else {
+                    return null;
+                }
+            }
+
+            return null;
+        }
+         
+        @PostMapping("/{id}/commento/{sid}")
+        public boolean scriviCommento(@PathVariable Integer id, @RequestBody String testo, @PathVariable UUID sid) {
+             return issueService.aggiungiCommento(id, testo, sid);
+        }
+
+        @GetMapping("/dettagliAdmin/{id}/{sid}")
+        public IssueSpecificAdmin getDettagliIssueAdmin(@PathVariable Integer id, @PathVariable UUID sid) {
+               
+             Utente utente = sessioneService.getUtenteBySessionId(sid);
+             
+            if(utente != null && utente.getRole() == Utente.Role.ADMIN) {
+                Issue idIssue = issueService.getIssueById(id);
+
+                if(idIssue != null){
+                    return issueService.getIssueSpecificAdmin(idIssue);
+                } else {
+                    return null;
+                }
+            }
+
+            return null;
+        }
           
 
 
