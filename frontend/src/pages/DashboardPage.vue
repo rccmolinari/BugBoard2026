@@ -8,7 +8,7 @@ import BadgeStato from '../components/BadgeStato.vue'
 import BadgePriorita from '../components/BadgePriorita.vue'
 import axios from 'axios'
 import { onMounted, onUnmounted } from 'vue'
-
+import IssueDetailPanel from '../components/IssueDetailPanel.vue'
 function getUtente() {
   const raw = sessionStorage.getItem('bb_utente')
   if (!raw) return null
@@ -172,9 +172,20 @@ function isScaduta(issue) {
   return new Date(issue.scadenza) < new Date()
 }
 
-function apriIssue(id) {
-  console.log('Apri issue', id)
-  // TODO: router.push(`/issue/${id}`)
+
+const issueDettaglio = ref(null)
+
+async function apriIssue(id) {
+  caricamentoDettaglio.value = true
+  issueDettaglio.value = null
+  try {
+    const res = await axios.get(`/api/issues/dettagli/${id}/${utente.sessionId}`)
+    issueDettaglio.value = res.data
+  } catch (e) {
+    console.error('Errore caricamento dettagli:', e)
+  } finally {
+    caricamentoDettaglio.value = false
+  }
 }
 
 function inizialiDa(nome) {
@@ -1017,6 +1028,12 @@ async function submitSegnalazione() {
         </div>
       </div>
     </div>
+    <IssueDetailPanel
+      :issue="issueDettaglio"
+      :caricamento="caricamentoDettaglio"
+      :session-id="utente.sessionId"
+      @close="issueDettaglio = null"
+    />
 
   </div>
 </template>

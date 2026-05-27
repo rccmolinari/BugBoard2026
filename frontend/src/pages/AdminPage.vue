@@ -11,7 +11,7 @@ import BadgeTipo from '../components/BadgeTipo.vue'
 import BadgeStato from '../components/BadgeStato.vue'
 import BadgePriorita from '../components/BadgePriorita.vue'
 import axios from 'axios'
-
+import IssueDetailPanel from '../components/IssueDetailPanel.vue'
 function getUtente() {
   const raw = sessionStorage.getItem('bb_utente')
   if (!raw) return null
@@ -27,7 +27,21 @@ function getUtente() {
 
 const utente = getUtente() ?? { nome: '', sessionId: null }
 const router = useRouter()
+const issueDettaglio = ref(null)
+const caricamentoDettaglio = ref(false)
 
+async function apriIssue(id) {
+  caricamentoDettaglio.value = true
+  issueDettaglio.value = null
+  try {
+    const res = await axios.get(`/api/issues/dettagli/${id}/${utente.sessionId}`)
+    issueDettaglio.value = res.data
+  } catch (e) {
+    console.error('Errore caricamento dettagli:', e)
+  } finally {
+    caricamentoDettaglio.value = false
+  }
+}
 const issues = ref([])
 
 if (utente.sessionId) {
@@ -280,7 +294,9 @@ function logout() {
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-ink-50">
-                  <tr v-for="issue in issueDaMostrare" :key="issue.id" class="transition-colors hover:bg-ink-50/60">
+                <tr v-for="issue in issueDaMostrare" :key="issue.id"
+                    class="transition-colors hover:bg-ink-50/60 cursor-pointer"
+                    @click="apriIssue(issue.id)">
                     <td class="px-5 py-3.5 whitespace-nowrap">
                       <span class="font-mono text-[12px] text-ink-400">#{{ issue.id }}</span>
                     </td>
@@ -306,9 +322,9 @@ function logout() {
                       <span class="font-mono text-[12px] text-ink-400">{{ formattaData(issue.dataScadenza) }}</span>
                     </td>
                     <td class="px-4 py-3.5 text-right">
-                      <button
-                        type="button"
-                        @click="apriPopupAssegna(issue)"
+                    <button
+                      type="button"
+                      @click.stop="apriPopupAssegna(issue)"
                         class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold
                                text-brand-700 bg-brand-50 hover:bg-brand-100 border border-brand-100 transition-colors"
                       >
@@ -397,5 +413,13 @@ function logout() {
         </div>
       </div>
     </div>
+    <IssueDetailPanel
+      :issue="issueDettaglio"
+      :caricamento="caricamentoDettaglio"
+      :session-id="utente.sessionId"
+      :is-admin="true"
+      @close="issueDettaglio = null"
+      @assegna="(issue) => { issueDettaglio = null; apriPopupAssegna(issue) }"
+    />
   </div>
 </template>
