@@ -12,6 +12,8 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.JdbcType;
 import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "issue", schema = "public")
@@ -56,11 +58,11 @@ public class Issue {
     @JdbcTypeCode(SqlTypes.ARRAY)
     @Column(name = "etichetta", columnDefinition = "text[]")
     private String[] etichetta;
-    
-    @JdbcTypeCode(SqlTypes.ARRAY)
-    @Column(name = "commento", columnDefinition = "text[]")
-    private String[] commento;
 
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "commento", columnDefinition = "jsonb")
+    private List<Commento> commento = new ArrayList<>();
     @ManyToOne
     @JoinColumn(name = "idcreatore", nullable = false)
     private Utente creatore;

@@ -48,12 +48,13 @@ public interface IssueRepository extends JpaRepository<Issue, Integer> {
     @Query("SELECT i FROM Issue i LEFT JOIN FETCH i.creatore")
     List<Issue> findAllWithCreatoreAndDataScadenza();
     
+    
     @Query("SELECT new bugboard.dto.IssueResponse(" +
         "i.id, " +
         "i.titolo, " +
-        "CASE WHEN i.tipo IS NOT NULL THEN i.tipo.toString() ELSE null END, " +
+        "CAST(i.tipo AS String), " +
         "i.priorita, " +
-        "CASE WHEN i.stato IS NOT NULL THEN i.stato.toString() ELSE null END, " +
+        "CAST(i.stato AS String), " +
         "c.email, " +
         "a.email, " +
         "i.dataScadenza) " +

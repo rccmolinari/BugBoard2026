@@ -157,49 +157,56 @@
             Commenti ({{ commentiLocali.length }})
         </span>
 
-
-        <!-- Scrivi commento -->
-        <div class="space-y-2">
-            <textarea
-            v-model="nuovoCommento"
-            rows="3"
-            placeholder="Scrivi un commento…"
-            class="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm text-ink-800
-                    placeholder-ink-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
-                    resize-none transition-colors"
-            />
-            <p v-if="erroreCommento" class="text-xs text-red-500">{{ erroreCommento }}</p>
-            <button
-            @click="inviaCommento"
-            :disabled="invioCommento || !nuovoCommento.trim()"
-            class="w-full inline-flex items-center justify-center gap-2
-                    px-3 py-2 rounded-lg text-sm font-semibold
-                    text-white bg-brand-500 hover:bg-brand-600
-                    disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-            <svg v-if="invioCommento" class="w-4 h-4 animate-spin" viewBox="0 0 24 24"
-                fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-            </svg>
-            {{ invioCommento ? 'Invio…' : 'Invia commento' }}
-            </button>
-        </div>
-        
         <!-- Lista commenti -->
         <div v-if="commentiLocali.length" class="space-y-1.5">
-            <div
-            v-for="(c, i) in commentiLocali" :key="i"
-            class="text-sm text-ink-600 bg-ink-50 rounded-lg px-3 py-2.5
-                    border border-ink-100 leading-relaxed"
-            >
-            {{ c }}
+        <div
+            v-for="(c, i) in commentiOrdinati" :key="i"
+            class="bg-ink-50 rounded-lg px-3 py-2.5 border border-ink-100 space-y-1.5"
+        >
+            <div class="flex items-center gap-2">
+            <div class="w-6 h-6 rounded-full bg-brand-500/20 flex items-center justify-center flex-shrink-0">
+                <span class="text-[9px] font-mono text-brand-700 font-medium">
+                {{ iniziali(props.issue.emailAssegnatoA ?? '?') }}
+                </span>
             </div>
+            <span class="font-mono text-[11px] text-ink-400">{{ formattaDataOra(c.timestamp) }}</span>
+            </div>
+            <p class="text-sm text-ink-600 leading-relaxed pl-8">{{ c.testo }}</p>
+        </div>
         </div>
         <p v-else class="text-sm text-ink-300">Nessun commento.</p>
         </div>
 
         </div>
       </div>
+        
+        <!-- Footer user — scrivi commento -->
+        <div v-if="!isAdmin && issue && !caricamento"
+            class="flex-shrink-0 border-t border-ink-100 px-5 py-4 space-y-2">
+        <textarea
+            v-model="nuovoCommento"
+            rows="3"
+            placeholder="Scrivi un commento…"
+            class="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm text-ink-800
+                placeholder-ink-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
+                resize-none transition-colors"
+        />
+        <p v-if="erroreCommento" class="text-xs text-red-500">{{ erroreCommento }}</p>
+        <button
+            @click="inviaCommento"
+            :disabled="invioCommento || !nuovoCommento.trim()"
+            class="w-full inline-flex items-center justify-center gap-2
+                px-3 py-2 rounded-lg text-sm font-semibold
+                text-white bg-brand-500 hover:bg-brand-600
+                disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+            <svg v-if="invioCommento" class="w-4 h-4 animate-spin" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+            </svg>
+            {{ invioCommento ? 'Invio…' : 'Invia commento' }}
+        </button>
+        </div>
 
       <!-- Footer (solo admin) -->
       <div v-if="isAdmin && issue && !caricamento" class="flex-shrink-0 border-t border-ink-100 px-5 py-4">
@@ -245,6 +252,10 @@ watch(() => props.issue, (nuova) => {
   commentiLocali.value = nuova?.commento ? [...nuova.commento] : []
 }, { immediate: true })
 
+const commentiOrdinati = computed(() => {
+  return [...commentiLocali.value].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+})
+
 const nuovoCommento = ref('')
 const invioCommento = ref(false)
 const erroreCommento = ref('')
@@ -267,8 +278,15 @@ async function inviaCommento() {
       { headers: { 'Content-Type': 'text/plain' } }
     )
     if (ok.data === true) {
-      commentiLocali.value.push(nuovoCommento.value.trim())
       nuovoCommento.value = ''
+
+      // Ricarica i commenti aggiornati dal backend
+      const endpoint = props.isAdmin
+        ? `/api/issues/dettagliAdmin/${props.issue.id}/${props.sessionId}`
+        : `/api/issues/dettagli/${props.issue.id}/${props.sessionId}`
+
+      const res = await axios.get(endpoint)
+      commentiLocali.value = res.data.commento ?? []
     } else {
       erroreCommento.value = 'Invio fallito, riprova.'
     }
@@ -285,13 +303,19 @@ function iniziali(email) {
   return local.split(/[._]/).map(p => p[0]).join('').toUpperCase().slice(0, 2)
 }
 
+function formattaDataOra(iso) {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleString('it-IT', {
+    day: '2-digit', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit'
+  })
+}
 function formattaData(iso) {
   if (!iso) return '—'
   return new Date(iso).toLocaleDateString('it-IT', {
     day: '2-digit', month: 'short', year: 'numeric'
   })
 }
-
 function isScaduta(issue) {
   if (!issue?.dataScadenza) return false
   if (issue.stato === 'done' || issue.stato === 'closed') return false

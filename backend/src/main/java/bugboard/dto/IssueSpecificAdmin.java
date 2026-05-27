@@ -5,6 +5,9 @@ import lombok.NoArgsConstructor;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
+
+import bugboard.model.Commento;
 
 
 
@@ -21,7 +24,7 @@ public class IssueSpecificAdmin {
         private String immagineContentType;
         private Integer priorita;
         private LocalDateTime dataScadenza;
-        private String[] commento;
+        private List<Commento> commento;
         private String[] etichetta;
         private String tipo;
         private String stato;

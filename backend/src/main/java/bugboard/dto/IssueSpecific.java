@@ -5,6 +5,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
+
+import bugboard.model.Commento;
 
 @Data
 @NoArgsConstructor
@@ -16,7 +19,7 @@ public class IssueSpecific {
       private byte[] immagine;
       private String immagineContentType;
       private Integer priorita;
-      private String[] commento;
+      private List<Commento> commento;
       private String[] etichetta;
       private String tipo;
       private String stato;

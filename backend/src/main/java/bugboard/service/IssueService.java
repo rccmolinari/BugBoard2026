@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import bugboard.model.Commento;
 import bugboard.model.Issue;
 import bugboard.model.Utente;
 
@@ -21,6 +22,7 @@ import bugboard.dto.IssueSpecific;
 import bugboard.dto.IssueSpecificAdmin;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -226,37 +228,22 @@ public class IssueService {
 
         return issueSpecific;
     }
-    
+        
     @Transactional
     public boolean aggiungiCommento(int idIssue, String testo, UUID sid) {
-        
         Utente utente = sessioneService.getUtenteBySessionId(sid);
-        if(utente == null) {
-            return false;
-        }
+        if (utente == null) return false;
 
         Issue issue = issueRepository.findById(idIssue).orElse(null);
-        if(issue != null && testo != null && !testo.trim().isEmpty()) {
-            
-            String[] commentiAttuali = issue.getCommento();
-            String[] commentoNuovo; 
-            
-            if(commentiAttuali == null || commentiAttuali.length == 0) {
-                commentoNuovo = new String[] {testo};
-            } else {
-                commentoNuovo = new String[commentiAttuali.length + 1];
-                // copiamo commenti vecchi nel nuovo
-                System.arraycopy(commentiAttuali, 0, commentoNuovo, 0, commentiAttuali.length);
-                // inseriamo in fondo all'array il commento nuovo
-                commentoNuovo[commentiAttuali.length] = testo;
-            }
-            
-            issue.setCommento(commentoNuovo);
-            issueRepository.save(issue);
-            return true;
+        if (issue == null || testo == null || testo.trim().isEmpty()) return false;
+
+        if (issue.getCommento() == null) {
+            issue.setCommento(new ArrayList<>());
         }
-            
-            return false;
+
+        issue.getCommento().add(new Commento(testo.trim(), LocalDateTime.now()));
+        issueRepository.save(issue);
+        return true;
     }
 
 

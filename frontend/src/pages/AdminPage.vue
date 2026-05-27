@@ -34,7 +34,7 @@ async function apriIssue(id) {
   caricamentoDettaglio.value = true
   issueDettaglio.value = null
   try {
-    const res = await axios.get(`/api/issues/dettagli/${id}/${utente.sessionId}`)
+  const res = await axios.get(`/api/issues/dettagliAdmin/${id}/${utente.sessionId}`)
     issueDettaglio.value = res.data
   } catch (e) {
     console.error('Errore caricamento dettagli:', e)
@@ -48,6 +48,7 @@ if (utente.sessionId) {
   axios.get('/api/issues/' + utente.sessionId)
     .then(response => {
       issues.value = response.data
+      console.log('Issue caricate:', issues.value)
     })
     .catch(error => {
       console.error('Errore durante il caricamento delle issue:', error)

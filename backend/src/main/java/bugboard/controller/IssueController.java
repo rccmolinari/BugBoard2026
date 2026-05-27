@@ -83,8 +83,8 @@ public class IssueController {
 
         return issueService.createIssue(request, sid, immagine);
     }
-    @GetMapping("{sid}")
-    public List<IssueResponse> getAllIssues(UUID sid) {
+    @GetMapping("/{sid}")
+    public List<IssueResponse> getAllIssues(@PathVariable UUID sid) {
         Utente user = sessioneService.getUtenteBySessionId(sid);
         if (user == null || user.getRole() != Utente.Role.ADMIN) {
             return Collections.emptyList();
@@ -118,7 +118,7 @@ public class IssueController {
         @GetMapping("/dettagli/{id}/{sid}")
         public IssueSpecific getDettagliIssue(@PathVariable Integer id, @PathVariable UUID sid) {
             Utente utente = sessioneService.getUtenteBySessionId(sid);
-            
+
             if(utente != null) {
                 Issue idIssue = issueService.getIssueById(id);
 
