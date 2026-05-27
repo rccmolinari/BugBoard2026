@@ -241,7 +241,7 @@ public class IssueService {
             issue.setCommento(new ArrayList<>());
         }
 
-        issue.getCommento().add(new Commento(testo.trim(), LocalDateTime.now()));
+        issue.getCommento().add(new Commento(testo.trim(), LocalDateTime.now(), utente.getEmail()));
         issueRepository.save(issue);
         return true;
     }

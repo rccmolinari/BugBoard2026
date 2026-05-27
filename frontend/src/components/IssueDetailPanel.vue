@@ -163,14 +163,15 @@
             v-for="(c, i) in commentiOrdinati" :key="i"
             class="bg-ink-50 rounded-lg px-3 py-2.5 border border-ink-100 space-y-1.5"
         >
-            <div class="flex items-center gap-2">
-            <div class="w-6 h-6 rounded-full bg-brand-500/20 flex items-center justify-center flex-shrink-0">
-                <span class="text-[9px] font-mono text-brand-700 font-medium">
-                {{ iniziali(props.issue.emailAssegnatoA ?? '?') }}
-                </span>
-            </div>
-            <span class="font-mono text-[11px] text-ink-400">{{ formattaDataOra(c.timestamp) }}</span>
-            </div>
+        <div class="flex items-center gap-2">
+        <div class="w-6 h-6 rounded-full bg-brand-500/20 flex items-center justify-center flex-shrink-0">
+            <span class="text-[9px] font-mono text-brand-700 font-medium">
+            {{ iniziali(c.autore) }}
+            </span>
+        </div>
+        <span class="font-mono text-[11px] text-ink-400">{{ formattaDataOra(c.timestamp) }}</span>
+        <span class="text-[11px] text-ink-500">{{ c.autore }}</span>
+        </div>
             <p class="text-sm text-ink-600 leading-relaxed pl-8">{{ c.testo }}</p>
         </div>
         </div>

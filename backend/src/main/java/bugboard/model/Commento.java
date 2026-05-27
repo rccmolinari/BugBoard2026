@@ -11,4 +11,5 @@ import java.time.LocalDateTime;
 public class Commento {
     private String testo;
     private LocalDateTime timestamp;
+    private String autore;
 }
