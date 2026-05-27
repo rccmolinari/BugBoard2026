@@ -50,9 +50,16 @@ onMounted(() => {
   intervalId = setInterval(async () => {
     try {
       const response = await axios.get('/api/notifies/number/' + utente.sessionId)
-      nIssues.value = response.data
+      const nuovoValore = response.data
 
-      // Se il dropdown è aperto, ricarica anche la lista
+      // Se sono arrivate nuove notifiche rispetto a prima → ricarica le issue
+      if (nuovoValore > nIssues.value) {
+        const res = await axios.get('/api/issues/user/' + utente.sessionId)
+        issues.value = res.data
+      }
+
+      nIssues.value = nuovoValore
+
       if (popupNotificheAperto.value) {
         const res = await axios.get('/api/notifies/list/' + utente.sessionId)
         notifiche.value = res.data
@@ -60,9 +67,8 @@ onMounted(() => {
     } catch (e) {
       console.error(e)
     }
-  }, 2500)
+  }, 1000)
 })
-
 onUnmounted(() => {
   clearInterval(intervalId)
 })
