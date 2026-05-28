@@ -55,7 +55,11 @@ public class Issue {
     @Column(name = "datascadenza")
     private LocalDateTime dataScadenza;
 
-    @Column(name = "datacreazione")
+    @Column(
+    name = "datacreazione",
+    insertable = false,
+    updatable = false
+    )
     private LocalDateTime dataCreazione;
 
     @JdbcTypeCode(SqlTypes.ARRAY)

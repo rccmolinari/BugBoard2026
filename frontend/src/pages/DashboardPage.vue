@@ -119,12 +119,12 @@ const erroreDettaglio = ref('')
    COMPUTED 
    ══════════════════════════════════════════════════════════════ */
 const statTotale   = computed(() => issues.value.length)
-const statTodo     = computed(() => issues.value.filter(i => i.stato === 'todo').length)
-const statProgress = computed(() => issues.value.filter(i => i.stato === 'in-progress').length)
+const statTodo     = computed(() => issues.value.filter(i => i.stato === 'TODO').length)
+const statProgress = computed(() => issues.value.filter(i => i.stato === 'IN_PROGRESS').length)
 const statCritici  = computed(() => issues.value.filter(i =>
-  i.priorita === 'critical' &&
-  i.stato !== 'done' &&
-  i.stato !== 'closed'
+  i.priorita === 4 &&
+  i.stato !== 'DONE' &&
+  i.stato !== 'CLOSED'
 ).length)
 const notificheOrdinate = computed(() =>
   [...notifiche.value].sort((a, b) =>
@@ -328,6 +328,7 @@ async function submitSegnalazione() {
 
     const response = await axios.get('/api/issues/user/' + utente.sessionId)
     issues.value = response.data
+    issues.value.sort((a, b) => new Date(b.dataCreazione) - new Date(a.dataCreazione))
 
     confermaInvio.value = 'Segnalazione inviata con successo.'
     segnalazione.value = { titolo: '', descrizione: '', immagine: null, tipo: '', priorita: '' }

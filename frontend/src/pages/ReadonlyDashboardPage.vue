@@ -50,12 +50,12 @@ const filtroTipo = ref('')
 const filtroStato = ref('')
 
 const statTotale   = computed(() => issues.value.length)
-const statTodo     = computed(() => issues.value.filter(i => i.stato === 'todo').length)
-const statProgress = computed(() => issues.value.filter(i => i.stato === 'in-progress').length)
+const statTodo     = computed(() => issues.value.filter(i => i.stato === 'TODO').length)
+const statProgress = computed(() => issues.value.filter(i => i.stato === 'IN_PROGRESS').length)
 const statCritici  = computed(() => issues.value.filter(i =>
-  i.priorita === 'critical' &&
-  i.stato !== 'done' &&
-  i.stato !== 'closed'
+  i.priorita === 4 &&
+  i.stato !== 'DONE' &&
+  i.stato !== 'CLOSED'
 ).length)
 
 const issueFiltrate = computed(() => {
