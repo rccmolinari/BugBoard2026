@@ -418,7 +418,8 @@ function logout() {
       :issue="issueDettaglio"
       :caricamento="caricamentoDettaglio"
       :session-id="utente.sessionId"
-      :is-admin="true"
+      :ruolo="utente.ruolo"
+      :isAdmin="true"
       @close="issueDettaglio = null"
       @assegna="(issue) => { issueDettaglio = null; apriPopupAssegna(issue) }"
     />

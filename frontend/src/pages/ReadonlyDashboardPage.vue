@@ -24,16 +24,18 @@ function getUtente() {
 
 const router = useRouter()
 const route = useRoute()
-const utente = getUtente() ?? { nome: '', sessionId: null }
+const utente = getUtente() ?? { nome: '', sessionId: null, ruolo: '' }
 const issues = ref([])
 const sidebarAperta = ref(false)
 const issueDettaglio = ref(null)
 const caricamentoDettaglio = ref(false)
 
 if (utente.sessionId) {
-  axios.get('/api/issues/user/' + utente.sessionId)
+  axios.get('/api/issues/stakeholder/' + utente.sessionId)
     .then(response => {
       issues.value = response.data
+      //sortami le issue
+      issues.value.sort((a, b) => new Date(b.dataCreazione) - new Date(a.dataCreazione))
       console.log('Issue caricate:', issues.value)
     })
     .catch(error => {
@@ -95,7 +97,7 @@ async function apriIssue(id) {
   caricamentoDettaglio.value = true
   issueDettaglio.value = null
   try {
-    const res = await axios.get(`/api/issues/dettagli/${id}/${utente.sessionId}`)
+    const res = await axios.get(`/api/issues/dettagliStakeholder/${id}/${utente.sessionId}`)
     issueDettaglio.value = res.data
   } catch (e) {
     console.error('Errore caricamento dettagli:', e)
@@ -103,7 +105,6 @@ async function apriIssue(id) {
     caricamentoDettaglio.value = false
   }
 }
-
 function inizialiDa(nome) {
   if (!nome) return '?'
   return nome.split(' ').map(p => p[0]).join('').toUpperCase().slice(0, 2)
@@ -397,6 +398,7 @@ function logout() {
       :caricamento="caricamentoDettaglio"
       :session-id="utente.sessionId"
       :allow-comment="false"
+      :ruolo="utente.ruolo"
       @close="issueDettaglio = null"
     />
   </div>

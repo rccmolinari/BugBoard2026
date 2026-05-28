@@ -24,7 +24,7 @@ function getUtente() {
 
 const router = useRouter()
 const route = useRoute()
-const utente = getUtente() ?? { nome: '', sessionId: null }
+const utente = getUtente() ?? { nome: '', sessionId: null, ruolo: '' }
 const issues = ref([])
 const dataScadenza = ref(null)
 const assegnatoDa = ref('')
@@ -1041,6 +1041,7 @@ async function submitSegnalazione() {
       :issue="issueDettaglio"
       :caricamento="caricamentoDettaglio"
       :session-id="utente.sessionId"
+      :ruolo="utente.ruolo"
       @close="issueDettaglio = null"
     />
 

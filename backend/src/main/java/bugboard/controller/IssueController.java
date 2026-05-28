@@ -46,6 +46,15 @@ public class IssueController {
         return issueService.findBySessionId(sid);
     }
 
+    @GetMapping("/stakeholder/{sid}")
+    public List<IssueResponse> getIssuesForStakeholder(@PathVariable UUID sid) {
+        Utente user = sessioneService.getUtenteBySessionId(sid);
+        if (user == null) {
+            return Collections.emptyList();
+        }
+
+        return issueService.findOnlyBug(sid);
+    }
     @PutMapping("/assign/{sid}")
     public boolean assignIssueToUser(@PathVariable UUID sid, @RequestBody AssignIssueRequest request) {
 
@@ -155,7 +164,19 @@ public class IssueController {
             return null;
         }
           
+        @GetMapping("/dettagliStakeholder/{id}/{sid}")
+        public IssueSpecificAdmin getDettagliIssueStakeholder(@PathVariable Integer id, @PathVariable UUID sid) {
+            Utente utente = sessioneService.getUtenteBySessionId(sid);
 
+            if (utente != null && utente.getRole() == Utente.Role.READONLY) {
+                Issue issue = issueService.getIssueById(id);
+                if (issue != null) {
+                    return issueService.getIssueSpecificAdmin(issue);
+                }
+            }
+
+            return null;
+}
 
 
 
