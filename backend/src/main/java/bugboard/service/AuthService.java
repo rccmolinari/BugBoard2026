@@ -44,7 +44,12 @@ public class AuthService {
 
         // Costruisci la risposta con il ruolo mappato al formato frontend
         String ruolo = u.getRole().toString().toLowerCase();
-        if (ruolo.equals("user")) {
+        
+        if(ruolo.equals("admin")) {
+            ruolo = "admin";
+        } else if(ruolo.equals("readonly")) {
+             ruolo = "readonly";
+        } else if(ruolo.equals("user")) {
             ruolo = "normal";
         }
 

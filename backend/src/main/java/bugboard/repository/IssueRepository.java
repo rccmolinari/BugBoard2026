@@ -46,7 +46,7 @@ public interface IssueRepository extends JpaRepository<Issue, Integer> {
 
     // Trova tutte le issue con creatore e data di scadenza usando una query personalizzata
     @Query("SELECT i FROM Issue i LEFT JOIN FETCH i.creatore")
-    List<Issue> findAllWithCreatoreAndDataScadenza();
+    List<Issue> findAllWithCreatoreAndDataScadenzaAndDataCreazione();
     
     
     @Query("SELECT new bugboard.dto.IssueResponse(" +
@@ -57,7 +57,8 @@ public interface IssueRepository extends JpaRepository<Issue, Integer> {
         "CAST(i.stato AS String), " +
         "c.email, " +
         "a.email, " +
-        "i.dataScadenza) " +
+        "i.dataScadenza, " +
+        "i.dataCreazione) " +
         "FROM Issue i " +
         "LEFT JOIN i.creatore c " +
         "LEFT JOIN i.assegnatoA a")

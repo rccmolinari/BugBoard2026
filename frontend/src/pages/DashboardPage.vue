@@ -33,6 +33,8 @@ if (utente.sessionId) {
   axios.get('/api/issues/user/' + utente.sessionId)
     .then(response => {
       issues.value = response.data
+      //ordina le issue in base alla data creazione
+      issues.value.sort((a, b) => new Date(b.dataCreazione) - new Date(a.dataCreazione))
       console.log('Issue caricate:', issues.value)
     })
     .catch(error => {
@@ -56,6 +58,7 @@ onMounted(() => {
       if (nuovoValore > nIssues.value) {
         const res = await axios.get('/api/issues/user/' + utente.sessionId)
         issues.value = res.data
+        issues.value.sort((a, b) => new Date(b.dataCreazione) - new Date(a.dataCreazione))
       }
 
       nIssues.value = nuovoValore

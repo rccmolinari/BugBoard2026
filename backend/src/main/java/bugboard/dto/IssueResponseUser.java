@@ -16,5 +16,6 @@ public class IssueResponseUser {
     private String stato;
     private String assegnatoDa;
     private LocalDateTime dataScadenza;
+    private LocalDateTime dataCreazione;
     private boolean hasImmagine;
 }

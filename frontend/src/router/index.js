@@ -4,6 +4,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Login from '../pages/LoginPage.vue'
 import Register from '../pages/RegisterPage.vue'
 import User from '../pages/DashboardPage.vue'
+import ReadonlyDashboard from '../pages/ReadonlyDashboardPage.vue'
 import Admin from '../pages/AdminPage.vue'
 import AdminUsers from '../pages/AdminUsersPage.vue'
 
@@ -26,7 +27,13 @@ const routes = [
     path: '/user',
     name: 'User',
     component: User,
-    meta: { requiresAuth: true, allowedRoles: ['normal', 'readonly'] },
+    meta: { requiresAuth: true, allowedRoles: ['normal'] },
+  },
+  {
+    path: '/readonly',
+    name: 'ReadonlyDashboard',
+    component: ReadonlyDashboard,
+    meta: { requiresAuth: true, allowedRoles: ['readonly'] },
   },
   {
     path: '/admin',
@@ -80,7 +87,9 @@ function getUtenteFromStorage() {
 }
 
 function homePathFor(utente) {
-  return utente?.ruolo === 'admin' ? '/admin' : '/user'
+  if (utente?.ruolo === 'admin') return '/admin'
+  if (utente?.ruolo === 'readonly') return '/readonly'
+  return '/user'
 }
 
 router.beforeEach((to) => {

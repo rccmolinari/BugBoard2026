@@ -182,7 +182,7 @@
       </div>
         
         <!-- Footer user — scrivi commento -->
-        <div v-if="!isAdmin && issue && !caricamento"
+        <div v-if="allowComment && !isAdmin && issue && !caricamento"
             class="flex-shrink-0 border-t border-ink-100 px-5 py-4 space-y-2">
         <textarea
             v-model="nuovoCommento"
@@ -242,6 +242,7 @@ const props = defineProps({
   issue:       { type: Object,  default: null  },
   caricamento: { type: Boolean, default: false },
   isAdmin:     { type: Boolean, default: false },
+  allowComment: { type: Boolean, default: true },
   sessionId:   { type: String,  default: null  },
 })
 

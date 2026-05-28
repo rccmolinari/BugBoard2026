@@ -57,8 +57,16 @@ const isGestioneUtentiAttiva = computed(() => props.pagina === 'admin-users')
 
 // Visibilità legata al ruolo (come nel vecchio inizializzaUI() del dashboard.js)
 const mostraAdminLink = computed(() => props.utente?.ruolo === 'admin')
-const dashboardPath = computed(() => (props.utente?.ruolo === 'admin' ? '/admin' : '/user'))
-const issuesPath = computed(() => (props.utente?.ruolo === 'admin' ? '/admin#ultime-issue' : '/user#tutte-issue'))
+const dashboardPath = computed(() => {
+  if (props.utente?.ruolo === 'admin') return '/admin'
+  if (props.utente?.ruolo === 'readonly') return '/readonly'
+  return '/user'
+})
+const issuesPath = computed(() => {
+  if (props.utente?.ruolo === 'admin') return '/admin#ultime-issue'
+  if (props.utente?.ruolo === 'readonly') return '/readonly#tutte-issue'
+  return '/user#tutte-issue'
+})
 const gestioneUtentiPath = '/admin/users'
 </script>
 
