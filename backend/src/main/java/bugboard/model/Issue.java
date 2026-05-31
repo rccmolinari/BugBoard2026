@@ -55,6 +55,13 @@ public class Issue {
     @Column(name = "datascadenza")
     private LocalDateTime dataScadenza;
 
+    @Column(
+    name = "datacreazione",
+    insertable = false,
+    updatable = false
+    )
+    private LocalDateTime dataCreazione;
+
     @JdbcTypeCode(SqlTypes.ARRAY)
     @Column(name = "etichetta", columnDefinition = "text[]")
     private String[] etichetta;

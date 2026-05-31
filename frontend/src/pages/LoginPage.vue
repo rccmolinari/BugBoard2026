@@ -28,7 +28,6 @@ function handleLogin(event) {
     .then(response => {
 
       const { sessionId, nome, ruolo } = response.data
-
       sessionStorage.setItem(
         'bb_utente',
         JSON.stringify({ sessionId, nome, ruolo })
@@ -36,6 +35,8 @@ function handleLogin(event) {
 
       if (ruolo === 'admin') {
         router.push('/admin')
+      } else if (ruolo === 'readonly') {
+        router.push('/readonly')
       } else {
         router.push('/user')
       }

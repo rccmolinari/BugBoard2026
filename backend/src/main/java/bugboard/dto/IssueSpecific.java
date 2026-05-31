@@ -25,4 +25,5 @@ public class IssueSpecific {
       private String stato;
       private String emailAssegnatario;
       private LocalDateTime dataScadenza;     
+      private LocalDateTime dataCreazione;
 }

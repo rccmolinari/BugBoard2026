@@ -92,8 +92,8 @@
             </div>
           </div>
 
-          <!-- Creatore (solo admin) -->
-          <div v-if="isAdmin && issue.emailCreatore" class="space-y-1">
+                    <!-- Creatore (solo admin e readonly ) -->
+        <div v-if="(isAdmin || ruolo === 'readonly') && issue.emailCreatore" class="space-y-1">
             <span class="text-[10px] font-mono text-ink-400 uppercase tracking-wider">Creata da</span>
             <div class="flex items-center gap-2">
               <div class="w-6 h-6 rounded-full bg-ink-200 flex items-center justify-center flex-shrink-0">
@@ -119,7 +119,7 @@
           </div>
 
           <!-- A chi è assegnata (admin → emailAssegnatoA, user → emailAssegnatario) -->
-          <div v-if="isAdmin && issue.emailAssegnatario" class="space-y-1">
+        <div v-if="(isAdmin || ruolo === 'readonly') && issue.emailAssegnatoA" class="space-y-1">
             <span class="text-[10px] font-mono text-ink-400 uppercase tracking-wider">Assegnata a</span>
             <div class="flex items-center gap-2">
               <div class="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
@@ -182,7 +182,7 @@
       </div>
         
         <!-- Footer user — scrivi commento -->
-        <div v-if="!isAdmin && issue && !caricamento"
+        <div v-if="allowComment && !isAdmin && issue && !caricamento"
             class="flex-shrink-0 border-t border-ink-100 px-5 py-4 space-y-2">
         <textarea
             v-model="nuovoCommento"
@@ -242,6 +242,8 @@ const props = defineProps({
   issue:       { type: Object,  default: null  },
   caricamento: { type: Boolean, default: false },
   isAdmin:     { type: Boolean, default: false },
+  ruolo:      { type: String,  default: false },
+  allowComment: { type: Boolean, default: true },
   sessionId:   { type: String,  default: null  },
 })
 
@@ -263,7 +265,7 @@ const erroreCommento = ref('')
 
 const assegnatoA = computed(() => {
   if (!props.issue) return null
-  return props.isAdmin
+  return props.ruolo === 'admin'
     ? props.issue.emailAssegnatoA
     : props.issue.emailAssegnatario
 })
@@ -282,7 +284,7 @@ async function inviaCommento() {
       nuovoCommento.value = ''
 
       // Ricarica i commenti aggiornati dal backend
-      const endpoint = props.isAdmin
+      const endpoint = props.ruolo === 'admin' || props.ruolo === 'readonly'
         ? `/api/issues/dettagliAdmin/${props.issue.id}/${props.sessionId}`
         : `/api/issues/dettagli/${props.issue.id}/${props.sessionId}`
 

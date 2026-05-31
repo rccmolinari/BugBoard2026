@@ -49,7 +49,7 @@ public class IssueService {
             return Collections.emptyList();
         }
 
-        List<Issue> issues = issueRepository.findAllWithCreatoreAndDataScadenza();
+        List<Issue> issues = issueRepository.findAllWithCreatoreAndDataScadenzaAndDataCreazione();
         List<IssueResponse> response = new ArrayList<>();
 
         for (Issue i : issues) {
@@ -61,7 +61,33 @@ public class IssueService {
                 i.getStato() != null ? i.getStato().toString() : null,
                 i.getCreatore() != null ? i.getCreatore().getEmail() : null,
                 i.getAssegnatoA() != null ? i.getAssegnatoA().getEmail() : null,
-                i.getDataScadenza()
+                i.getDataScadenza(),
+                i.getDataCreazione()
+            ));
+        }
+        return response;
+    }
+
+    public List<IssueResponse> findOnlyBug(UUID sid) {
+        Utente user = sessioneService.getUtenteBySessionId(sid);
+        if (user == null) {
+            return Collections.emptyList();
+        }
+
+        List<Issue> issues = issueRepository.findOnlyBugWithCreatoreAndDataScadenzaAndDataCreazione();
+        List<IssueResponse> response = new ArrayList<>();
+
+        for (Issue i : issues) {
+            response.add(new IssueResponse(
+                i.getId(),
+                i.getTitolo(),
+                i.getTipo() != null ? i.getTipo().toString() : null,
+                i.getPriorita(),
+                i.getStato() != null ? i.getStato().toString() : null,
+                i.getCreatore() != null ? i.getCreatore().getEmail() : null,
+                i.getAssegnatoA() != null ? i.getAssegnatoA().getEmail() : null,
+                i.getDataScadenza(),
+                i.getDataCreazione()
             ));
         }
         return response;
@@ -109,6 +135,7 @@ public class IssueService {
                 i.getStato() != null ? i.getStato().toString() : null,
                 i.getAssegnatario() != null ? i.getAssegnatario().getEmail() : null,
                 i.getDataScadenza(),
+                i.getDataCreazione(),
                 i.getImmagine() != null  // hasImmagine
             ));
         }

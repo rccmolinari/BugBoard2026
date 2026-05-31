@@ -24,7 +24,7 @@ function getUtente() {
 
 const router = useRouter()
 const route = useRoute()
-const utente = getUtente() ?? { nome: '', sessionId: null }
+const utente = getUtente() ?? { nome: '', sessionId: null, ruolo: '' }
 const issues = ref([])
 const dataScadenza = ref(null)
 const assegnatoDa = ref('')
@@ -33,6 +33,8 @@ if (utente.sessionId) {
   axios.get('/api/issues/user/' + utente.sessionId)
     .then(response => {
       issues.value = response.data
+      //ordina le issue in base alla data creazione
+      issues.value.sort((a, b) => new Date(b.dataCreazione) - new Date(a.dataCreazione))
       console.log('Issue caricate:', issues.value)
     })
     .catch(error => {
@@ -56,6 +58,7 @@ onMounted(() => {
       if (nuovoValore > nIssues.value) {
         const res = await axios.get('/api/issues/user/' + utente.sessionId)
         issues.value = res.data
+        issues.value.sort((a, b) => new Date(b.dataCreazione) - new Date(a.dataCreazione))
       }
 
       nIssues.value = nuovoValore
@@ -116,12 +119,12 @@ const erroreDettaglio = ref('')
    COMPUTED 
    ══════════════════════════════════════════════════════════════ */
 const statTotale   = computed(() => issues.value.length)
-const statTodo     = computed(() => issues.value.filter(i => i.stato === 'todo').length)
-const statProgress = computed(() => issues.value.filter(i => i.stato === 'in-progress').length)
+const statTodo     = computed(() => issues.value.filter(i => i.stato === 'TODO').length)
+const statProgress = computed(() => issues.value.filter(i => i.stato === 'IN_PROGRESS').length)
 const statCritici  = computed(() => issues.value.filter(i =>
-  i.priorita === 'critical' &&
-  i.stato !== 'done' &&
-  i.stato !== 'closed'
+  i.priorita === 4 &&
+  i.stato !== 'DONE' &&
+  i.stato !== 'CLOSED'
 ).length)
 const notificheOrdinate = computed(() =>
   [...notifiche.value].sort((a, b) =>
@@ -325,6 +328,7 @@ async function submitSegnalazione() {
 
     const response = await axios.get('/api/issues/user/' + utente.sessionId)
     issues.value = response.data
+    issues.value.sort((a, b) => new Date(b.dataCreazione) - new Date(a.dataCreazione))
 
     confermaInvio.value = 'Segnalazione inviata con successo.'
     segnalazione.value = { titolo: '', descrizione: '', immagine: null, tipo: '', priorita: '' }
@@ -1038,6 +1042,7 @@ async function submitSegnalazione() {
       :issue="issueDettaglio"
       :caricamento="caricamentoDettaglio"
       :session-id="utente.sessionId"
+      :ruolo="utente.ruolo"
       @close="issueDettaglio = null"
     />
 

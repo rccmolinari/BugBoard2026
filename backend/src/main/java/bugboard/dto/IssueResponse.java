@@ -18,4 +18,5 @@ public class IssueResponse {
     private String creatore;
     private String assegnatoA;
     private LocalDateTime dataScadenza;
+    private LocalDateTime dataCreazione;
 }

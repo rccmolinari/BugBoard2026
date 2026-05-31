@@ -30,5 +30,6 @@ public class IssueSpecificAdmin {
         private String stato;
         private String emailCreatore;
         private String emailAssegnatario;
-        private String emailAssegnatoA;        
+        private String emailAssegnatoA;    
+        private LocalDateTime dataCreazione;    
 }

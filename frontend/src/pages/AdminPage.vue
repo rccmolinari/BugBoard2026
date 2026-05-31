@@ -48,6 +48,8 @@ if (utente.sessionId) {
   axios.get('/api/issues/' + utente.sessionId)
     .then(response => {
       issues.value = response.data
+      //sorta per data di creazione, più recenti prima
+      issues.value.sort((a, b) => new Date(b.dataCreazione) - new Date(a.dataCreazione))
       console.log('Issue caricate:', issues.value)
     })
     .catch(error => {
@@ -79,9 +81,9 @@ const iniziali = computed(() => {
 })
 
 const statTotale = computed(() => issues.value.length)
-const statTodo = computed(() => issues.value.filter(i => i.stato === 'todo').length)
-const statInCorso = computed(() => issues.value.filter(i => i.stato === 'in-progress').length)
-const statRisolte = computed(() => issues.value.filter(i => i.stato === 'done' || i.stato === 'closed').length)
+const statTodo = computed(() => issues.value.filter(i => i.stato === 'TODO').length)
+const statInCorso = computed(() => issues.value.filter(i => i.stato === 'IN_PROGRESS').length)
+const statRisolte = computed(() => issues.value.filter(i => i.stato === 'DONE').length)
 
 const tutteIssue = computed(() => (
   [...issues.value]
@@ -150,6 +152,7 @@ async function submitAssegnazione() {
 
       const res = await axios.get('/api/issues/' + utente.sessionId)
       issues.value = res.data
+      issues.value.sort((a, b) => new Date(b.dataCreazione) - new Date(a.dataCreazione))
     } else {
       assignError.value = 'Assegnazione fallita'
     }
@@ -418,7 +421,8 @@ function logout() {
       :issue="issueDettaglio"
       :caricamento="caricamentoDettaglio"
       :session-id="utente.sessionId"
-      :is-admin="true"
+      :ruolo="utente.ruolo"
+      :isAdmin="true"
       @close="issueDettaglio = null"
       @assegna="(issue) => { issueDettaglio = null; apriPopupAssegna(issue) }"
     />
