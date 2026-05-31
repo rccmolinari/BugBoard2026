@@ -10,7 +10,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import bugboard.model.Commento;
 import bugboard.model.Issue;
+import bugboard.model.Issue.*;
 import bugboard.model.Utente;
+
 
 import bugboard.repository.IssueRepository;
 import bugboard.repository.UserRepository;
@@ -245,6 +247,30 @@ public class IssueService {
         issueRepository.save(issue);
         return true;
     }
+    
+
+    @Transactional
+    public boolean chiudiIssue(int idIssue) {
+        Issue issue = issueRepository.findById(idIssue).orElse(null);
+
+        if(issue != null) {
+            issue.setStato(StatoIssue.CLOSED);
+            issueRepository.save(issue);
+            return true;
+        }
+
+        return false;
+    }
+
+
+
+
+
+
+
+
+
+
 
 
     

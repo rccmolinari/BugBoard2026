@@ -155,8 +155,35 @@ public class IssueController {
             return null;
         }
           
+        
 
+        @PostMapping("/chiudi/{id}/{sid}")
+        public boolean userChiudiIssue(@PathVariable Integer id, @PathVariable UUID sid) {
+            Utente utente = sessioneService.getUtenteBySessionId(sid);
 
+            if(utente != null) {
+                 
+                Issue issue = issueService.getIssueById(id);
+
+                // controllo se issue da chiudere esiste ed è stata assegnata ad utente che la vuole chiudere
+                if( issue != null && issue.getAssegnatario() != null && issue.getAssegnatario().getId().equals(utente.getId())) {
+
+                    return issueService.chiudiIssue(id);
+                }
+            }
+            return false;
+        }
+        
+        @PostMapping("/chiudi-admin/{id}/{sid}")
+        public boolean adminChiudiIssue(@PathVariable Integer id, @PathVariable UUID sid) {
+            Utente admin = sessioneService.getUtenteBySessionId(sid);
+
+            // controllo se utente è admin
+            if(admin != null && "ADMIN".equals(admin.getRole().toString())) {
+                 return issueService.chiudiIssue(id);
+            }
+            return false;
+        }
 
 
 
