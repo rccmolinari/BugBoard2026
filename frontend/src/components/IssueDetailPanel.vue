@@ -209,7 +209,7 @@
             {{ invioCommento ? 'Invio…' : 'Invia commento' }}
         </button>
         </template>
-        <div v-if="ruolo !== 'readonly' && issue.stato !== 'DONE' && issue.stato !== 'CLOSED'" class="pt-1">
+        <div v-if="ruolo !== 'readonly' && issue.stato !== 'DONE' && issue.stato !== 'CLOSED' && issue.stato !== 'EXPIRED'" class="pt-1">
           <p v-if="erroreChiusura" class="text-xs text-red-500 mb-1">{{ erroreChiusura }}</p>
           <button
             @click="chiudiIssue"
@@ -237,6 +237,7 @@
       <!-- Footer (solo admin) -->
       <div v-if="isAdmin && issue && !caricamento" class="flex-shrink-0 border-t border-ink-100 px-5 py-4 space-y-2">
         <button
+          v-if="issue.stato !== 'CLOSED'"
           @click="$emit('assegna', issue)"
           class="w-full inline-flex items-center justify-center gap-2
                  px-4 py-2.5 rounded-lg text-sm font-semibold

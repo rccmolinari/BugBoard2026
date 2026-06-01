@@ -151,6 +151,7 @@ public class IssueService implements IIssueService {
         Optional<Utente> utente = utenteRepository.findByEmail(userEmail);
 
         if (issue == null || utente.isEmpty()) return false;
+        if (issue.getStato() == StatoIssue.CLOSED) return false;
 
         if (expiringDate != null) {
             issue.setDataScadenza(expiringDate.atTime(23, 59, 59));
@@ -215,6 +216,7 @@ public class IssueService implements IIssueService {
         Issue issue = issueRepository.findById(idIssue).orElse(null);
         if (issue == null) return false;
         if (issue.getAssegnatoA() == null || !issue.getAssegnatoA().getId().equals(utente.getId())) return false;
+        if (issue.getStato() == StatoIssue.EXPIRED || issue.getStato() == StatoIssue.DONE || issue.getStato() == StatoIssue.CLOSED) return false;
         issue.setStato(StatoIssue.DONE);
         issueRepository.save(issue);
         return true;
@@ -226,6 +228,7 @@ public class IssueService implements IIssueService {
         if (!sessioneService.isAdmin(sid)) return false;
         Issue issue = issueRepository.findById(idIssue).orElse(null);
         if (issue == null) return false;
+        if (issue.getStato() == StatoIssue.CLOSED) return false;
         issue.setStato(StatoIssue.CLOSED);
         issueRepository.save(issue);
         return true;

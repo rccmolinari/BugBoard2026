@@ -437,6 +437,7 @@ function logout() {
                     </td>
                     <td class="px-4 py-3.5 text-right">
                     <button
+                      v-if="issue.stato !== 'CLOSED'"
                       type="button"
                       @click.stop="apriPopupAssegna(issue)"
                         class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold
