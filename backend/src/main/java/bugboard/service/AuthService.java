@@ -13,78 +13,58 @@ import bugboard.repository.UserRepository;
 
 import java.util.Optional;
 
+/*
+ * SRP  — gestisce solo autenticazione e registrazione utenti.
+ * DIP  — dipende da ISessioneService (astrazione), non da SessioneService.
+ *        Il BCryptPasswordEncoder è iniettato via @Bean, non istanziato qui.
+ * OCP  — il mapping ruolo→frontend è delegato a Utente.Role.toFrontendRole();
+ *        aggiungere un ruolo non richiede modificare questo service.
+ */
 @Service
-public class AuthService {
+public class AuthService implements IAuthService {
 
     @Autowired
     private UserRepository utenteRepository;
+
     @Autowired
-    private SessioneService sessioneService;
+    private ISessioneService sessioneService;
 
-    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    @Autowired
+    private BCryptPasswordEncoder passwordEncoder;
 
-    /**
-     * Autentica un utente basandosi su email e password.
-     * 
-     * @param request payload di login
-     * @return AuthResponse con id, nome, ruolo se autentico, altrimenti null
-     */
+    @Override
     public AuthResponse login(LoginRequest request) {
         Optional<Utente> utente = utenteRepository.findByEmail(request.getEmail());
 
-        if (utente.isEmpty()) {
-            return null;
-        }
+        if (utente.isEmpty()) return null;
 
         Utente u = utente.get();
 
-        if (!passwordEncoder.matches(request.getPassword(), u.getPassword())) {
-            return null;
-        }
-
-        // Costruisci la risposta con il ruolo mappato al formato frontend
-        String ruolo = u.getRole().toString().toLowerCase();
-        
-        if(ruolo.equals("admin")) {
-            ruolo = "admin";
-        } else if(ruolo.equals("readonly")) {
-             ruolo = "readonly";
-        } else if(ruolo.equals("user")) {
-            ruolo = "normal";
-        }
-
+        if (!passwordEncoder.matches(request.getPassword(), u.getPassword())) return null;
 
         Sessione s = sessioneService.createSession(u);
 
         return new AuthResponse(
             s.getSid().toString(),
             u.getName() + " " + u.getSurname(),
-            ruolo
+            u.getRole().toFrontendRole()
         );
-
     }
 
-    /**
-     * Registra un nuovo utente.
-     * La password viene hashata con BCrypt prima di salvare.
-     * 
-     * @return l'utente registrato se la registrazione è riuscita, null se l'email è già esistente
-     */
-    
-    // notifica errore registrazione per colpa dell'email già esistente
+    @Override
     public boolean register(RegisterRequest request) {
-        if (utenteRepository.findByEmail(request.getEmail()).isPresent()) { 
-          return false;
+        if (utenteRepository.findByEmail(request.getEmail()).isPresent()) {
+            return false;
         }
 
         Utente nuovo = new Utente();
         nuovo.setEmail(request.getEmail());
-        nuovo.setPassword(passwordEncoder.encode(request.getPassword())); 
+        nuovo.setPassword(passwordEncoder.encode(request.getPassword()));
         nuovo.setName(request.getName());
         nuovo.setSurname(request.getSurname());
         nuovo.setRole(Utente.Role.USER);
 
-         utenteRepository.save(nuovo);
-         return true;
+        utenteRepository.save(nuovo);
+        return true;
     }
 }

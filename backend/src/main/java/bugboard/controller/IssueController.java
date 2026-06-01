@@ -10,57 +10,47 @@ import bugboard.dto.AssignIssueRequest;
 import bugboard.dto.IssueSpecific;
 import bugboard.dto.IssueSpecificAdmin;
 
-import bugboard.service.IssueService;
-import bugboard.service.SessioneService;
-
-import bugboard.repository.IssueRepository;
+import bugboard.service.IIssueService;
+import bugboard.service.ISessioneService;
 
 import bugboard.model.Utente;
 import bugboard.model.Issue;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.MediaType;
 import org.springframework.web.multipart.MultipartFile;
+
 /*
- * Controller per la gestione delle issue.
+ * DIP — inietta IIssueService e ISessioneService (astrazioni).
+ *        Il repository non è più iniettato direttamente: tutta la logica
+ *        di accesso ai dati passa attraverso il service layer.
+ * SRP — il controller si occupa solo di routing HTTP e validazione sessione
+ *        di primo livello; nessuna logica di business.
  */
 @RestController
 @RequestMapping("/api/issues")
 @CrossOrigin(origins = "*")
 public class IssueController {
 
-    // Service con la logica vera di autenticazione/registrazione.
     @Autowired
-    private IssueService issueService;
+    private IIssueService issueService;
 
     @Autowired
-    private SessioneService sessioneService;
+    private ISessioneService sessioneService;
 
-    @Autowired
-    private IssueRepository issueRepository;
-
-   @GetMapping("/user/{sid}")
+    @GetMapping("/user/{sid}")
     public List<IssueResponseUser> getIssuesBySessionId(@PathVariable UUID sid) {
         return issueService.findBySessionId(sid);
     }
 
     @GetMapping("/stakeholder/{sid}")
     public List<IssueResponse> getIssuesForStakeholder(@PathVariable UUID sid) {
-        Utente user = sessioneService.getUtenteBySessionId(sid);
-        if (user == null) {
-            return Collections.emptyList();
-        }
-
         return issueService.findOnlyBug(sid);
     }
+
     @PutMapping("/assign/{sid}")
     public boolean assignIssueToUser(@PathVariable UUID sid, @RequestBody AssignIssueRequest request) {
-
-        Utente admin = sessioneService.getUtenteBySessionId(sid);
-        if (admin == null) return false;
-
         return issueService.assignIssueToUser(
             request.getIssueId(),
             request.getUserEmail(),
@@ -68,7 +58,6 @@ public class IssueController {
             sid
         );
     }
-
 
     @PutMapping(value = "/create/{sid}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Issue createIssue(
@@ -78,10 +67,8 @@ public class IssueController {
             @RequestParam String tipo,
             @RequestParam Integer priorita,
             @RequestParam(required = false, defaultValue = "todo") String stato,
-            @RequestParam(required = false) MultipartFile immagine) {
-
-        Utente creatore = sessioneService.getUtenteBySessionId(sid);
-        if (creatore == null) return null;
+            @RequestParam(required = false) MultipartFile immagine,
+            @RequestParam(required = false) String[] etichetta) {
 
         CreateIssueRequest request = new CreateIssueRequest();
         request.setTitolo(titolo);
@@ -89,111 +76,70 @@ public class IssueController {
         request.setTipo(tipo);
         request.setPriorita(priorita);
         request.setStato(stato);
+        request.setEtichetta(etichetta);
 
         return issueService.createIssue(request, sid, immagine);
     }
+
+    /*
+     * SRP — il controllo admin e la query ottimizzata risiedono in IssueService.
+     *        Il controller non accede più al repository direttamente.
+     */
     @GetMapping("/{sid}")
     public List<IssueResponse> getAllIssues(@PathVariable UUID sid) {
-        Utente user = sessioneService.getUtenteBySessionId(sid);
-        if (user == null || user.getRole() != Utente.Role.ADMIN) {
-            return Collections.emptyList();
-        }
-
-        // Il database restituisce già la lista pulita e ottimizzata dei DTO
-        return issueRepository.findAllIssuesSenzaImmagine();
+        return issueService.findAllForAdmin(sid);
     }
+
     @GetMapping("/{id}/immagine")
-        public org.springframework.http.ResponseEntity<byte[]> getImmagineIssue(@PathVariable Integer id) {
-            // 1. Recupera la issue tramite il service (o direttamente dal repository se non hai il metodo nel service)
-            // Nota: Assicurati che il tuo issueService abbia un modo per trovare la issue singola per ID
-            Issue issue = issueService.getIssueById(id); 
-            
-            if (issue == null || issue.getImmagine() == null) {
-                return org.springframework.http.ResponseEntity.notFound().build();
-            }
+    public org.springframework.http.ResponseEntity<byte[]> getImmagineIssue(@PathVariable Integer id) {
+        Issue issue = issueService.getIssueById(id);
 
-            // 2. Recupera il content type salvato (es. image/png), altrimenti usa un default sicuro
-            String contentType = issue.getImmagineContentType();
-            if (contentType == null) {
-                contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
-            }
-
-            // 3. Costruisci la risposta HTTP con i byte dell'immagine e gli header corretti
-            return org.springframework.http.ResponseEntity.ok()
-                    .contentType(MediaType.parseMediaType(contentType))
-                    .body(issue.getImmagine());
-        }
-        
-        @GetMapping("/dettagli/{id}/{sid}")
-        public IssueSpecific getDettagliIssue(@PathVariable Integer id, @PathVariable UUID sid) {
-            Utente utente = sessioneService.getUtenteBySessionId(sid);
-
-            if(utente != null) {
-                Issue idIssue = issueService.getIssueById(id);
-
-                if(idIssue != null){
-                  return issueService.getIssueSpecific(idIssue);  
-                } else {
-                    return null;
-                }
-            }
-
-            return null;
-        }
-         
-        @PostMapping("/{id}/commento/{sid}")
-        public boolean scriviCommento(@PathVariable Integer id, @RequestBody String testo, @PathVariable UUID sid) {
-             return issueService.aggiungiCommento(id, testo, sid);
+        if (issue == null || issue.getImmagine() == null) {
+            return org.springframework.http.ResponseEntity.notFound().build();
         }
 
-        @GetMapping("/dettagliAdmin/{id}/{sid}")
-        public IssueSpecificAdmin getDettagliIssueAdmin(@PathVariable Integer id, @PathVariable UUID sid) {
-               
-             Utente utente = sessioneService.getUtenteBySessionId(sid);
-             
-            if(utente != null && utente.getRole() == Utente.Role.ADMIN) {
-                Issue idIssue = issueService.getIssueById(id);
+        String contentType = issue.getImmagineContentType() != null
+            ? issue.getImmagineContentType()
+            : MediaType.APPLICATION_OCTET_STREAM_VALUE;
 
-                if(idIssue != null){
-                    return issueService.getIssueSpecificAdmin(idIssue);
-                } else {
-                    return null;
-                }
-            }
+        return org.springframework.http.ResponseEntity.ok()
+            .contentType(MediaType.parseMediaType(contentType))
+            .body(issue.getImmagine());
+    }
 
-            return null;
-        }
-          
+    @GetMapping("/dettagli/{id}/{sid}")
+    public IssueSpecific getDettagliIssue(@PathVariable Integer id, @PathVariable UUID sid) {
+        Utente utente = sessioneService.getUtenteBySessionId(sid);
+        if (utente == null) return null;
 
+        Issue issue = issueService.getIssueById(id);
+        return issueService.getIssueSpecific(issue);
+    }
 
-        @PostMapping("/chiudi/{id}/{sid}")
-        public boolean userChiudiIssue(@PathVariable Integer id, @PathVariable UUID sid) {
-            Utente utente = sessioneService.getUtenteBySessionId(sid);
+    @PostMapping("/{id}/commento/{sid}")
+    public boolean scriviCommento(@PathVariable Integer id, @RequestBody String testo, @PathVariable UUID sid) {
+        return issueService.aggiungiCommento(id, testo, sid);
+    }
 
-            if(utente != null) {
-                 
-                Issue issue = issueService.getIssueById(id);
+    @GetMapping("/dettagliAdmin/{id}/{sid}")
+    public IssueSpecificAdmin getDettagliIssueAdmin(@PathVariable Integer id, @PathVariable UUID sid) {
+        Issue issue = issueService.getIssueById(id);
+        return issueService.getIssueSpecificAdmin(issue, sid);
+    }
 
-                // controllo se issue da chiudere esiste ed è stata assegnata ad utente che la vuole chiudere
-                if( issue != null && issue.getAssegnatario() != null && issue.getAssegnatario().getId().equals(utente.getId())) {
+    @GetMapping("/dettagliStakeholder/{id}/{sid}")
+    public IssueSpecificAdmin getDettagliIssueStakeholder(@PathVariable Integer id, @PathVariable UUID sid) {
+        Issue issue = issueService.getIssueById(id);
+        return issueService.getIssueSpecificReadonly(issue, sid);
+    }
 
-                    return issueService.chiudiIssue(id);
-                }
-            }
-            return false;
-        }
-        
-        @PostMapping("/chiudi-admin/{id}/{sid}")
-        public boolean adminChiudiIssue(@PathVariable Integer id, @PathVariable UUID sid) {
-            Utente admin = sessioneService.getUtenteBySessionId(sid);
+    @PostMapping("/chiudi/{id}/{sid}")
+    public boolean userChiudiIssue(@PathVariable Integer id, @PathVariable UUID sid) {
+        return issueService.chiudiIssueUtente(id, sid);
+    }
 
-            // controllo se utente è admin
-            if(admin != null && "ADMIN".equals(admin.getRole().toString())) {
-                 return issueService.chiudiIssue(id);
-            }
-            return false;
-        }
-
-
-
+    @PostMapping("/chiudi-admin/{id}/{sid}")
+    public boolean adminChiudiIssue(@PathVariable Integer id, @PathVariable UUID sid) {
+        return issueService.chiudiIssueAdmin(id, sid);
+    }
 }

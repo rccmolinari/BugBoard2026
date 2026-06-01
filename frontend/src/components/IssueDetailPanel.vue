@@ -132,7 +132,7 @@
           </div>
 
           <!-- Immagine allegata -->
-          <div v-if="issue.immagineContentType" class="space-y-1.5">
+          <div v-if="issue.immagineContentType && ruolo !== 'readonly'" class="space-y-1.5">
             <span class="text-[10px] font-mono text-ink-400 uppercase tracking-wider block">Immagine allegata</span>
             <img
               :src="`/api/issues/${issue.id}/immagine`"
@@ -181,9 +181,10 @@
         </div>
       </div>
         
-        <!-- Footer user — scrivi commento -->
-        <div v-if="allowComment && !isAdmin && issue && !caricamento"
+        <!-- Footer user — scrivi commento + chiudi -->
+        <div v-if="!isAdmin && issue && !caricamento"
             class="flex-shrink-0 border-t border-ink-100 px-5 py-4 space-y-2">
+        <template v-if="allowComment">
         <textarea
             v-model="nuovoCommento"
             rows="3"
@@ -207,10 +208,34 @@
             </svg>
             {{ invioCommento ? 'Invio…' : 'Invia commento' }}
         </button>
+        </template>
+        <div v-if="ruolo !== 'readonly' && issue.stato !== 'DONE' && issue.stato !== 'CLOSED'" class="pt-1">
+          <p v-if="erroreChiusura" class="text-xs text-red-500 mb-1">{{ erroreChiusura }}</p>
+          <button
+            @click="chiudiIssue"
+            :disabled="chiusaInCorso"
+            class="w-full inline-flex items-center justify-center gap-2
+                   px-3 py-2 rounded-lg text-sm font-semibold
+                   text-emerald-700 bg-emerald-50 hover:bg-emerald-100
+                   border border-emerald-100
+                   disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <svg v-if="chiusaInCorso" class="w-4 h-4 animate-spin" viewBox="0 0 24 24"
+                 fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+            </svg>
+            <svg v-else class="w-4 h-4" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            {{ chiusaInCorso ? 'Chiusura…' : 'Chiudi Issue' }}
+          </button>
+        </div>
         </div>
 
       <!-- Footer (solo admin) -->
-      <div v-if="isAdmin && issue && !caricamento" class="flex-shrink-0 border-t border-ink-100 px-5 py-4">
+      <div v-if="isAdmin && issue && !caricamento" class="flex-shrink-0 border-t border-ink-100 px-5 py-4 space-y-2">
         <button
           @click="$emit('assegna', issue)"
           class="w-full inline-flex items-center justify-center gap-2
@@ -226,6 +251,29 @@
           </svg>
           Assegna issue
         </button>
+        <div v-if="issue.stato !== 'CLOSED'">
+          <p v-if="erroreChiusura" class="text-xs text-red-500 mb-1">{{ erroreChiusura }}</p>
+          <button
+            @click="chiudiIssueAdmin"
+            :disabled="chiusaInCorso"
+            class="w-full inline-flex items-center justify-center gap-2
+                   px-4 py-2.5 rounded-lg text-sm font-semibold
+                   text-red-700 bg-red-50 hover:bg-red-100
+                   border border-red-100
+                   disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <svg v-if="chiusaInCorso" class="w-4 h-4 animate-spin" viewBox="0 0 24 24"
+                 fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+            </svg>
+            <svg v-else class="w-4 h-4" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 6 6 18M6 6l12 12"/>
+            </svg>
+            {{ chiusaInCorso ? 'Chiusura…' : 'Chiudi Issue' }}
+          </button>
+        </div>
       </div>
 
     </aside>
@@ -247,7 +295,7 @@ const props = defineProps({
   sessionId:   { type: String,  default: null  },
 })
 
-defineEmits(['close', 'assegna'])
+const emit = defineEmits(['close', 'assegna', 'chiusa'])
 
 const commentiLocali = ref([])
 
@@ -262,6 +310,43 @@ const commentiOrdinati = computed(() => {
 const nuovoCommento = ref('')
 const invioCommento = ref(false)
 const erroreCommento = ref('')
+
+const chiusaInCorso = ref(false)
+const erroreChiusura = ref('')
+
+async function chiudiIssue() {
+  chiusaInCorso.value = true
+  erroreChiusura.value = ''
+  try {
+    const res = await axios.post(`/api/issues/chiudi/${props.issue.id}/${props.sessionId}`)
+    if (res.data === true) {
+      emit('chiusa')
+    } else {
+      erroreChiusura.value = 'Operazione fallita. Verifica di avere i permessi.'
+    }
+  } catch (e) {
+    erroreChiusura.value = 'Errore durante la chiusura.'
+  } finally {
+    chiusaInCorso.value = false
+  }
+}
+
+async function chiudiIssueAdmin() {
+  chiusaInCorso.value = true
+  erroreChiusura.value = ''
+  try {
+    const res = await axios.post(`/api/issues/chiudi-admin/${props.issue.id}/${props.sessionId}`)
+    if (res.data === true) {
+      emit('chiusa')
+    } else {
+      erroreChiusura.value = 'Operazione fallita.'
+    }
+  } catch (e) {
+    erroreChiusura.value = 'Errore durante la chiusura.'
+  } finally {
+    chiusaInCorso.value = false
+  }
+}
 
 const assegnatoA = computed(() => {
   if (!props.issue) return null

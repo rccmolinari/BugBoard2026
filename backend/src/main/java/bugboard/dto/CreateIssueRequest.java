@@ -14,4 +14,5 @@ public class CreateIssueRequest {
     private Integer priorita;
     private String stato;
     private String creatoreEmail;
+    private String[] etichetta;
 }

@@ -46,7 +46,7 @@ if (utente.sessionId) {
 }
 
 const cerca = ref('')
-const filtroTipo = ref('')
+const cercaId = ref('')
 const filtroStato = ref('')
 
 const statTotale   = computed(() => issues.value.length)
@@ -60,11 +60,12 @@ const statCritici  = computed(() => issues.value.filter(i =>
 
 const issueFiltrate = computed(() => {
   const q = cerca.value.toLowerCase()
+  const idQ = cercaId.value.trim()
   return issues.value.filter(issue => {
     const matchTitolo = issue.titolo.toLowerCase().includes(q)
-    const matchTipo   = !filtroTipo.value  || issue.tipo  === filtroTipo.value
+    const matchId     = !idQ || String(issue.id).includes(idQ)
     const matchStato  = !filtroStato.value || issue.stato === filtroStato.value
-    return matchTitolo && matchTipo && matchStato
+    return matchTitolo && matchId && matchStato
   })
 })
 
@@ -261,17 +262,21 @@ function logout() {
                               w-full sm:w-44 transition-colors" />
               </div>
 
-              <select v-model="filtroTipo"
-                      class="px-2.5 py-1.5 text-sm rounded-lg border border-ink-200
-                             bg-white text-ink-600 cursor-pointer
-                             focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
-                             transition-colors w-full sm:w-auto">
-                <option value="">Tutti i tipi</option>
-                <option value="bug">Bug</option>
-                <option value="feature">Feature</option>
-                <option value="question">Question</option>
-                <option value="documentation">Docs</option>
-              </select>
+              <div class="relative w-full sm:w-auto">
+                <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-ink-300 pointer-events-none"
+                     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                     stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/>
+                  <line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/>
+                </svg>
+                <input v-model="cercaId"
+                       type="search"
+                       placeholder="Cerca per ID…"
+                       class="pl-8 pr-3 py-1.5 text-sm rounded-lg border border-ink-200
+                              bg-white text-ink-800 placeholder-ink-300
+                              focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
+                              w-full sm:w-32 transition-colors" />
+              </div>
 
               <select v-model="filtroStato"
                       class="px-2.5 py-1.5 text-sm rounded-lg border border-ink-200
@@ -279,10 +284,11 @@ function logout() {
                              focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
                              transition-colors w-full sm:w-auto">
                 <option value="">Tutti gli stati</option>
-                <option value="todo">Todo</option>
-                <option value="in-progress">In Progress</option>
-                <option value="done">Done</option>
-                <option value="closed">Closed</option>
+                <option value="TODO">Todo</option>
+                <option value="IN_PROGRESS">In Progress</option>
+                <option value="DONE">Done</option>
+                <option value="CLOSED">Closed</option>
+                <option value="EXPIRED">Expired</option>
               </select>
             </div>
           </div>

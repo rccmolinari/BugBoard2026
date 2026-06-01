@@ -80,20 +80,48 @@ const iniziali = computed(() => {
     .slice(0, 2)
 })
 
+const cerca = ref('')
+const filtroTipo = ref('')
+const filtroStato = ref('')
+const cercaId = ref('')
+
 const statTotale = computed(() => issues.value.length)
 const statTodo = computed(() => issues.value.filter(i => i.stato === 'TODO').length)
 const statInCorso = computed(() => issues.value.filter(i => i.stato === 'IN_PROGRESS').length)
 const statRisolte = computed(() => issues.value.filter(i => i.stato === 'DONE').length)
+const statScadute = computed(() => issues.value.filter(i => i.stato === 'EXPIRED').length)
+const statDaAssegnare = computed(() => issues.value.filter(i => i.stato === 'TODO' && !i.assegnatoA).length)
+const statClosed = computed(() => issues.value.filter(i => i.stato === 'CLOSED').length)
 
-const tutteIssue = computed(() => (
-  [...issues.value]
-    .sort((a, b) => new Date(b.dataCreazione) - new Date(a.dataCreazione))
-))
+function rankIssue(i) {
+  if (i.stato === 'EXPIRED') return 0
+  if (i.stato === 'TODO' && !i.assegnatoA) return 1
+  return 2
+}
 
 const ultimeIssue = computed(() => (
-  tutteIssue.value
+  [...issues.value]
+    .sort((a, b) => {
+      const d = rankIssue(a) - rankIssue(b)
+      if (d !== 0) return d
+      return new Date(b.dataCreazione) - new Date(a.dataCreazione)
+    })
     .slice(0, 6)
 ))
+
+const tutteIssue = computed(() => {
+  const idQ = cercaId.value.trim()
+  const q = cerca.value.toLowerCase()
+  return [...issues.value]
+    .filter(i => {
+      const matchId     = !idQ || String(i.id).includes(idQ)
+      const matchTitolo = !q   || i.titolo.toLowerCase().includes(q)
+      const matchTipo   = !filtroTipo.value  || i.tipo  === filtroTipo.value
+      const matchStato  = !filtroStato.value || i.stato === filtroStato.value
+      return matchId && matchTitolo && matchTipo && matchStato
+    })
+    .sort((a, b) => new Date(b.dataCreazione) - new Date(a.dataCreazione))
+})
 
 const soloIssue = computed(() => route.hash === '#ultime-issue')
 const issueDaMostrare = computed(() => (soloIssue.value ? tutteIssue.value : ultimeIssue.value))
@@ -129,8 +157,8 @@ async function submitAssegnazione() {
       adminSID: utente.sessionId,
       dataScadenza: dataScadenza.value || null,
     }
-    if(dataScadenza.value <= oggi) {
-      assignError.value = 'La data di scadenza non deve essere inferiori ad oggi'
+    if(dataScadenza.value && dataScadenza.value <= oggi) {
+      assignError.value = 'La data di scadenza non deve essere inferiore ad oggi'
       isAssigning.value = false
       return
     }
@@ -162,6 +190,17 @@ async function submitAssegnazione() {
       error?.response?.data?.message || 'Errore durante assegnazione'
   } finally {
     isAssigning.value = false
+  }
+}
+
+async function onIssueChiusa() {
+  issueDettaglio.value = null
+  try {
+    const res = await axios.get('/api/issues/' + utente.sessionId)
+    issues.value = res.data
+    issues.value.sort((a, b) => new Date(b.dataCreazione) - new Date(a.dataCreazione))
+  } catch (e) {
+    console.error('Errore ricaricamento issue:', e)
   }
 }
 
@@ -234,7 +273,7 @@ function logout() {
           <p class="text-ink-400 text-sm mt-0.5">Panoramica generale e ultime issue aggiunte.</p>
         </div>
 
-        <div v-if="!soloIssue" class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div v-if="!soloIssue" class="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <StatCard label="Totale" :value="statTotale" subtitle="issue nel sistema" icon-bg-class="bg-ink-50" value-color-class="text-ink-900" anim-delay-class="delay-1">
             <template #icon>
               <svg class="w-3.5 h-3.5 text-ink-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -244,16 +283,7 @@ function logout() {
             </template>
           </StatCard>
 
-          <StatCard label="Da fare" :value="statTodo" subtitle="issue da prendere in carico" icon-bg-class="bg-amber-50" value-color-class="text-amber-500" anim-delay-class="delay-2">
-            <template #icon>
-              <svg class="w-3.5 h-3.5 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10" />
-                <polyline points="12 6 12 12 16 14" />
-              </svg>
-            </template>
-          </StatCard>
-
-          <StatCard label="In corso" :value="statInCorso" subtitle="attualmente in lavorazione" icon-bg-class="bg-blue-50" value-color-class="text-blue-500" anim-delay-class="delay-3">
+          <StatCard label="In corso" :value="statInCorso" subtitle="attualmente in lavorazione" icon-bg-class="bg-blue-50" value-color-class="text-blue-500" anim-delay-class="delay-2">
             <template #icon>
               <svg class="w-3.5 h-3.5 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="23 4 23 10 17 10" />
@@ -262,10 +292,38 @@ function logout() {
             </template>
           </StatCard>
 
-          <StatCard label="Risolte" :value="statRisolte" subtitle="chiuse o completate" icon-bg-class="bg-green-50" value-color-class="text-green-600" anim-delay-class="delay-4">
+          <StatCard label="Risolte" :value="statRisolte" subtitle="chiuse o completate" icon-bg-class="bg-green-50" value-color-class="text-green-600" anim-delay-class="delay-3">
             <template #icon>
               <svg class="w-3.5 h-3.5 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="20 6 9 17 4 12" />
+              </svg>
+            </template>
+          </StatCard>
+
+          <StatCard label="Scadute" :value="statScadute" subtitle="issue scadute" icon-bg-class="bg-red-50" value-color-class="text-red-600" anim-delay-class="delay-4">
+            <template #icon>
+              <svg class="w-3.5 h-3.5 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+            </template>
+          </StatCard>
+
+          <StatCard label="Da assegnare" :value="statDaAssegnare" subtitle="TODO senza assegnatario" icon-bg-class="bg-orange-50" value-color-class="text-orange-500" anim-delay-class="delay-5">
+            <template #icon>
+              <svg class="w-3.5 h-3.5 text-orange-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="8" r="4" />
+                <path d="M20 21a8 8 0 1 0-16 0" />
+              </svg>
+            </template>
+          </StatCard>
+
+          <StatCard label="Chiuse" :value="statClosed" subtitle="issue chiuse definitivamente" icon-bg-class="bg-slate-50" value-color-class="text-slate-500" anim-delay-class="delay-6">
+            <template #icon>
+              <svg class="w-3.5 h-3.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
               </svg>
             </template>
           </StatCard>
@@ -279,6 +337,58 @@ function logout() {
             <p class="text-ink-400 text-xs mt-0.5">
               {{ soloIssue ? 'Elenco completo delle issue.' : 'Con dettaglio di chi le ha inserite.' }}
             </p>
+          </div>
+
+          <div v-if="soloIssue" class="flex flex-wrap items-center gap-2 mb-4">
+            <div class="relative">
+              <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-ink-300 pointer-events-none"
+                   viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                   stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              <input v-model="cerca" type="search" placeholder="Cerca per nome…"
+                     class="pl-8 pr-3 py-1.5 text-sm rounded-lg border border-ink-200
+                            bg-white text-ink-800 placeholder-ink-300
+                            focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
+                            w-44 transition-colors" />
+            </div>
+
+            <div class="relative">
+              <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-ink-300 pointer-events-none"
+                   viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                   stroke-linecap="round" stroke-linejoin="round">
+                <line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/>
+                <line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/>
+              </svg>
+              <input v-model="cercaId" type="search" placeholder="Cerca per ID…"
+                     class="pl-8 pr-3 py-1.5 text-sm rounded-lg border border-ink-200
+                            bg-white text-ink-800 placeholder-ink-300
+                            focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
+                            w-36 transition-colors" />
+            </div>
+
+            <select v-model="filtroTipo"
+                    class="px-2.5 py-1.5 text-sm rounded-lg border border-ink-200
+                           bg-white text-ink-600 cursor-pointer
+                           focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-colors">
+              <option value="">Tutti i tipi</option>
+              <option value="BUG">Bug</option>
+              <option value="FEATURE">Feature</option>
+              <option value="QUESTION">Question</option>
+              <option value="DOCUMENTATION">Docs</option>
+            </select>
+
+            <select v-model="filtroStato"
+                    class="px-2.5 py-1.5 text-sm rounded-lg border border-ink-200
+                           bg-white text-ink-600 cursor-pointer
+                           focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-colors">
+              <option value="">Tutti gli stati</option>
+              <option value="TODO">Todo</option>
+              <option value="IN_PROGRESS">In Progress</option>
+              <option value="DONE">Done</option>
+              <option value="CLOSED">Closed</option>
+              <option value="EXPIRED">Expired</option>
+            </select>
           </div>
 
           <div class="bg-white rounded-xl border border-ink-100 shadow-sm overflow-hidden">
@@ -425,6 +535,7 @@ function logout() {
       :isAdmin="true"
       @close="issueDettaglio = null"
       @assegna="(issue) => { issueDettaglio = null; apriPopupAssegna(issue) }"
+      @chiusa="onIssueChiusa"
     />
   </div>
 </template>

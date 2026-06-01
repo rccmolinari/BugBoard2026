@@ -81,6 +81,7 @@ onUnmounted(() => {
    STATE REATTIVO — filtri tabella + sidebar mobile
    ══════════════════════════════════════════════════════════════ */
 const cerca = ref('')
+const cercaId = ref('')
 const filtroTipo = ref('')
 const filtroStato = ref('')
 const sidebarAperta = ref(false)
@@ -90,10 +91,24 @@ const popupSegnalazioneAperto = ref(false)
 const segnalazione = ref({
   titolo: '',
   descrizione: '',
-  immagine: null,   
+  immagine: null,
   tipo: '',
-  priorita: ''
+  priorita: '',
+  etichette: []
 })
+const nuovaEtichetta = ref('')
+
+function aggiungiEtichetta() {
+  const e = nuovaEtichetta.value.trim()
+  if (e && !segnalazione.value.etichette.includes(e)) {
+    segnalazione.value.etichette.push(e)
+  }
+  nuovaEtichetta.value = ''
+}
+
+function rimuoviEtichetta(idx) {
+  segnalazione.value.etichette.splice(idx, 1)
+}
 
 
 const handleImageUpload = (event) => {
@@ -120,12 +135,16 @@ const erroreDettaglio = ref('')
    ══════════════════════════════════════════════════════════════ */
 const statTotale   = computed(() => issues.value.length)
 const statTodo     = computed(() => issues.value.filter(i => i.stato === 'TODO').length)
-const statProgress = computed(() => issues.value.filter(i => i.stato === 'IN_PROGRESS').length)
-const statCritici  = computed(() => issues.value.filter(i =>
-  i.priorita === 4 &&
-  i.stato !== 'DONE' &&
-  i.stato !== 'CLOSED'
-).length)
+const statDone     = computed(() => issues.value.filter(i => i.stato === 'DONE').length)
+const statProssimeScadenza = computed(() => {
+  const limite = new Date()
+  limite.setDate(limite.getDate() + 2)
+  return issues.value.filter(i => {
+    if (!i.dataScadenza) return false
+    if (i.stato === 'DONE' || i.stato === 'CLOSED') return false
+    return new Date(i.dataScadenza) <= limite
+  }).length
+})
 const notificheOrdinate = computed(() =>
   [...notifiche.value].sort((a, b) =>
     new Date(b.dataCreazione) - new Date(a.dataCreazione)
@@ -133,11 +152,13 @@ const notificheOrdinate = computed(() =>
 )
 const issueFiltrate = computed(() => {
   const q = cerca.value.toLowerCase()
+  const idQ = cercaId.value.trim()
   return issues.value.filter(issue => {
     const matchTitolo = issue.titolo.toLowerCase().includes(q)
+    const matchId     = !idQ || String(issue.id).includes(idQ)
     const matchTipo   = !filtroTipo.value  || issue.tipo  === filtroTipo.value
     const matchStato  = !filtroStato.value || issue.stato === filtroStato.value
-    return matchTitolo && matchTipo && matchStato
+    return matchTitolo && matchId && matchTipo && matchStato
   })
 })
 
@@ -200,6 +221,17 @@ async function apriIssue(id) {
 function inizialiDa(nome) {
   if (!nome) return '?'
   return nome.split(' ').map(p => p[0]).join('').toUpperCase().slice(0, 2)
+}
+
+async function onIssueChiusa() {
+  issueDettaglio.value = null
+  try {
+    const res = await axios.get('/api/issues/user/' + utente.sessionId)
+    issues.value = res.data
+    issues.value.sort((a, b) => new Date(b.dataCreazione) - new Date(a.dataCreazione))
+  } catch (e) {
+    console.error('Errore ricaricamento issue:', e)
+  }
 }
 
 
@@ -323,6 +355,9 @@ async function submitSegnalazione() {
     if (segnalazione.value.immagine) {
       formData.append('immagine', segnalazione.value.immagine)
     }
+    for (const e of segnalazione.value.etichette) {
+      formData.append('etichetta', e)
+    }
 
     await axios.put('/api/issues/create/' + utente.sessionId, formData)
 
@@ -331,7 +366,8 @@ async function submitSegnalazione() {
     issues.value.sort((a, b) => new Date(b.dataCreazione) - new Date(a.dataCreazione))
 
     confermaInvio.value = 'Segnalazione inviata con successo.'
-    segnalazione.value = { titolo: '', descrizione: '', immagine: null, tipo: '', priorita: '' }
+    segnalazione.value = { titolo: '', descrizione: '', immagine: null, tipo: '', priorita: '', etichette: [] }
+    nuovaEtichetta.value = ''
     setTimeout(() => {
       chiudiPopupSegnalazione()
     }, 900)
@@ -558,25 +594,23 @@ async function submitSegnalazione() {
             </template>
           </StatCard>
 
-          <StatCard label="In corso" :value="statProgress" subtitle="in lavorazione"
-                    icon-bg-class="bg-blue-50" value-color-class="text-blue-500" anim-delay-class="delay-3">
+          <StatCard label="In scadenza" :value="statProssimeScadenza" subtitle="scadono entro 2 giorni"
+                    icon-bg-class="bg-amber-50" value-color-class="text-amber-500" anim-delay-class="delay-3">
             <template #icon>
-              <svg class="w-3.5 h-3.5 text-blue-400" viewBox="0 0 24 24" fill="none"
+              <svg class="w-3.5 h-3.5 text-amber-400" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="23 4 23 10 17 10"/>
-                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
               </svg>
             </template>
           </StatCard>
 
-          <StatCard label="Critici" :value="statCritici" subtitle="bug ad alta priorità aperti"
-                    icon-bg-class="bg-red-50" value-color-class="text-red-500" anim-delay-class="delay-4">
+          <StatCard label="Completate" :value="statDone" subtitle="issue risolte"
+                    icon-bg-class="bg-green-50" value-color-class="text-green-600" anim-delay-class="delay-4">
             <template #icon>
-              <svg class="w-3.5 h-3.5 text-red-400" viewBox="0 0 24 24" fill="none"
+              <svg class="w-3.5 h-3.5 text-green-500" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                <line x1="12" y1="9" x2="12" y2="13"/>
-                <line x1="12" y1="17" x2="12.01" y2="17"/>
+                <polyline points="20 6 9 17 4 12"/>
               </svg>
             </template>
           </StatCard>
@@ -616,16 +650,33 @@ async function submitSegnalazione() {
                               w-full sm:w-44 transition-colors" />
               </div>
 
+              <!-- Ricerca per ID -->
+              <div class="relative w-full sm:w-auto">
+                <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-ink-300 pointer-events-none"
+                     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                     stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/>
+                  <line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/>
+                </svg>
+                <input v-model="cercaId"
+                       type="search"
+                       placeholder="Cerca per ID…"
+                       class="pl-8 pr-3 py-1.5 text-sm rounded-lg border border-ink-200
+                              bg-white text-ink-800 placeholder-ink-300
+                              focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
+                              w-full sm:w-32 transition-colors" />
+              </div>
+
               <select v-model="filtroTipo"
                       class="px-2.5 py-1.5 text-sm rounded-lg border border-ink-200
                              bg-white text-ink-600 cursor-pointer
                              focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
                              transition-colors w-full sm:w-auto">
                 <option value="">Tutti i tipi</option>
-                <option value="bug">Bug</option>
-                <option value="feature">Feature</option>
-                <option value="question">Question</option>
-                <option value="documentation">Docs</option>
+                <option value="BUG">Bug</option>
+                <option value="FEATURE">Feature</option>
+                <option value="QUESTION">Question</option>
+                <option value="DOCUMENTATION">Docs</option>
               </select>
 
               <select v-model="filtroStato"
@@ -634,10 +685,11 @@ async function submitSegnalazione() {
                              focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
                              transition-colors w-full sm:w-auto">
                 <option value="">Tutti gli stati</option>
-                <option value="todo">Todo</option>
-                <option value="in-progress">In Progress</option>
-                <option value="done">Done</option>
-                <option value="closed">Closed</option>
+                <option value="TODO">Todo</option>
+                <option value="IN_PROGRESS">In Progress</option>
+                <option value="DONE">Done</option>
+                <option value="CLOSED">Closed</option>
+                <option value="EXPIRED">Expired</option>
               </select>
 
             </div>
@@ -813,6 +865,38 @@ async function submitSegnalazione() {
                   focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
           />
         </div>
+        <!-- Etichette -->
+        <div class="space-y-1.5">
+          <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Etichette</label>
+          <div class="flex gap-2">
+            <input
+              v-model="nuovaEtichetta"
+              type="text"
+              placeholder="Aggiungi etichetta…"
+              @keyup.enter="aggiungiEtichetta"
+              class="flex-1 rounded-lg border border-ink-200 px-3 py-2 text-sm text-ink-800
+                     placeholder-ink-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+            />
+            <button
+              type="button"
+              @click="aggiungiEtichetta"
+              class="px-3 py-2 rounded-lg border border-ink-200 bg-ink-50 hover:bg-ink-100
+                     text-ink-700 font-bold text-base transition-colors"
+            >+</button>
+          </div>
+          <div v-if="segnalazione.etichette.length" class="flex flex-wrap gap-1.5 pt-1">
+            <span
+              v-for="(e, i) in segnalazione.etichette" :key="i"
+              class="flex items-center gap-1 px-2 py-0.5 text-[11px] font-mono rounded
+                     bg-ink-100 text-ink-600 border border-ink-200"
+            >
+              {{ e }}
+              <button type="button" @click="rimuoviEtichetta(i)"
+                      class="text-ink-400 hover:text-red-500 leading-none ml-0.5">×</button>
+            </span>
+          </div>
+        </div>
+
         <!-- Tipo + Priorità -->
         <div class="grid grid-cols-2 gap-3">
           <div class="space-y-1">
@@ -1044,6 +1128,7 @@ async function submitSegnalazione() {
       :session-id="utente.sessionId"
       :ruolo="utente.ruolo"
       @close="issueDettaglio = null"
+      @chiusa="onIssueChiusa"
     />
 
   </div>

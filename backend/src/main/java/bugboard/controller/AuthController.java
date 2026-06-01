@@ -11,25 +11,23 @@ import bugboard.dto.LoginRequest;
 import bugboard.dto.LogoutRequest;
 import bugboard.dto.RegisterRequest;
 
-import bugboard.service.AuthService;
-import bugboard.service.SessioneService;
+import bugboard.service.IAuthService;
+import bugboard.service.ISessioneService;
 
 /*
- * Controller auth minimale.
- * Espone login/register sotto /auth e passa la palla al service.
+ * DIP — inietta IAuthService e ISessioneService (astrazioni),
+ * non le classi concrete AuthService / SessioneService.
  */
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
-    // Service con la logica vera di autenticazione/registrazione.
     @Autowired
-    private AuthService authService;
+    private IAuthService authService;
 
     @Autowired
-    private SessioneService sessioneService;
+    private ISessioneService sessioneService;
 
-    // Login: prende email/password dal body e torna i dati utente per la sessione frontend.
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
         AuthResponse response = authService.login(request);
@@ -41,7 +39,6 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
-    // Register: crea l'utente e torna true/false in base all'esito.
     @PostMapping("/register")
     public boolean register(@RequestBody RegisterRequest request) {
         return authService.register(request);

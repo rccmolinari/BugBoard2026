@@ -63,5 +63,19 @@ public class Utente {
             }
             throw new IllegalArgumentException("Tipo non valido: " + value);
         }
+
+        /*
+         * OCP + SRP — la logica di mapping verso il formato frontend
+         * risiede nell'enum stesso. Aggiungere un nuovo ruolo richiede
+         * solo di aggiungere un caso qui, senza toccare AuthService.
+         */
+        public String toFrontendRole() {
+            switch (this) {
+                case ADMIN:    return "admin";
+                case READONLY: return "readonly";
+                case USER:     return "normal";
+                default:       return this.name().toLowerCase();
+            }
+        }
     }
 }

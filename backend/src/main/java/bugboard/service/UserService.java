@@ -7,69 +7,70 @@ import bugboard.model.Utente;
 
 import bugboard.repository.UserRepository;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
+/*
+ * SRP  — gestisce solo operazioni CRUD sugli utenti (admin).
+ * DIP  — dipende da ISessioneService (astrazione).
+ *        Il BCryptPasswordEncoder è iniettato via @Bean, non istanziato qui.
+ */
 @Service
-public class UserService {
+public class UserService implements IUserService {
 
     @Autowired
     private UserRepository utenteRepository;
 
     @Autowired
-    private SessioneService sessioneService;
+    private ISessioneService sessioneService;
 
-    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    @Autowired
+    private BCryptPasswordEncoder passwordEncoder;
 
+    @Override
     @Transactional
     public Utente creaNuovoUtente(UUID sid, RegisterRequest request) {
-        
-        Utente admin = sessioneService.getUtenteBySessionId(sid);
+        if (!sessioneService.isAdmin(sid)) return null;
 
-        if (admin == null || !admin.getRole().name().equalsIgnoreCase("ADMIN")) {
-                return null;
-        }
-            //controllo se email già esiste
-        if(utenteRepository.findByEmail(request.getEmail()).isPresent()){
+        if (utenteRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new RuntimeException("Email già presente " + request.getEmail());
         }
 
-    
         Utente nuovo = new Utente();
         nuovo.setName(request.getName());
         nuovo.setSurname(request.getSurname());
         nuovo.setEmail(request.getEmail());
         nuovo.setPassword(passwordEncoder.encode(request.getPassword()));
-        
+
         try {
             nuovo.setRole(Utente.Role.fromValue(request.getRole()));
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("Ruolo non valido: " + request.getRole());
         }
-        
-        return utenteRepository.save(nuovo);
-}
 
+        return utenteRepository.save(nuovo);
+    }
+
+    @Override
     public List<AllUserResponse> getAllUsers(UUID sid) {
-        if(sessioneService.getUtenteBySessionId(sid).getRole() != Utente.Role.ADMIN) {
-            return null;
-        }
+        if (!sessioneService.isAdmin(sid)) return Collections.emptyList();
+
         List<AllUserResponse> response = new ArrayList<>();
-        List<Utente> utenti = utenteRepository.findAll();
-        for(Utente u : utenti) {
-            AllUserResponse userResponse = new AllUserResponse();
-            userResponse.setId(u.getId());
-            userResponse.setName(u.getName());
-            userResponse.setSurname(u.getSurname());
-            userResponse.setEmail(u.getEmail());
-            userResponse.setRole(u.getRole().toString());
-            response.add(userResponse);
+        for (Utente u : utenteRepository.findAll()) {
+            AllUserResponse dto = new AllUserResponse();
+            dto.setId(u.getId());
+            dto.setName(u.getName());
+            dto.setSurname(u.getSurname());
+            dto.setEmail(u.getEmail());
+            dto.setRole(u.getRole().toString());
+            response.add(dto);
         }
         return response;
     }
