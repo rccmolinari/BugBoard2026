@@ -31,4 +31,10 @@ public class UserController {
     public List<AllUserResponse> getAllUsers(@PathVariable UUID sid) {
         return userService.getAllUsers(sid);
     }
+
+
+    @DeleteMapping("/delete/{email}")
+    public boolean deleteUser(@PathVariable UUID sid, @PathVariable String email) {
+        return userService.deleteUser(sid,email);
+    }
 }

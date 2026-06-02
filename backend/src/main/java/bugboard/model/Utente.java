@@ -10,7 +10,6 @@ import org.hibernate.annotations.JdbcType;
 import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-import bugboard.model.Issue.TipoIssue;
 
 import java.util.List;
 

@@ -4,6 +4,7 @@ import bugboard.dto.RegisterRequest;
 import bugboard.dto.AllUserResponse;
 
 import bugboard.model.Utente;
+import bugboard.model.Utente.*;
 
 import bugboard.repository.UserRepository;
 
@@ -74,4 +75,34 @@ public class UserService implements IUserService {
         }
         return response;
     }
+    
+
+    @Override
+    @Transactional
+    public boolean deleteUser(UUID sid, String email) {
+        
+        Utente utente = sessioneService.getUtenteBySessionId(sid);
+
+        if(utente == null || utente.getRole() != Role.ADMIN) {
+            return false;
+        }
+
+        Utente utenteDaEliminare = utenteRepository.findByEmail(email).orElse(null);
+        
+        if(utenteDaEliminare == null) {
+            return false;
+        }
+
+        Role ruolo = utenteDaEliminare.getRole();
+        if(ruolo == Role.USER || ruolo == Role.READONLY) {
+            utenteRepository.delete(utenteDaEliminare);
+            return true;
+        }
+        return false;
+    }
+
+
+
+
+
 }

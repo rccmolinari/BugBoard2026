@@ -13,4 +13,5 @@ import java.util.UUID;
 public interface IUserService {
     Utente creaNuovoUtente(UUID sid, RegisterRequest request);
     List<AllUserResponse> getAllUsers(UUID sid);
+    boolean deleteUser(UUID sid, String email);
 }
