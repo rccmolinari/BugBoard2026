@@ -155,9 +155,14 @@ function creaUtente() {
 /* ══════════════════════════════════════════════════════════════
    ELIMINA UTENTE — identico all'originale (window.confirm)
    ══════════════════════════════════════════════════════════════ */
-function eliminaUtente(id, nome) {
+function eliminaUtente(id, nome, email) {
   if (!confirm(`Eliminare l'utente "${nome}"?\nQuesta azione non può essere annullata.`)) return
-  utenti.value = utenti.value.filter(u => u.id !== id)
+  axios.delete(`/api/user/delete/${email}/${utente.sessionId}`)
+    .then(() => getUtenti())
+    .catch(error => {
+      console.error('Errore durante l\'eliminazione dell\'utente:', error)
+      alert('Errore durante l\'eliminazione dell\'utente.')
+    })
 }
 
 
@@ -459,7 +464,7 @@ function logout() {
                         <span v-if="u.default" class="text-[11px] font-mono text-ink-300 pr-1">protetto</span>
                         <button
                           v-else
-                          @click="eliminaUtente(u.id, u.name)"
+                          @click="eliminaUtente(u.id, u.name, u.email)"
                           class="opacity-0 group-hover:opacity-100 transition-opacity
                                  inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg
                                  text-xs font-medium text-red-600

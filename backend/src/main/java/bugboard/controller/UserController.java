@@ -33,8 +33,8 @@ public class UserController {
     }
 
 
-    @DeleteMapping("/delete/{email}")
+    @DeleteMapping("/delete/{email}/{sid}")
     public boolean deleteUser(@PathVariable UUID sid, @PathVariable String email) {
-        return userService.deleteUser(sid,email);
+        return userService.deleteUser(sid, email);
     }
 }
