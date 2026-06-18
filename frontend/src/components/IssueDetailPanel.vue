@@ -282,7 +282,7 @@
 </template>
 <script setup>
 import { computed, ref, watch } from 'vue'
-import axios from 'axios'
+import api from '../api'
 import BadgeTipo from './BadgeTipo.vue'
 import BadgeStato from './BadgeStato.vue'
 import BadgePriorita from './BadgePriorita.vue'
@@ -319,14 +319,10 @@ async function chiudiIssue() {
   chiusaInCorso.value = true
   erroreChiusura.value = ''
   try {
-    const res = await axios.post(`/api/issues/chiudi/${props.issue.id}/${props.sessionId}`)
-    if (res.data === true) {
-      emit('chiusa')
-    } else {
-      erroreChiusura.value = 'Operazione fallita. Verifica di avere i permessi.'
-    }
+    await api.post(`/api/issues/chiudi/${props.issue.id}`)
+    emit('chiusa')
   } catch (e) {
-    erroreChiusura.value = 'Errore durante la chiusura.'
+    erroreChiusura.value = e?.response?.data?.message || 'Errore durante la chiusura.'
   } finally {
     chiusaInCorso.value = false
   }
@@ -336,14 +332,10 @@ async function chiudiIssueAdmin() {
   chiusaInCorso.value = true
   erroreChiusura.value = ''
   try {
-    const res = await axios.post(`/api/issues/chiudi-admin/${props.issue.id}/${props.sessionId}`)
-    if (res.data === true) {
-      emit('chiusa')
-    } else {
-      erroreChiusura.value = 'Operazione fallita.'
-    }
+    await api.post(`/api/issues/chiudi-admin/${props.issue.id}`)
+    emit('chiusa')
   } catch (e) {
-    erroreChiusura.value = 'Errore durante la chiusura.'
+    erroreChiusura.value = e?.response?.data?.message || 'Errore durante la chiusura.'
   } finally {
     chiusaInCorso.value = false
   }
@@ -361,26 +353,22 @@ async function inviaCommento() {
   invioCommento.value = true
   erroreCommento.value = ''
   try {
-    const ok = await axios.post(
-      `/api/issues/${props.issue.id}/commento/${props.sessionId}`,
+    await api.post(
+      `/api/issues/${props.issue.id}/commento`,
       nuovoCommento.value,
       { headers: { 'Content-Type': 'text/plain' } }
     )
-    if (ok.data === true) {
-      nuovoCommento.value = ''
+    nuovoCommento.value = ''
 
-      // Ricarica i commenti aggiornati dal backend
-      const endpoint = props.ruolo === 'admin' || props.ruolo === 'readonly'
-        ? `/api/issues/dettagliAdmin/${props.issue.id}/${props.sessionId}`
-        : `/api/issues/dettagli/${props.issue.id}/${props.sessionId}`
+    // Ricarica i commenti aggiornati dal backend
+    const endpoint = props.ruolo === 'admin' || props.ruolo === 'readonly'
+      ? `/api/issues/dettagliAdmin/${props.issue.id}`
+      : `/api/issues/dettagli/${props.issue.id}`
 
-      const res = await axios.get(endpoint)
-      commentiLocali.value = res.data.commento ?? []
-    } else {
-      erroreCommento.value = 'Invio fallito, riprova.'
-    }
+    const res = await api.get(endpoint)
+    commentiLocali.value = res.data.commento ?? []
   } catch (e) {
-    erroreCommento.value = 'Errore durante l\'invio.'
+    erroreCommento.value = e?.response?.data?.message || 'Errore durante l\'invio.'
   } finally {
     invioCommento.value = false
   }

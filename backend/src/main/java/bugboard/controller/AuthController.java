@@ -1,6 +1,5 @@
 package bugboard.controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -8,25 +7,32 @@ import org.springframework.web.server.ResponseStatusException;
 
 import bugboard.dto.AuthResponse;
 import bugboard.dto.LoginRequest;
-import bugboard.dto.LogoutRequest;
 import bugboard.dto.RegisterRequest;
 
 import bugboard.service.IAuthService;
 import bugboard.service.ISessioneService;
 
+import java.util.UUID;
+
 /*
- * DIP — inietta IAuthService e ISessioneService (astrazioni),
- * non le classi concrete AuthService / SessioneService.
+ * DIP — inietta IAuthService e ISessioneService (astrazioni) via costruttore.
+ * Il logout legge la sessione dall'header X-Session-Id, coerente con il
+ * resto delle API (nessun id di sessione negli URL o nel body).
  */
 @RestController
 @RequestMapping("/api/auth")
+@CrossOrigin(origins = "*")
 public class AuthController {
 
-    @Autowired
-    private IAuthService authService;
+    private static final String SID_HEADER = "X-Session-Id";
 
-    @Autowired
-    private ISessioneService sessioneService;
+    private final IAuthService authService;
+    private final ISessioneService sessioneService;
+
+    public AuthController(IAuthService authService, ISessioneService sessioneService) {
+        this.authService = authService;
+        this.sessioneService = sessioneService;
+    }
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
@@ -40,17 +46,16 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public boolean register(@RequestBody RegisterRequest request) {
-        return authService.register(request);
+    public ResponseEntity<Void> register(@RequestBody RegisterRequest request) {
+        authService.register(request);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(@RequestBody LogoutRequest request) {
-        if (request == null || request.getSessionId() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "SessionId mancante");
+    public ResponseEntity<Void> logout(@RequestHeader(value = SID_HEADER, required = false) UUID sid) {
+        if (sid != null) {
+            sessioneService.deleteSession(sid);
         }
-
-        sessioneService.deleteSession(request.getSessionId());
         return ResponseEntity.noContent().build();
     }
 }

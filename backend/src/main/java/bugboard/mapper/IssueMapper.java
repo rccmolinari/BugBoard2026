@@ -2,6 +2,8 @@ package bugboard.mapper;
 
 import org.springframework.stereotype.Component;
 
+import bugboard.dto.IssueResponse;
+import bugboard.dto.IssueResponseUser;
 import bugboard.dto.IssueSpecific;
 import bugboard.dto.IssueSpecificAdmin;
 import bugboard.model.Issue;
@@ -13,6 +15,40 @@ import bugboard.model.Issue;
  */
 @Component
 public class IssueMapper {
+
+    /** DTO sintetico per le liste admin/stakeholder (senza immagine). */
+    public IssueResponse toIssueResponse(Issue issue) {
+        if (issue == null) return null;
+
+        return new IssueResponse(
+            issue.getId(),
+            issue.getTitolo(),
+            issue.getTipo() != null ? issue.getTipo().toString() : null,
+            issue.getPriorita(),
+            issue.getStato() != null ? issue.getStato().toString() : null,
+            issue.getCreatore() != null ? issue.getCreatore().getEmail() : null,
+            issue.getAssegnatoA() != null ? issue.getAssegnatoA().getEmail() : null,
+            issue.getDataScadenza(),
+            issue.getDataCreazione()
+        );
+    }
+
+    /** DTO per la dashboard utente: porta il flag immagine ma non i byte. */
+    public IssueResponseUser toIssueResponseUser(Issue issue) {
+        if (issue == null) return null;
+
+        return new IssueResponseUser(
+            issue.getId(),
+            issue.getTitolo(),
+            issue.getTipo() != null ? issue.getTipo().toString() : null,
+            issue.getPriorita(),
+            issue.getStato() != null ? issue.getStato().toString() : null,
+            issue.getAssegnatario() != null ? issue.getAssegnatario().getEmail() : null,
+            issue.getDataScadenza(),
+            issue.getDataCreazione(),
+            issue.getImmagine() != null
+        );
+    }
 
     public IssueSpecific toIssueSpecific(Issue issue) {
         if (issue == null) return null;

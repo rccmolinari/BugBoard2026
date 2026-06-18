@@ -7,7 +7,7 @@ import BadgeTipo from '../components/BadgeTipo.vue'
 import BadgeStato from '../components/BadgeStato.vue'
 import BadgePriorita from '../components/BadgePriorita.vue'
 import IssueDetailPanel from '../components/IssueDetailPanel.vue'
-import axios from 'axios'
+import api from '../api'
 
 function getUtente() {
   const raw = sessionStorage.getItem('bb_utente')
@@ -31,7 +31,7 @@ const issueDettaglio = ref(null)
 const caricamentoDettaglio = ref(false)
 
 if (utente.sessionId) {
-  axios.get('/api/issues/stakeholder/' + utente.sessionId)
+  api.get('/api/issues/stakeholder')
     .then(response => {
       issues.value = response.data
       //sortami le issue
@@ -98,7 +98,7 @@ async function apriIssue(id) {
   caricamentoDettaglio.value = true
   issueDettaglio.value = null
   try {
-    const res = await axios.get(`/api/issues/dettagliStakeholder/${id}/${utente.sessionId}`)
+    const res = await api.get(`/api/issues/dettagliStakeholder/${id}`)
     issueDettaglio.value = res.data
   } catch (e) {
     console.error('Errore caricamento dettagli:', e)
@@ -121,7 +121,7 @@ function logout() {
     router.replace('/')
     return
   }
-  axios.post('/api/auth/logout', { sessionId })
+  api.post('/api/auth/logout')
     .catch(error => {
       console.error('Errore durante il logout:', error)
     })

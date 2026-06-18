@@ -5,7 +5,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import axios from 'axios'
+import api from '../api'
 
 const router = useRouter()
 
@@ -44,23 +44,18 @@ function handleRegister(event) {
   registerError.value = false
   registerErrorText.value = ''
 
-  axios.post('/api/auth/register', {
+  api.post('/api/auth/register', {
     email: emailVal,
     password: passwordVal,
     name: nomeVal,
     surname: cognomeVal,
   })
-    .then(response => {
-      if (response.data === true) {
-        registerInfo.value = true
-        setTimeout(() => {
-          router.push('/')
-        }, 900)
-        return
-      }
-
-      registerError.value = true
-      registerErrorText.value = 'Email gia\' registrata.'
+    .then(() => {
+      // 2xx = registrazione riuscita (il backend non ritorna più un boolean)
+      registerInfo.value = true
+      setTimeout(() => {
+        router.push('/')
+      }, 900)
     })
     .catch(error => {
       registerError.value = true

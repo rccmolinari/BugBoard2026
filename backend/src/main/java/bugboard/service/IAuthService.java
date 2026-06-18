@@ -9,5 +9,5 @@ import bugboard.dto.RegisterRequest;
  */
 public interface IAuthService {
     AuthResponse login(LoginRequest request);
-    boolean register(RegisterRequest request);
+    void register(RegisterRequest request);
 }

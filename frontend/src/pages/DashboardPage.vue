@@ -6,7 +6,7 @@ import StatCard from '../components/StatCard.vue'
 import BadgeTipo from '../components/BadgeTipo.vue'
 import BadgeStato from '../components/BadgeStato.vue'
 import BadgePriorita from '../components/BadgePriorita.vue'
-import axios from 'axios'
+import api from '../api'
 import { onMounted, onUnmounted } from 'vue'
 import IssueDetailPanel from '../components/IssueDetailPanel.vue'
 function getUtente() {
@@ -30,7 +30,7 @@ const dataScadenza = ref(null)
 const assegnatoDa = ref('')
 
 if (utente.sessionId) {
-  axios.get('/api/issues/user/' + utente.sessionId)
+  api.get('/api/issues/user')
     .then(response => {
       issues.value = response.data
       //ordina le issue in base alla data creazione
@@ -51,12 +51,12 @@ let intervalId = null
 onMounted(() => {
   intervalId = setInterval(async () => {
     try {
-      const response = await axios.get('/api/notifies/number/' + utente.sessionId)
+      const response = await api.get('/api/notifies/number')
       const nuovoValore = response.data
 
       // Se sono arrivate nuove notifiche rispetto a prima → ricarica le issue
       if (nuovoValore > nIssues.value) {
-        const res = await axios.get('/api/issues/user/' + utente.sessionId)
+        const res = await api.get('/api/issues/user')
         issues.value = res.data
         issues.value.sort((a, b) => new Date(b.dataCreazione) - new Date(a.dataCreazione))
       }
@@ -64,7 +64,7 @@ onMounted(() => {
       nIssues.value = nuovoValore
 
       if (popupNotificheAperto.value) {
-        const res = await axios.get('/api/notifies/list/' + utente.sessionId)
+        const res = await api.get('/api/notifies/list')
         notifiche.value = res.data
       }
     } catch (e) {
@@ -209,7 +209,7 @@ async function apriIssue(id) {
   caricamentoDettaglio.value = true
   issueDettaglio.value = null
   try {
-    const res = await axios.get(`/api/issues/dettagli/${id}/${utente.sessionId}`)
+    const res = await api.get(`/api/issues/dettagli/${id}`)
     issueDettaglio.value = res.data
   } catch (e) {
     console.error('Errore caricamento dettagli:', e)
@@ -226,7 +226,7 @@ function inizialiDa(nome) {
 async function onIssueChiusa() {
   issueDettaglio.value = null
   try {
-    const res = await axios.get('/api/issues/user/' + utente.sessionId)
+    const res = await api.get('/api/issues/user')
     issues.value = res.data
     issues.value.sort((a, b) => new Date(b.dataCreazione) - new Date(a.dataCreazione))
   } catch (e) {
@@ -250,7 +250,7 @@ async function getNotifiche() {
   popupNotificheAperto.value = true
   caricamentoNotifiche.value = true
   try {
-    const response = await axios.get('/api/notifies/list/' + utente.sessionId)
+    const response = await api.get('/api/notifies/list')
     notifiche.value = response.data
   } catch (error) {
     console.error('Errore durante il caricamento delle notifiche:', error)
@@ -268,7 +268,7 @@ async function apriDettaglioNotifica(n) {
   caricamentoDettaglio.value = true
 
   try {
-    const response = await axios.get(`/api/notifies/apri/${n.id}/${utente.sessionId}`)
+    const response = await api.get(`/api/notifies/apri/${n.id}`)
     issueNotifica.value = response.data
 
     // Aggiorna subito lista e contatore: il backend ha già segnato come letta
@@ -301,7 +301,7 @@ function logout() {
     router.replace('/')
     return
   }
-  axios.post('/api/auth/logout', { sessionId })
+  api.post('/api/auth/logout')
     .catch(error => {
       console.error('Errore durante il logout:', error)
     })
@@ -359,9 +359,9 @@ async function submitSegnalazione() {
       formData.append('etichetta', e)
     }
 
-    await axios.put('/api/issues/create/' + utente.sessionId, formData)
+    await api.post('/api/issues/create', formData)
 
-    const response = await axios.get('/api/issues/user/' + utente.sessionId)
+    const response = await api.get('/api/issues/user')
     issues.value = response.data
     issues.value.sort((a, b) => new Date(b.dataCreazione) - new Date(a.dataCreazione))
 

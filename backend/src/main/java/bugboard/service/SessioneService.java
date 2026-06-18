@@ -4,7 +4,6 @@ import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 import bugboard.repository.SessioneRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
 import bugboard.model.Utente;
@@ -12,13 +11,17 @@ import bugboard.model.Sessione;
 
 /*
  * DIP — implementa ISessioneService; tutti i consumer dipendono
- * dall'interfaccia, non da questa classe concreta.
+ * dall'interfaccia, non da questa classe concreta. Il repository è
+ * iniettato via costruttore (campo final, niente reflection).
  */
 @Service
 public class SessioneService implements ISessioneService {
 
-    @Autowired
-    private SessioneRepository sessioneRepository;
+    private final SessioneRepository sessioneRepository;
+
+    public SessioneService(SessioneRepository sessioneRepository) {
+        this.sessioneRepository = sessioneRepository;
+    }
 
     @Override
     public Sessione createSession(Utente u) {

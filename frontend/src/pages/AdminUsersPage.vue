@@ -8,7 +8,7 @@ import { useRouter } from 'vue-router'
 import Sidebar from '../components/Sidebar.vue'
 import StatCard from '../components/StatCard.vue'
 import BadgeRuolo from '../components/BadgeRuolo.vue'
-import axios from 'axios'
+import api from '../api'
 
 onMounted(() => getUtenti())
 /* ══════════════════════════════════════════════════════════════
@@ -32,7 +32,7 @@ const router = useRouter()
 
 
 function getUtenti() {
-  axios.get(`/api/user/all/${utente.sessionId}`)
+  api.get('/api/user/all')
     .then(response => {
       utenti.value = response.data
     })
@@ -135,7 +135,7 @@ function creaUtente() {
     mostraMessaggio('Esiste già un utente con questa email.', 'errore')
     return
   }
-  axios.post(`/api/user/create/${utente.sessionId}`, { name: nome, surname: cognome, email, password, role: ruolo })
+  api.post('/api/user/create', { name: nome, surname: cognome, email, password, role: ruolo })
     .then(response => {
       mostraMessaggio(`Utente "${nome} ${cognome}" creato con successo!`, 'successo')
     })
@@ -157,7 +157,7 @@ function creaUtente() {
    ══════════════════════════════════════════════════════════════ */
 function eliminaUtente(id, nome, email) {
   if (!confirm(`Eliminare l'utente "${nome}"?\nQuesta azione non può essere annullata.`)) return
-  axios.delete(`/api/user/delete/${email}/${utente.sessionId}`)
+  api.delete(`/api/user/delete/${email}`)
     .then(() => getUtenti())
     .catch(error => {
       console.error('Errore durante l\'eliminazione dell\'utente:', error)
@@ -223,7 +223,7 @@ function logout() {
     return
   }
 
-  axios.post('/api/auth/logout', { sessionId })
+  api.post('/api/auth/logout')
     .catch(error => {
       console.error('Errore durante il logout:', error)
     })

@@ -1,12 +1,12 @@
 package bugboard.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import bugboard.dto.AuthResponse;
 import bugboard.dto.LoginRequest;
 import bugboard.dto.RegisterRequest;
+import bugboard.exception.ConflictException;
 import bugboard.model.Sessione;
 import bugboard.model.Utente;
 import bugboard.repository.UserRepository;
@@ -15,22 +15,25 @@ import java.util.Optional;
 
 /*
  * SRP  — gestisce solo autenticazione e registrazione utenti.
- * DIP  — dipende da ISessioneService (astrazione), non da SessioneService.
- *        Il BCryptPasswordEncoder è iniettato via @Bean, non istanziato qui.
+ * DIP  — dipende da ISessioneService (astrazione) e riceve tutte le
+ *        collaborazioni via costruttore (BCryptPasswordEncoder via @Bean).
  * OCP  — il mapping ruolo→frontend è delegato a Utente.Role.toFrontendRole();
  *        aggiungere un ruolo non richiede modificare questo service.
  */
 @Service
 public class AuthService implements IAuthService {
 
-    @Autowired
-    private UserRepository utenteRepository;
+    private final UserRepository utenteRepository;
+    private final ISessioneService sessioneService;
+    private final BCryptPasswordEncoder passwordEncoder;
 
-    @Autowired
-    private ISessioneService sessioneService;
-
-    @Autowired
-    private BCryptPasswordEncoder passwordEncoder;
+    public AuthService(UserRepository utenteRepository,
+                       ISessioneService sessioneService,
+                       BCryptPasswordEncoder passwordEncoder) {
+        this.utenteRepository = utenteRepository;
+        this.sessioneService = sessioneService;
+        this.passwordEncoder = passwordEncoder;
+    }
 
     @Override
     public AuthResponse login(LoginRequest request) {
@@ -52,9 +55,9 @@ public class AuthService implements IAuthService {
     }
 
     @Override
-    public boolean register(RegisterRequest request) {
+    public void register(RegisterRequest request) {
         if (utenteRepository.findByEmail(request.getEmail()).isPresent()) {
-            return false;
+            throw new ConflictException("Email già registrata: " + request.getEmail());
         }
 
         Utente nuovo = new Utente();
@@ -65,6 +68,5 @@ public class AuthService implements IAuthService {
         nuovo.setRole(Utente.Role.USER);
 
         utenteRepository.save(nuovo);
-        return true;
     }
 }

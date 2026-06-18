@@ -1,7 +1,5 @@
 package bugboard.dto;
 
-import java.util.UUID;
-
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -14,6 +12,5 @@ import java.time.LocalDate;
 public class AssignIssueRequest {
     private int issueId;
     private String userEmail;
-    private UUID adminSID;
     private LocalDate dataScadenza;
 }

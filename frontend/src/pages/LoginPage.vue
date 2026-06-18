@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import axios from 'axios'
+import api from '../api'
 const router = useRouter()
 const route = useRoute()
 
@@ -21,7 +21,7 @@ const isLoading     = ref(false)
 function handleLogin(event) {
   event.preventDefault()
 
-  axios.post('/api/auth/login', {
+  api.post('/api/auth/login', {
     email: email.value,
     password: password.value
   })

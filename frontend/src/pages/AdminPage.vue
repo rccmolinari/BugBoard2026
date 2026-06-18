@@ -10,7 +10,7 @@ import StatCard from '../components/StatCard.vue'
 import BadgeTipo from '../components/BadgeTipo.vue'
 import BadgeStato from '../components/BadgeStato.vue'
 import BadgePriorita from '../components/BadgePriorita.vue'
-import axios from 'axios'
+import api from '../api'
 import IssueDetailPanel from '../components/IssueDetailPanel.vue'
 function getUtente() {
   const raw = sessionStorage.getItem('bb_utente')
@@ -34,7 +34,7 @@ async function apriIssue(id) {
   caricamentoDettaglio.value = true
   issueDettaglio.value = null
   try {
-  const res = await axios.get(`/api/issues/dettagliAdmin/${id}/${utente.sessionId}`)
+  const res = await api.get(`/api/issues/dettagliAdmin/${id}`)
     issueDettaglio.value = res.data
   } catch (e) {
     console.error('Errore caricamento dettagli:', e)
@@ -45,7 +45,7 @@ async function apriIssue(id) {
 const issues = ref([])
 
 if (utente.sessionId) {
-  axios.get('/api/issues/' + utente.sessionId)
+  api.get('/api/issues')
     .then(response => {
       issues.value = response.data
       //sorta per data di creazione, più recenti prima
@@ -151,39 +151,32 @@ async function submitAssegnazione() {
   assignSuccess.value = false
 
   try {
-    const payload = {
-      issueId: issueSelezionata.value?.id,
-      userEmail: emailAssegnatario.value,
-      adminSID: utente.sessionId,
-      dataScadenza: dataScadenza.value || null,
-    }
     if(dataScadenza.value && dataScadenza.value <= oggi) {
       assignError.value = 'La data di scadenza non deve essere inferiore ad oggi'
       isAssigning.value = false
       return
     }
-    const response = await axios.put(
-      `/api/issues/assign/${utente.sessionId}`,
-      payload
-    )
-
-    if (response.data === true) {
-      assignSuccess.value = true
-
-      setTimeout(() => {
-        chiudiPopupAssegna()
-        emailAssegnatario.value = ''
-        dataAssegnazione.value = ''
-        dataScadenza.value = ''
-        assignSuccess.value = false
-      }, 900)
-
-      const res = await axios.get('/api/issues/' + utente.sessionId)
-      issues.value = res.data
-      issues.value.sort((a, b) => new Date(b.dataCreazione) - new Date(a.dataCreazione))
-    } else {
-      assignError.value = 'Assegnazione fallita'
+    const payload = {
+      issueId: issueSelezionata.value?.id,
+      userEmail: emailAssegnatario.value,
+      dataScadenza: dataScadenza.value || null,
     }
+    await api.put('/api/issues/assign', payload)
+
+    // 2xx = assegnazione riuscita; gli errori arrivano nel catch
+    assignSuccess.value = true
+
+    setTimeout(() => {
+      chiudiPopupAssegna()
+      emailAssegnatario.value = ''
+      dataAssegnazione.value = ''
+      dataScadenza.value = ''
+      assignSuccess.value = false
+    }, 900)
+
+    const res = await api.get('/api/issues')
+    issues.value = res.data
+    issues.value.sort((a, b) => new Date(b.dataCreazione) - new Date(a.dataCreazione))
 
   } catch (error) {
     assignError.value =
@@ -196,7 +189,7 @@ async function submitAssegnazione() {
 async function onIssueChiusa() {
   issueDettaglio.value = null
   try {
-    const res = await axios.get('/api/issues/' + utente.sessionId)
+    const res = await api.get('/api/issues')
     issues.value = res.data
     issues.value.sort((a, b) => new Date(b.dataCreazione) - new Date(a.dataCreazione))
   } catch (e) {
@@ -216,7 +209,7 @@ function logout() {
     return
   }
 
-  axios.post('/api/auth/logout', { sessionId })
+  api.post('/api/auth/logout')
     .catch(error => {
       console.error('Errore durante il logout:', error)
     })

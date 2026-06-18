@@ -1,67 +1,74 @@
 package bugboard.controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import bugboard.dto.AssignIssueRequest;
 import bugboard.dto.CreateIssueRequest;
 import bugboard.dto.IssueResponse;
 import bugboard.dto.IssueResponseUser;
-import bugboard.dto.AssignIssueRequest;
 import bugboard.dto.IssueSpecific;
 import bugboard.dto.IssueSpecificAdmin;
 
-import bugboard.service.IIssueService;
-import bugboard.service.ISessioneService;
-
-import bugboard.model.Utente;
+import bugboard.exception.NotFoundException;
 import bugboard.model.Issue;
+import bugboard.service.IIssueCommandService;
+import bugboard.service.IIssueQueryService;
 
 import java.util.List;
 import java.util.UUID;
-import org.springframework.http.MediaType;
-import org.springframework.web.multipart.MultipartFile;
 
 /*
- * DIP — inietta IIssueService e ISessioneService (astrazioni).
- *        Il repository non è più iniettato direttamente: tutta la logica
- *        di accesso ai dati passa attraverso il service layer.
- * SRP — il controller si occupa solo di routing HTTP e validazione sessione
- *        di primo livello; nessuna logica di business.
+ * DIP + ISP — dipende da due astrazioni distinte: IIssueQueryService per le
+ *        letture e IIssueCommandService per le scritture.
+ * SRP — il controller fa solo routing HTTP. La sessione arriva dall'header
+ *        X-Session-Id, mai dall'URL (niente sid in log/history).
+ *        Validazione e autorizzazione vivono nel service e i fallimenti
+ *        diventano status HTTP tramite GlobalExceptionHandler.
  */
 @RestController
 @RequestMapping("/api/issues")
 @CrossOrigin(origins = "*")
 public class IssueController {
 
-    @Autowired
-    private IIssueService issueService;
+    private static final String SID_HEADER = "X-Session-Id";
 
-    @Autowired
-    private ISessioneService sessioneService;
+    private final IIssueQueryService queryService;
+    private final IIssueCommandService commandService;
 
-    @GetMapping("/user/{sid}")
-    public List<IssueResponseUser> getIssuesBySessionId(@PathVariable UUID sid) {
-        return issueService.findBySessionId(sid);
+    public IssueController(IIssueQueryService queryService, IIssueCommandService commandService) {
+        this.queryService = queryService;
+        this.commandService = commandService;
     }
 
-    @GetMapping("/stakeholder/{sid}")
-    public List<IssueResponse> getIssuesForStakeholder(@PathVariable UUID sid) {
-        return issueService.findOnlyBug(sid);
+    @GetMapping("/user")
+    public List<IssueResponseUser> getIssuesBySessionId(@RequestHeader(value = SID_HEADER, required = false) UUID sid) {
+        return queryService.findBySessionId(sid);
     }
 
-    @PutMapping("/assign/{sid}")
-    public boolean assignIssueToUser(@PathVariable UUID sid, @RequestBody AssignIssueRequest request) {
-        return issueService.assignIssueToUser(
-            request.getIssueId(),
-            request.getUserEmail(),
-            request.getDataScadenza(),
-            sid
-        );
+    @GetMapping("/stakeholder")
+    public List<IssueResponse> getIssuesForStakeholder(@RequestHeader(value = SID_HEADER, required = false) UUID sid) {
+        return queryService.findOnlyBug(sid);
     }
 
-    @PutMapping(value = "/create/{sid}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public Issue createIssue(
-            @PathVariable UUID sid,
+    @GetMapping
+    public List<IssueResponse> getAllIssues(@RequestHeader(value = SID_HEADER, required = false) UUID sid) {
+        return queryService.findAllForAdmin(sid);
+    }
+
+    @PutMapping("/assign")
+    public ResponseEntity<Void> assignIssueToUser(@RequestHeader(value = SID_HEADER, required = false) UUID sid,
+                                                  @RequestBody AssignIssueRequest request) {
+        commandService.assignIssueToUser(request.getIssueId(), request.getUserEmail(), request.getDataScadenza(), sid);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping(value = "/create", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<IssueResponseUser> createIssue(
+            @RequestHeader(value = SID_HEADER, required = false) UUID sid,
             @RequestParam String titolo,
             @RequestParam(required = false) String descrizione,
             @RequestParam String tipo,
@@ -78,68 +85,64 @@ public class IssueController {
         request.setStato(stato);
         request.setEtichetta(etichetta);
 
-        return issueService.createIssue(request, sid, immagine);
-    }
-
-    /*
-     * SRP — il controllo admin e la query ottimizzata risiedono in IssueService.
-     *        Il controller non accede più al repository direttamente.
-     */
-    @GetMapping("/{sid}")
-    public List<IssueResponse> getAllIssues(@PathVariable UUID sid) {
-        return issueService.findAllForAdmin(sid);
+        IssueResponseUser created = commandService.createIssue(request, sid, immagine);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @GetMapping("/{id}/immagine")
-    public org.springframework.http.ResponseEntity<byte[]> getImmagineIssue(@PathVariable Integer id) {
-        Issue issue = issueService.getIssueById(id);
+    public ResponseEntity<byte[]> getImmagineIssue(@PathVariable Integer id) {
+        Issue issue = queryService.getIssueById(id);
 
-        if (issue == null || issue.getImmagine() == null) {
-            return org.springframework.http.ResponseEntity.notFound().build();
+        if (issue.getImmagine() == null) {
+            throw new NotFoundException("Nessuna immagine per la issue " + id);
         }
 
         String contentType = issue.getImmagineContentType() != null
             ? issue.getImmagineContentType()
             : MediaType.APPLICATION_OCTET_STREAM_VALUE;
 
-        return org.springframework.http.ResponseEntity.ok()
+        return ResponseEntity.ok()
             .contentType(MediaType.parseMediaType(contentType))
             .body(issue.getImmagine());
     }
 
-    @GetMapping("/dettagli/{id}/{sid}")
-    public IssueSpecific getDettagliIssue(@PathVariable Integer id, @PathVariable UUID sid) {
-        Utente utente = sessioneService.getUtenteBySessionId(sid);
-        if (utente == null) return null;
-
-        Issue issue = issueService.getIssueById(id);
-        return issueService.getIssueSpecific(issue);
+    @GetMapping("/dettagli/{id}")
+    public IssueSpecific getDettagliIssue(@PathVariable int id,
+                                          @RequestHeader(value = SID_HEADER, required = false) UUID sid) {
+        return queryService.getIssueSpecific(id, sid);
     }
 
-    @PostMapping("/{id}/commento/{sid}")
-    public boolean scriviCommento(@PathVariable Integer id, @RequestBody String testo, @PathVariable UUID sid) {
-        return issueService.aggiungiCommento(id, testo, sid);
+    @GetMapping("/dettagliAdmin/{id}")
+    public IssueSpecificAdmin getDettagliIssueAdmin(@PathVariable int id,
+                                                    @RequestHeader(value = SID_HEADER, required = false) UUID sid) {
+        return queryService.getIssueSpecificAdmin(id, sid);
     }
 
-    @GetMapping("/dettagliAdmin/{id}/{sid}")
-    public IssueSpecificAdmin getDettagliIssueAdmin(@PathVariable Integer id, @PathVariable UUID sid) {
-        Issue issue = issueService.getIssueById(id);
-        return issueService.getIssueSpecificAdmin(issue, sid);
+    @GetMapping("/dettagliStakeholder/{id}")
+    public IssueSpecificAdmin getDettagliIssueStakeholder(@PathVariable int id,
+                                                          @RequestHeader(value = SID_HEADER, required = false) UUID sid) {
+        return queryService.getIssueSpecificReadonly(id, sid);
     }
 
-    @GetMapping("/dettagliStakeholder/{id}/{sid}")
-    public IssueSpecificAdmin getDettagliIssueStakeholder(@PathVariable Integer id, @PathVariable UUID sid) {
-        Issue issue = issueService.getIssueById(id);
-        return issueService.getIssueSpecificReadonly(issue, sid);
+    @PostMapping("/{id}/commento")
+    public ResponseEntity<Void> scriviCommento(@PathVariable int id,
+                                               @RequestBody String testo,
+                                               @RequestHeader(value = SID_HEADER, required = false) UUID sid) {
+        commandService.aggiungiCommento(id, testo, sid);
+        return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/chiudi/{id}/{sid}")
-    public boolean userChiudiIssue(@PathVariable Integer id, @PathVariable UUID sid) {
-        return issueService.chiudiIssueUtente(id, sid);
+    @PostMapping("/chiudi/{id}")
+    public ResponseEntity<Void> userChiudiIssue(@PathVariable int id,
+                                                @RequestHeader(value = SID_HEADER, required = false) UUID sid) {
+        commandService.chiudiIssueUtente(id, sid);
+        return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/chiudi-admin/{id}/{sid}")
-    public boolean adminChiudiIssue(@PathVariable Integer id, @PathVariable UUID sid) {
-        return issueService.chiudiIssueAdmin(id, sid);
+    @PostMapping("/chiudi-admin/{id}")
+    public ResponseEntity<Void> adminChiudiIssue(@PathVariable int id,
+                                                 @RequestHeader(value = SID_HEADER, required = false) UUID sid) {
+        commandService.chiudiIssueAdmin(id, sid);
+        return ResponseEntity.noContent().build();
     }
 }

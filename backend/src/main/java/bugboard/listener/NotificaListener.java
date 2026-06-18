@@ -1,6 +1,5 @@
 package bugboard.listener;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,8 +18,11 @@ import bugboard.repository.NotificaRepository;
 @Component
 public class NotificaListener {
 
-    @Autowired
-    private NotificaRepository notificaRepository;
+    private final NotificaRepository notificaRepository;
+
+    public NotificaListener(NotificaRepository notificaRepository) {
+        this.notificaRepository = notificaRepository;
+    }
 
     @EventListener
     @Transactional

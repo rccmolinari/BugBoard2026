@@ -1,9 +1,9 @@
 package bugboard.controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import bugboard.model.Utente;
 import bugboard.service.IUserService;
 import bugboard.dto.AllUserResponse;
 import bugboard.dto.RegisterRequest;
@@ -12,29 +12,39 @@ import java.util.List;
 import java.util.UUID;
 
 /*
- * DIP — inietta IUserService (astrazione), non UserService direttamente.
+ * DIP — inietta IUserService (astrazione) via costruttore.
+ * La sessione arriva dall'header X-Session-Id; i fallimenti (permessi,
+ * utente inesistente, ...) diventano status HTTP via GlobalExceptionHandler.
  */
 @RestController
 @RequestMapping("/api/user")
 @CrossOrigin(origins = "*")
 public class UserController {
 
-    @Autowired
-    private IUserService userService;
+    private static final String SID_HEADER = "X-Session-Id";
 
-    @PostMapping("/create/{sid}")
-    public Utente creaNuovoUtente(@PathVariable UUID sid, @RequestBody RegisterRequest request) {
-        return userService.creaNuovoUtente(sid, request);
+    private final IUserService userService;
+
+    public UserController(IUserService userService) {
+        this.userService = userService;
     }
 
-    @GetMapping("/all/{sid}")
-    public List<AllUserResponse> getAllUsers(@PathVariable UUID sid) {
+    @PostMapping("/create")
+    public ResponseEntity<AllUserResponse> creaNuovoUtente(@RequestHeader(value = SID_HEADER, required = false) UUID sid,
+                                                           @RequestBody RegisterRequest request) {
+        AllUserResponse created = userService.creaNuovoUtente(sid, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
+    @GetMapping("/all")
+    public List<AllUserResponse> getAllUsers(@RequestHeader(value = SID_HEADER, required = false) UUID sid) {
         return userService.getAllUsers(sid);
     }
 
-
-    @DeleteMapping("/delete/{email}/{sid}")
-    public boolean deleteUser(@PathVariable UUID sid, @PathVariable String email) {
-        return userService.deleteUser(sid, email);
+    @DeleteMapping("/delete/{email}")
+    public ResponseEntity<Void> deleteUser(@RequestHeader(value = SID_HEADER, required = false) UUID sid,
+                                           @PathVariable String email) {
+        userService.deleteUser(sid, email);
+        return ResponseEntity.noContent().build();
     }
 }

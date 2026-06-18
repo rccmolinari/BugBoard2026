@@ -1,51 +1,53 @@
 package bugboard.controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import bugboard.model.Utente;
-import bugboard.model.Issue;
-
-import bugboard.service.IIssueService;
-import bugboard.service.NotifyService;
-import bugboard.service.ISessioneService;
-
+import bugboard.dto.IssueSpecific;
 import bugboard.dto.Notify;
+import bugboard.exception.ForbiddenException;
+import bugboard.exception.NotFoundException;
+import bugboard.model.Utente;
+
+import bugboard.service.IIssueQueryService;
+import bugboard.service.INotifyService;
+import bugboard.service.ISessioneService;
 
 import java.util.List;
 import java.util.UUID;
 
 /*
- * DIP — inietta NotifyService, IIssueService e ISessioneService (astrazioni).
- *        In precedenza iniettava NotifyUIService (classe concreta), rendendo
- *        impossibile sostituire l'implementazione senza modificare il controller.
+ * DIP + ISP — inietta INotifyService, ISessioneService e IIssueQueryService.
+ *        Nota: dipende solo dal ruolo "query" delle issue (gli serve solo
+ *        leggere il dettaglio), non dall'intero servizio issue.
+ *        La sessione arriva dall'header X-Session-Id.
  */
 @RestController
 @RequestMapping("/api/notifies")
 @CrossOrigin(origins = "*")
 public class NotificaController {
 
-    @Autowired
-    private NotifyService notifyService;
+    private static final String SID_HEADER = "X-Session-Id";
 
-    @Autowired
-    private ISessioneService sessioneService;
+    private final INotifyService notifyService;
+    private final ISessioneService sessioneService;
+    private final IIssueQueryService queryService;
 
-    @Autowired
-    private IIssueService issueService;
-
-    @GetMapping("/number/{sid}")
-    public int countIssues(@PathVariable UUID sid) {
-        Utente utente = sessioneService.getUtenteBySessionId(sid);
-        if (utente == null) return 0;
-        return notifyService.contaNotificheNonLette(utente.getId());
+    public NotificaController(INotifyService notifyService,
+                             ISessioneService sessioneService,
+                             IIssueQueryService queryService) {
+        this.notifyService = notifyService;
+        this.sessioneService = sessioneService;
+        this.queryService = queryService;
     }
 
-    @GetMapping("/list/{sid}")
-    public List<Notify> getMieNotifiche(@PathVariable UUID sid) {
-        Utente utente = sessioneService.getUtenteBySessionId(sid);
-        if (utente == null) return List.of();
-        return notifyService.getNotificaPerUtente(utente.getId());
+    @GetMapping("/number")
+    public int countIssues(@RequestHeader(value = SID_HEADER, required = false) UUID sid) {
+        return notifyService.contaNotificheNonLette(requireUser(sid).getId());
+    }
+
+    @GetMapping("/list")
+    public List<Notify> getMieNotifiche(@RequestHeader(value = SID_HEADER, required = false) UUID sid) {
+        return notifyService.getNotificaPerUtente(requireUser(sid).getId());
     }
 
     @PutMapping("/leggi/{id}")
@@ -53,15 +55,25 @@ public class NotificaController {
         return notifyService.segnaComeLetta(id);
     }
 
-    @GetMapping("/apri/{id}/{sid}")
-    public Issue apriNotifica(@PathVariable int id, @PathVariable UUID sid) {
-        Utente utente = sessioneService.getUtenteBySessionId(sid);
-        if (utente == null) return null;
+    @GetMapping("/apri/{id}")
+    public IssueSpecific apriNotifica(@PathVariable int id,
+                                      @RequestHeader(value = SID_HEADER, required = false) UUID sid) {
+        requireUser(sid);
 
         Integer idIssue = notifyService.getIssueDaNotifica(id);
-        if (idIssue == null) return null;
+        if (idIssue == null) {
+            throw new NotFoundException("Nessuna issue associata alla notifica " + id);
+        }
 
         notifyService.segnaComeLetta(id);
-        return issueService.getIssueById(idIssue);
+        return queryService.getIssueSpecific(idIssue, sid);
+    }
+
+    private Utente requireUser(UUID sid) {
+        Utente utente = sessioneService.getUtenteBySessionId(sid);
+        if (utente == null) {
+            throw new ForbiddenException("Sessione non valida");
+        }
+        return utente;
     }
 }

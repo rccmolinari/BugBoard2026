@@ -3,45 +3,52 @@ package bugboard.service;
 import bugboard.dto.RegisterRequest;
 import bugboard.dto.AllUserResponse;
 
+import bugboard.exception.BadRequestException;
+import bugboard.exception.ConflictException;
+import bugboard.exception.ForbiddenException;
+import bugboard.exception.NotFoundException;
+
 import bugboard.model.Utente;
-import bugboard.model.Utente.*;
+import bugboard.model.Utente.Role;
 
 import bugboard.repository.UserRepository;
 
-import java.util.Collections;
 import java.util.List;
-import java.util.ArrayList;
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /*
- * SRP  — gestisce solo operazioni CRUD sugli utenti (admin).
- * DIP  — dipende da ISessioneService (astrazione).
- *        Il BCryptPasswordEncoder è iniettato via @Bean, non istanziato qui.
+ * SRP — gestisce solo operazioni CRUD sugli utenti (lato admin).
+ * DIP — dipende da ISessioneService (astrazione); tutte le collaborazioni
+ *       arrivano via costruttore (BCryptPasswordEncoder via @Bean).
+ * I fallimenti sono segnalati con ApiException (403/404/400/409) e i dati
+ *       restituiti sono DTO: l'entity Utente (con la password) non esce mai.
  */
 @Service
 public class UserService implements IUserService {
 
-    @Autowired
-    private UserRepository utenteRepository;
+    private final UserRepository utenteRepository;
+    private final ISessioneService sessioneService;
+    private final BCryptPasswordEncoder passwordEncoder;
 
-    @Autowired
-    private ISessioneService sessioneService;
-
-    @Autowired
-    private BCryptPasswordEncoder passwordEncoder;
+    public UserService(UserRepository utenteRepository,
+                       ISessioneService sessioneService,
+                       BCryptPasswordEncoder passwordEncoder) {
+        this.utenteRepository = utenteRepository;
+        this.sessioneService = sessioneService;
+        this.passwordEncoder = passwordEncoder;
+    }
 
     @Override
     @Transactional
-    public Utente creaNuovoUtente(UUID sid, RegisterRequest request) {
-        if (!sessioneService.isAdmin(sid)) return null;
+    public AllUserResponse creaNuovoUtente(UUID sid, RegisterRequest request) {
+        requireAdmin(sid);
 
         if (utenteRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new RuntimeException("Email già presente " + request.getEmail());
+            throw new ConflictException("Email già presente: " + request.getEmail());
         }
 
         Utente nuovo = new Utente();
@@ -51,58 +58,51 @@ public class UserService implements IUserService {
         nuovo.setPassword(passwordEncoder.encode(request.getPassword()));
 
         try {
-            nuovo.setRole(Utente.Role.fromValue(request.getRole()));
+            nuovo.setRole(Role.fromValue(request.getRole()));
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Ruolo non valido: " + request.getRole());
+            throw new BadRequestException("Ruolo non valido: " + request.getRole());
         }
 
-        return utenteRepository.save(nuovo);
+        return toDto(utenteRepository.save(nuovo));
     }
 
     @Override
     public List<AllUserResponse> getAllUsers(UUID sid) {
-        if (!sessioneService.isAdmin(sid)) return Collections.emptyList();
-
-        List<AllUserResponse> response = new ArrayList<>();
-        for (Utente u : utenteRepository.findAll()) {
-            AllUserResponse dto = new AllUserResponse();
-            dto.setId(u.getId());
-            dto.setName(u.getName());
-            dto.setSurname(u.getSurname());
-            dto.setEmail(u.getEmail());
-            dto.setRole(u.getRole().toString());
-            response.add(dto);
-        }
-        return response;
+        requireAdmin(sid);
+        return utenteRepository.findAll().stream().map(this::toDto).toList();
     }
-    
 
     @Override
     @Transactional
-    public boolean deleteUser(UUID sid, String email) {
-        
-        Utente utente = sessioneService.getUtenteBySessionId(sid);
+    public void deleteUser(UUID sid, String email) {
+        requireAdmin(sid);
 
-        if(utente == null || utente.getRole() != Role.ADMIN) {
-            return false;
-        }
-
-        Utente utenteDaEliminare = utenteRepository.findByEmail(email).orElse(null);
-        
-        if(utenteDaEliminare == null) {
-            return false;
-        }
+        Utente utenteDaEliminare = utenteRepository.findByEmail(email)
+            .orElseThrow(() -> new NotFoundException("Utente non trovato: " + email));
 
         Role ruolo = utenteDaEliminare.getRole();
-        if(ruolo == Role.USER || ruolo == Role.READONLY) {
-            utenteRepository.delete(utenteDaEliminare);
-            return true;
+        if (ruolo != Role.USER && ruolo != Role.READONLY) {
+            throw new BadRequestException("È possibile eliminare solo utenti USER o READONLY");
         }
-        return false;
+
+        utenteRepository.delete(utenteDaEliminare);
     }
 
+    /* ────────────────────────── HELPER ─────────────────────────── */
 
+    private void requireAdmin(UUID sid) {
+        if (!sessioneService.isAdmin(sid)) {
+            throw new ForbiddenException("Permessi insufficienti");
+        }
+    }
 
-
-
+    private AllUserResponse toDto(Utente u) {
+        return new AllUserResponse(
+            u.getId(),
+            u.getName(),
+            u.getSurname(),
+            u.getEmail(),
+            u.getRole().toString()
+        );
+    }
 }
