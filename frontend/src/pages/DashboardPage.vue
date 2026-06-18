@@ -70,7 +70,7 @@ onMounted(() => {
     } catch (e) {
       console.error(e)
     }
-  }, 1000)
+  }, 5000)
 })
 onUnmounted(() => {
   clearInterval(intervalId)

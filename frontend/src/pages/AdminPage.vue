@@ -3,7 +3,7 @@
   Dashboard principale dell'admin orientata alle issue.
 -->
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Sidebar from '../components/Sidebar.vue'
 import StatCard from '../components/StatCard.vue'
@@ -44,20 +44,30 @@ async function apriIssue(id) {
 }
 const issues = ref([])
 
+// Caricamento issue: riusato da load iniziale, polling e dopo assegna/chiudi
+async function caricaIssue() {
+  try {
+    const response = await api.get('/api/issues')
+    issues.value = response.data
+    // più recenti prima
+    issues.value.sort((a, b) => new Date(b.dataCreazione) - new Date(a.dataCreazione))
+  } catch (error) {
+    console.error('Errore durante il caricamento delle issue:', error)
+  }
+}
+
 if (utente.sessionId) {
-  api.get('/api/issues')
-    .then(response => {
-      issues.value = response.data
-      //sorta per data di creazione, più recenti prima
-      issues.value.sort((a, b) => new Date(b.dataCreazione) - new Date(a.dataCreazione))
-      console.log('Issue caricate:', issues.value)
-    })
-    .catch(error => {
-      console.error('Errore durante il caricamento delle issue:', error)
-    })
+  caricaIssue()
 } else {
   router.replace('/')
 }
+
+// Polling: l'admin rivede le issue aggiornate ogni 5 secondi
+let pollingId = null
+onMounted(() => {
+  if (utente.sessionId) pollingId = setInterval(caricaIssue, 5000)
+})
+onUnmounted(() => clearInterval(pollingId))
 
 const sidebarAperta = ref(false)
 const popupAssegnaAperto = ref(false)
@@ -174,9 +184,7 @@ async function submitAssegnazione() {
       assignSuccess.value = false
     }, 900)
 
-    const res = await api.get('/api/issues')
-    issues.value = res.data
-    issues.value.sort((a, b) => new Date(b.dataCreazione) - new Date(a.dataCreazione))
+    await caricaIssue()
 
   } catch (error) {
     assignError.value =
@@ -189,9 +197,7 @@ async function submitAssegnazione() {
 async function onIssueChiusa() {
   issueDettaglio.value = null
   try {
-    const res = await api.get('/api/issues')
-    issues.value = res.data
-    issues.value.sort((a, b) => new Date(b.dataCreazione) - new Date(a.dataCreazione))
+    await caricaIssue()
   } catch (e) {
     console.error('Errore ricaricamento issue:', e)
   }
