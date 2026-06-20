@@ -12,9 +12,9 @@ import java.util.List;
 import java.util.UUID;
 
 /*
- * DIP — inietta IUserService (astrazione) via costruttore.
- * La sessione arriva dall'header X-Session-Id; i fallimenti (permessi,
- * utente inesistente, ...) diventano status HTTP via GlobalExceptionHandler.
+ * Le rotte che usa l'admin per gestire gli utenti. La sessione arriva
+ * dall'header X-Session-Id; se manca il permesso o l'utente non esiste, è il
+ * service a lanciare e il GlobalExceptionHandler restituisce lo status.
  */
 @RestController
 @RequestMapping("/api/user")

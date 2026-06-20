@@ -82,8 +82,8 @@ public class Issue {
     @JoinColumn(name = "assegnato_a")
     private Utente assegnatoA;
 
-    // Gli Enum devono corrispondere esattamente al dump
-    public enum StatoIssue { 
+    // Attenzione: questi nomi devono combaciare esatti con i tipi enum del database
+    public enum StatoIssue {
         TODO, IN_PROGRESS, DONE, EXPIRED, CLOSED;
 
         public static StatoIssue fromValue(String value) {

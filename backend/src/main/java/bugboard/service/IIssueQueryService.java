@@ -10,9 +10,9 @@ import java.util.List;
 import java.util.UUID;
 
 /*
- * ISP — lato "lettura" delle issue. I client che devono solo leggere
- * (es. NotificaController) dipendono da questa interfaccia e non vedono
- * i metodi di scrittura di IIssueCommandService.
+ * Tutte le letture delle issue stanno qui. Chi deve solo leggere (per
+ * esempio il controller delle notifiche) si aggancia a questa e non si porta
+ * dietro i metodi che modificano i dati.
  */
 public interface IIssueQueryService {
 

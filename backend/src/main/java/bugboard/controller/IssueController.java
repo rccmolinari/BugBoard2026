@@ -22,12 +22,11 @@ import java.util.List;
 import java.util.UUID;
 
 /*
- * DIP + ISP — dipende da due astrazioni distinte: IIssueQueryService per le
- *        letture e IIssueCommandService per le scritture.
- * SRP — il controller fa solo routing HTTP. La sessione arriva dall'header
- *        X-Session-Id, mai dall'URL (niente sid in log/history).
- *        Validazione e autorizzazione vivono nel service e i fallimenti
- *        diventano status HTTP tramite GlobalExceptionHandler.
+ * Espone le rotte HTTP delle issue e basta: il lavoro vero lo fanno i due
+ * service, uno per leggere e uno per scrivere. L'id di sessione lo prendo
+ * sempre dall'header X-Session-Id e mai dall'URL, così non finisce nei log o
+ * nella cronologia del browser. Controlli e permessi stanno nel service; se
+ * saltano, ci pensa il GlobalExceptionHandler a tradurli nello status giusto.
  */
 @RestController
 @RequestMapping("/api/issues")

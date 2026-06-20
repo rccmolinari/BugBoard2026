@@ -5,9 +5,9 @@ import bugboard.model.Utente;
 import org.springframework.context.ApplicationEvent;
 
 /*
- * OBSERVER — evento pubblicato da IssueService quando un'issue viene assegnata.
- * Trasporta tutti i dati necessari al listener senza che il publisher
- * conosca chi li consuma (zero accoppiamento tra IssueService e NotificaListener).
+ * Lo "scatto" che IssueService lancia quando una issue viene assegnata. Si
+ * porta dietro tutto quello che serve a chi lo ascolta, ma chi lo lancia non
+ * sa né gli importa chi poi lo riceverà.
  */
 public class IssueAssegnataEvent extends ApplicationEvent {
 

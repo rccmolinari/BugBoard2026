@@ -10,9 +10,9 @@ import bugboard.model.Utente;
 import bugboard.model.Sessione;
 
 /*
- * DIP — implementa ISessioneService; tutti i consumer dipendono
- * dall'interfaccia, non da questa classe concreta. Il repository è
- * iniettato via costruttore (campo final, niente reflection).
+ * Tiene insieme le sessioni: le crea al login, ritrova l'utente a partire dal
+ * loro id e le cancella al logout. Ci sono anche due scorciatoie comode per
+ * sapere al volo se dietro una sessione c'è un admin (o un readonly).
  */
 @Service
 public class SessioneService implements ISessioneService {

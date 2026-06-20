@@ -14,46 +14,48 @@ import java.time.LocalDateTime;
 public interface IssueRepository extends JpaRepository<Issue, Integer> {
 
     
-    // Trova tutte le issue create da un utente specifico usando l'ID dal dump
+    // Tutte le issue create da un certo utente
     List<Issue> findByCreatoreId(Integer idCreatore);
     
-    // Trova tutte le issue assegnate da un utente specifico usando l'ID dal dump
+    // Tutte le issue che un certo utente ha assegnato
     List<Issue> findByAssegnatarioId(Integer idAssegnatario);
 
-    // Trova tutte le issue assegnate a un utente specifico usando l'ID dal dump
+    // Tutte le issue assegnate a un certo utente
     List<Issue> findByAssegnatoAId(Integer assegnatoAId);
 
-    // Trova tutte le issue con un certo stato
+    // Tutte le issue in un certo stato
     List<Issue> findByStato(Issue.StatoIssue stato);
 
-    // Trova tutte le issue in base alla priorità
+    // Le issue sopra una certa priorità
     List<Issue> findByPrioritaGreaterThan(Integer priorita);
 
-    // Trova issue in base a stato e priorità
+    // Filtra per stato e priorità insieme
     List<Issue> findByStatoAndPrioritaGreaterThan(Issue.StatoIssue stato, Integer priorita);
     
-    // Cerca una issue in base al titolo
+    // Cerca per titolo, senza distinguere maiuscole e minuscole
     List<Issue> findByTitoloContainingIgnoreCase(String titolo);
     
-    // Trova le issue in base alla data di scadenza
+    // Le issue scadute, cioè con scadenza prima di una certa data
     List<Issue> findByDataScadenzaBefore(LocalDateTime dataScadenza);
 
     List<Issue> findByTipo(Issue.TipoIssue tipo);
+    // Solo i bug, con creatore e assegnatario già caricati (li guardano gli stakeholder)
     @Query("SELECT i FROM Issue i " +
         "LEFT JOIN FETCH i.creatore " +
         "LEFT JOIN FETCH i.assegnatoA " +
         "WHERE i.tipo = 'BUG'")
     List<Issue> findOnlyBugWithCreatoreAndDataScadenzaAndDataCreazione();
 
-    // Cerca tutte le issue in base ad una etichetta specifica
+    // Le issue che hanno una certa etichetta dentro l'array
     @Query(value = "SELECT * FROM issue WHERE ?1= ANY(etichetta)", nativeQuery = true)
     List<Issue> findBySpecificEtichetta(String etichetta);
 
-    // Trova tutte le issue con creatore e data di scadenza usando una query personalizzata
+    // Carico le issue tirandomi dietro anche il creatore in un colpo solo
     @Query("SELECT i FROM Issue i LEFT JOIN FETCH i.creatore")
     List<Issue> findAllWithCreatoreAndDataScadenzaAndDataCreazione();
     
     
+    // Mi costruisco già qui il DTO per la lista admin, senza portarmi dietro l'immagine
     @Query("SELECT new bugboard.dto.IssueResponse(" +
         "i.id, " +
         "i.titolo, " +

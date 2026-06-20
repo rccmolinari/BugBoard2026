@@ -9,14 +9,14 @@ import bugboard.dto.IssueSpecificAdmin;
 import bugboard.model.Issue;
 
 /*
- * SRP — la responsabilità di convertire un'entità Issue in DTO
- * è estratta da IssueService e concentrata qui.
- * IssueService non ha più motivo di cambiare se cambia la struttura dei DTO.
+ * Raccoglie in un posto solo tutte le conversioni dall'entità Issue ai vari
+ * DTO. Così se cambia la forma di un DTO vengo a metterci mano qui, e il
+ * service delle issue se ne resta tranquillo com'è.
  */
 @Component
 public class IssueMapper {
 
-    /** DTO sintetico per le liste admin/stakeholder (senza immagine). */
+    // Versione ridotta per le liste di admin e stakeholder, senza immagine
     public IssueResponse toIssueResponse(Issue issue) {
         if (issue == null) return null;
 
@@ -33,7 +33,7 @@ public class IssueMapper {
         );
     }
 
-    /** DTO per la dashboard utente: porta il flag immagine ma non i byte. */
+    // Per la dashboard utente: dice se c'è un'immagine ma non si trascina i byte
     public IssueResponseUser toIssueResponseUser(Issue issue) {
         if (issue == null) return null;
 

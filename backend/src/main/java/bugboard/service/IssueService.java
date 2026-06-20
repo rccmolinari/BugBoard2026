@@ -30,14 +30,13 @@ import bugboard.repository.IssueRepository;
 import bugboard.repository.UserRepository;
 
 /*
- * SRP  — gestisce solo la logica di business delle issue.
- *        Il mapping entità→DTO è interamente delegato a IssueMapper.
- * ISP  — implementa due ruoli distinti: IIssueQueryService (letture) e
- *        IIssueCommandService (scritture). Ogni client dipende solo dal
- *        ruolo che gli serve.
- * DIP  — dipende da astrazioni (ISessioneService) e riceve tutte le
- *        collaborazioni via costruttore.
- * Gli errori sono segnalati con ApiException (404/403/400).
+ * Qui dentro vive tutta la logica delle issue: creazione, assegnazione,
+ * commenti, chiusura e le varie letture filtrate a seconda del ruolo. Il
+ * lavoro di trasformare le entità in DTO lo passo a IssueMapper, così questa
+ * classe pensa solo alle regole. Le letture e le scritture stanno in due
+ * interfacce diverse, in modo che ognuno si tiri dietro solo i metodi che gli
+ * servono. Quando qualcosa non torna lancio una ApiException e allo status
+ * HTTP da restituire ci pensa poi il GlobalExceptionHandler.
  */
 @Service
 public class IssueService implements IIssueQueryService, IIssueCommandService {
@@ -60,7 +59,7 @@ public class IssueService implements IIssueQueryService, IIssueCommandService {
         this.eventPublisher = eventPublisher;
     }
 
-    /* ─────────────────────────── QUERY ─────────────────────────── */
+    // Letture
 
     @Override
     public List<IssueResponse> findAllForAdmin(UUID sid) {
@@ -111,12 +110,11 @@ public class IssueService implements IIssueQueryService, IIssueCommandService {
         return issueMapper.toIssueSpecificAdmin(findIssueOr404(id));
     }
 
-    /* ────────────────────────── COMMAND ────────────────────────── */
+    // Scritture
 
-    /*
-     * BUILDER — la costruzione dell'entità è delegata a IssueBuilder
-     * (conversioni stringa→enum, lettura byte immagine, default).
-     */
+    // La issue la monto con IssueBuilder, che si prende carico delle parti
+    // un po' noiose: conversioni stringa→enum, lettura dei byte dell'immagine
+    // e valori di default.
     @Override
     @Transactional
     public IssueResponseUser createIssue(CreateIssueRequest request, UUID sid, MultipartFile immagineFile) {
@@ -210,9 +208,9 @@ public class IssueService implements IIssueQueryService, IIssueCommandService {
         issueRepository.save(issue);
     }
 
-    /* ────────────────────────── HELPER ─────────────────────────── */
+    // Metodi di appoggio
 
-    /** Richiede una sessione valida e restituisce l'utente collegato. */
+    // Pretende una sessione valida e ti ridà l'utente che c'è dietro
     private Utente requireUser(UUID sid) {
         Utente user = sessioneService.getUtenteBySessionId(sid);
         if (user == null) {
@@ -221,7 +219,7 @@ public class IssueService implements IIssueQueryService, IIssueCommandService {
         return user;
     }
 
-    /** Richiede una sessione valida con ruolo ADMIN. */
+    // Come requireUser, ma in più pretende che l'utente sia un admin
     private Utente requireAdmin(UUID sid) {
         Utente user = requireUser(sid);
         if (user.getRole() != Utente.Role.ADMIN) {

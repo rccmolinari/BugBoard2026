@@ -53,6 +53,7 @@ const filtroRuolo = ref('')
 
 // Form nuovo utente
 const inputNome = ref('')
+const inputCognome = ref('')
 const inputEmail = ref('')
 const inputPassword = ref('')
 const inputRuolo = ref('USER')
@@ -118,8 +119,8 @@ const classeMessaggio = computed(() => {
    CREA UTENTE — stesse validazioni dell'originale
    ══════════════════════════════════════════════════════════════ */
 function creaUtente() {
-  const nome     = inputNome.value.trim().split(' ')[0] || ''
-  const cognome = inputNome.value.split(' ').slice(1).join(' ').trim() || ''
+  const nome     = inputNome.value.trim()
+  const cognome  = inputCognome.value.trim()
   const email    = inputEmail.value.trim().toLowerCase()
   const password = inputPassword.value
   const ruolo    = inputRuolo.value
@@ -184,6 +185,7 @@ function nascondiMessaggio() {
 }
 function resetForm() {
   inputNome.value = ''
+  inputCognome.value = ''
   inputEmail.value = ''
   inputPassword.value = ''
   inputRuolo.value = 'USER'
@@ -510,7 +512,24 @@ function logout() {
                 <input v-model="inputNome"
                        type="text"
                        id="inputNome"
-                       placeholder="Mario Rossi"
+                       placeholder="Mario"
+                       autocomplete="off"
+                       class="w-full px-4 py-2.5 rounded-lg border border-ink-200 bg-ink-50
+                              text-ink-800 text-sm placeholder-ink-300
+                              transition-colors duration-150
+                              focus:border-brand-500 focus:bg-white focus:ring-2 focus:ring-brand-500/20" />
+              </div>
+
+              <!-- Cognome -->
+              <div class="mb-4">
+                <label for="inputCognome"
+                       class="block text-xs font-mono font-medium text-ink-600 uppercase tracking-wider mb-2">
+                  Cognome
+                </label>
+                <input v-model="inputCognome"
+                       type="text"
+                       id="inputCognome"
+                       placeholder="Rossi"
                        autocomplete="off"
                        class="w-full px-4 py-2.5 rounded-lg border border-ink-200 bg-ink-50
                               text-ink-800 text-sm placeholder-ink-300

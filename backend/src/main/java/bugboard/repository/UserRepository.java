@@ -11,13 +11,13 @@ import java.util.Optional;
 @Repository
 public interface UserRepository extends JpaRepository<Utente, Integer> {
     
-    // Trova un utente specifico in base all'email
+    // Cerca l'utente partendo dalla mail (la usiamo per login e vari controlli)
     Optional<Utente> findByEmail(String email);
 
-    // Trova tutti gli utenti in base al ruolo
+    // Tutti gli utenti di un certo ruolo
     List<Utente> findByRole(Utente.Role role); 
 
-    // Controlla se email esiste
+    // Dice solo se esiste già un utente con quella mail
     boolean existsByEmail(String email);
 
 }

@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+// I dati che arrivano dal form quando si crea una issue.
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

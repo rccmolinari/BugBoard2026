@@ -6,10 +6,10 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
+// Una notifica già pronta per il frontend, col messaggio bell'e scritto.
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-
 public class Notify {
     private Integer id;
     private String messaggio;

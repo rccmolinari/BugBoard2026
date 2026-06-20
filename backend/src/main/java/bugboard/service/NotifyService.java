@@ -11,8 +11,9 @@ import java.util.List;
 import java.util.Optional;
 
 /*
- * SRP — gestisce solo lettura e aggiornamento delle notifiche.
- * DIP — implementa INotifyService e riceve il repository via costruttore.
+ * Si occupa delle notifiche: le legge per un utente, le segna come lette e
+ * conta quante ne restano da aprire. Le entità Notifica le trasformo in DTO
+ * Notify, scrivendo già lì il messaggio bell'e pronto da mostrare a schermo.
  */
 @Service
 public class NotifyService implements INotifyService {

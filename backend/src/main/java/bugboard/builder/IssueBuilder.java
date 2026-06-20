@@ -7,18 +7,14 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 
 /*
- * BUILDER — costruisce un'entità Issue passo per passo tramite API fluente.
+ * Costruisce una Issue un pezzo per volta, con i metodi che si concatenano.
+ * L'idea è tenere in un posto unico le cose un po' noiose: la conversione
+ * delle stringhe in enum, la lettura dei byte dell'immagine e i valori di
+ * default. L'unico modo per avere la issue finita è chiamare build(), così
+ * non ci si ritrova mai per le mani un oggetto costruito a metà.
  *
- * Vantaggi rispetto alla sequenza di setter in IssueService:
- *  - un solo posto dove gestire la conversione stringa→enum (tipo, stato)
- *  - un solo posto dove gestire la lettura dei byte dell'immagine
- *  - impossibile ottenere un Issue parzialmente costruito: build() è
- *    l'unico punto di creazione
- *  - aggiungere un nuovo campo richiede un solo metodo qui, non modifiche
- *    sparse nei service (OCP)
- *
- * Non è un @Component Spring: viene istanziato con `new` ogni volta che
- * si costruisce un'issue (ciclo di vita locale, non singleton).
+ * Non è un bean di Spring: me lo creo con `new` ogni volta che serve e vive
+ * giusto il tempo di tirar su una issue.
  */
 public class IssueBuilder {
 
@@ -52,7 +48,7 @@ public class IssueBuilder {
         return this;
     }
 
-    /** Accetta la stringa raw dal DTO e la converte in enum. */
+    // Prende la stringa così com'è dal DTO e la converte in enum
     public IssueBuilder tipo(String tipoValue) {
         if (tipoValue != null) {
             this.tipo = Issue.TipoIssue.fromValue(tipoValue);
@@ -60,7 +56,7 @@ public class IssueBuilder {
         return this;
     }
 
-    /** Accetta la stringa raw dal DTO; se null usa TODO come default. */
+    // Stessa cosa per lo stato; se non arriva niente parto da TODO
     public IssueBuilder stato(String statoValue) {
         this.stato = statoValue != null
             ? Issue.StatoIssue.fromValue(statoValue)
@@ -68,14 +64,14 @@ public class IssueBuilder {
         return this;
     }
 
-    /** Legge i byte dal MultipartFile; se fallisce l'immagine viene ignorata. */
+    // Leggo i byte dal file caricato; se la lettura va male lascio perdere l'immagine
     public IssueBuilder immagine(MultipartFile file) {
         if (file != null && !file.isEmpty()) {
             try {
                 this.immagine = file.getBytes();
                 this.immagineContentType = file.getContentType();
             } catch (IOException e) {
-                // immagine ignorata, l'issue viene comunque costruita
+                // niente immagine, pazienza: la issue la costruisco lo stesso
             }
         }
         return this;
@@ -88,7 +84,7 @@ public class IssueBuilder {
         return this;
     }
 
-    /** Produce l'entità Issue pronta per essere persistita. */
+    // Sforna la Issue bell'e pronta da salvare
     public Issue build() {
         Issue issue = new Issue();
         issue.setTitolo(titolo);

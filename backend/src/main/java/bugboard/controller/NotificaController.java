@@ -16,10 +16,9 @@ import java.util.List;
 import java.util.UUID;
 
 /*
- * DIP + ISP — inietta INotifyService, ISessioneService e IIssueQueryService.
- *        Nota: dipende solo dal ruolo "query" delle issue (gli serve solo
- *        leggere il dettaglio), non dall'intero servizio issue.
- *        La sessione arriva dall'header X-Session-Id.
+ * Le rotte delle notifiche: contarle, elencarle, segnarle come lette e aprire
+ * la issue collegata. Delle issue qui mi serve solo leggere il dettaglio,
+ * quindi mi aggancio alla parte di sola lettura e non a tutto il service.
  */
 @RestController
 @RequestMapping("/api/notifies")

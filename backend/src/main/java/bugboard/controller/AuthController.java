@@ -15,9 +15,9 @@ import bugboard.service.ISessioneService;
 import java.util.UUID;
 
 /*
- * DIP — inietta IAuthService e ISessioneService (astrazioni) via costruttore.
- * Il logout legge la sessione dall'header X-Session-Id, coerente con il
- * resto delle API (nessun id di sessione negli URL o nel body).
+ * Le tre rotte dell'autenticazione: login, registrazione e logout. Come nel
+ * resto delle API, anche il logout si porta l'id di sessione nell'header
+ * X-Session-Id e non nell'URL o nel body.
  */
 @RestController
 @RequestMapping("/api/auth")

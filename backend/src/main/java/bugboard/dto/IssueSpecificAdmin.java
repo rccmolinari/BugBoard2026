@@ -13,6 +13,7 @@ import bugboard.model.Commento;
 
 
 
+// Il dettaglio di una issue lato admin: come quello utente, ma con tutte le email coinvolte.
 @NoArgsConstructor
 @AllArgsConstructor
 @Data

@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
+// La issue come la vede l'utente nella sua dashboard.
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

@@ -8,16 +8,16 @@ import java.util.List;
 @Repository
 public interface NotificaRepository extends JpaRepository<Notifica, Integer> {
 
-    // trova tutte le notifiche per un user specifico
+    // Le notifiche arrivate a un certo utente
     List<Notifica> findByAssegnatoAId(Integer assegnatoA);
 
-    // trova tutte le notifiche assegnate da un admin specifico
+    // Le notifiche generate da un certo admin
     List<Notifica> findByAssegnatarioId(Integer assegnatario);
 
-    // trova tutte le notifiche per un issue specifico
+    // Le notifiche legate a una certa issue
     List<Notifica> findByIssueId(Integer issue);
     
-    // conta tutte le notifiche non lette per un user specifico
+    // Quante notifiche non lette ha un utente (per il pallino col numero)
     int countByAssegnatoAIdAndLettaFalse(Integer assegnatoA);
 
 

@@ -4,15 +4,14 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Data //genera metodi getter setter tostring e equals
-@NoArgsConstructor //genera costruttore vuoto 
-@AllArgsConstructor //genera costruttore con tutti i campi
-
-
+// I campi per creare un utente, buoni sia per la registrazione sia per l'admin.
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class RegisterRequest {
     private String email;
     private String password;
     private String name;
     private String surname;
-    private String role; // user admin o readonly
+    private String role; // "user", "admin" oppure "readonly"
 }

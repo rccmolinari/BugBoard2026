@@ -33,10 +33,10 @@ public class Utente {
     private String password;
 
     @Column(nullable = false, length = 100)
-    private String name; // Mappa la colonna 'name' nel DB
+    private String name; // nome di battesimo
 
     @Column(nullable = false, length = 100)
-    private String surname; // Mappa la colonna 'surname' nel DB
+    private String surname; // cognome
 
     @Enumerated(EnumType.STRING)
     @JdbcType(PostgreSQLEnumJdbcType.class)
@@ -64,9 +64,9 @@ public class Utente {
         }
 
         /*
-         * OCP + SRP — la logica di mapping verso il formato frontend
-         * risiede nell'enum stesso. Aggiungere un nuovo ruolo richiede
-         * solo di aggiungere un caso qui, senza toccare AuthService.
+         * Il frontend usa nomi di ruolo diversi dai nostri, quindi la
+         * traduzione la tengo qui dentro l'enum: se aggiungo un ruolo mi basta
+         * mettere un caso qui e non devo andarlo a cercare nei vari service.
          */
         public String toFrontendRole() {
             switch (this) {

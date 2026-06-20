@@ -5,7 +5,8 @@ import bugboard.dto.LoginRequest;
 import bugboard.dto.RegisterRequest;
 
 /*
- * DIP — i controller dipendono da questa astrazione, non dalla classe concreta AuthService.
+ * Il contratto per login e registrazione: il controller si appoggia a questo
+ * e non gli importa quale implementazione ci sia davvero dietro.
  */
 public interface IAuthService {
     AuthResponse login(LoginRequest request);

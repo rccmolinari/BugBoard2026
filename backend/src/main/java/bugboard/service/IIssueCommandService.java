@@ -8,10 +8,9 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 /*
- * ISP — lato "scrittura" delle issue. Separato dalle letture
- * (IIssueQueryService): un client che non modifica issue non deve
- * dipendere da questi metodi. I fallimenti sono segnalati con
- * eccezioni (ApiException).
+ * Qui invece ci sono i metodi che modificano le issue: crearle, assegnarle,
+ * commentarle e chiuderle. Li tengo separati dalle letture così chi non deve
+ * scrivere niente non se li ritrova tra i piedi.
  */
 public interface IIssueCommandService {
 

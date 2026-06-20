@@ -5,9 +5,8 @@ import bugboard.dto.Notify;
 import java.util.List;
 
 /*
- * ISP + DIP — contratto delle notifiche. I controller dipendono da questa
- * astrazione, non dalla classe concreta. Il prefisso "I" è coerente con le
- * altre interfacce del progetto (IAuthService, IUserService, ...).
+ * Il contratto per le notifiche: leggerle, segnarle come lette, contarle e
+ * risalire alla issue collegata. Il controller si appoggia a questa.
  */
 public interface INotifyService {
     List<Notify> getNotificaPerUtente(Integer utenteId);

@@ -21,11 +21,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /*
- * SRP — gestisce solo operazioni CRUD sugli utenti (lato admin).
- * DIP — dipende da ISessioneService (astrazione); tutte le collaborazioni
- *       arrivano via costruttore (BCryptPasswordEncoder via @Bean).
- * I fallimenti sono segnalati con ApiException (403/404/400/409) e i dati
- *       restituiti sono DTO: l'entity Utente (con la password) non esce mai.
+ * Gestione utenti lato admin: creazione, elenco e cancellazione. Prima di
+ * ogni cosa controllo che chi sta chiedendo sia davvero un admin. Verso
+ * l'esterno restituisco sempre dei DTO, così l'entità Utente con dentro la
+ * password non finisce mai dentro una risposta.
  */
 @Service
 public class UserService implements IUserService {
@@ -88,7 +87,7 @@ public class UserService implements IUserService {
         utenteRepository.delete(utenteDaEliminare);
     }
 
-    /* ────────────────────────── HELPER ─────────────────────────── */
+    // Metodi di appoggio
 
     private void requireAdmin(UUID sid) {
         if (!sessioneService.isAdmin(sid)) {

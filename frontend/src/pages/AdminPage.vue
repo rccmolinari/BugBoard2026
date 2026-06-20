@@ -472,7 +472,7 @@ function logout() {
           :min="oggi"
           class="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm text-ink-800
                  focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
-        />
+         /> Data di scadenza (opzionale)
 
       <div>
       <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">

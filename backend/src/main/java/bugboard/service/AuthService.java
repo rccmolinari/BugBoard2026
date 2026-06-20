@@ -14,11 +14,10 @@ import bugboard.repository.UserRepository;
 import java.util.Optional;
 
 /*
- * SRP  — gestisce solo autenticazione e registrazione utenti.
- * DIP  — dipende da ISessioneService (astrazione) e riceve tutte le
- *        collaborazioni via costruttore (BCryptPasswordEncoder via @Bean).
- * OCP  — il mapping ruolo→frontend è delegato a Utente.Role.toFrontendRole();
- *        aggiungere un ruolo non richiede modificare questo service.
+ * Si occupa solo di login e registrazione. Le password non le tengo mai in
+ * chiaro: quando registro le cifro col BCryptPasswordEncoder e al login
+ * confronto l'hash. La sessione vera e propria la faccio creare a
+ * SessioneService, qui mi limito a chiedergliela.
  */
 @Service
 public class AuthService implements IAuthService {

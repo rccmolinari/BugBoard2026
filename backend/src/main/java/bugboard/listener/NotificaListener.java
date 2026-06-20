@@ -9,11 +9,10 @@ import bugboard.model.Notifica;
 import bugboard.repository.NotificaRepository;
 
 /*
- * OBSERVER — ascolta IssueAssegnataEvent pubblicato da IssueService
- * e persiste la notifica sul DB.
- *
- * IssueService non sa che questo listener esiste: zero accoppiamento
- * tra chi pubblica e chi consuma (OCP).
+ * Sta in ascolto dell'evento di assegnazione e, appena scatta, salva la
+ * notifica sul database. IssueService non sa nemmeno che questa classe
+ * esista: se domani volessimo fare altro alla stessa assegnazione (mandare
+ * una mail, scrivere un log...) basta aggiungere un altro listener.
  */
 @Component
 public class NotificaListener {

@@ -6,18 +6,19 @@ import bugboard.model.Utente;
 import java.util.UUID;
 
 /*
- * DIP — tutte le classi che gestiscono sessioni dipendono da questa astrazione.
- * Permette di sostituire SessioneService con una diversa implementazione
- * (es. basata su Redis, JWT, ecc.) senza toccare nessun consumer.
+ * Il contratto per la gestione delle sessioni. Chi ne ha bisogno si appoggia
+ * a questa interfaccia, così se un domani volessimo cambiare il modo di
+ * tenere le sessioni (Redis, JWT, quello che sia) basta scrivere un'altra
+ * implementazione senza andare a toccare tutto il resto.
  */
 public interface ISessioneService {
     Sessione createSession(Utente utente);
     Utente getUtenteBySessionId(UUID sid);
     void deleteSession(UUID sid);
 
-    /** Restituisce true se la sessione è valida e l'utente ha ruolo ADMIN. */
+    // Vero se la sessione è valida e dietro c'è un admin
     boolean isAdmin(UUID sid);
 
-    /** Restituisce true se la sessione è valida e l'utente ha ruolo ADMIN o READONLY. */
+    // Vero se la sessione è valida e dietro c'è un admin oppure un readonly
     boolean isAdminOrReadonly(UUID sid);
 }

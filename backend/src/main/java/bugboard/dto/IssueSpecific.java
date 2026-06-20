@@ -9,6 +9,7 @@ import java.util.List;
 
 import bugboard.model.Commento;
 
+// Il dettaglio completo di una issue come lo vede l'utente.
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

@@ -3,10 +3,10 @@ package bugboard.exception;
 import org.springframework.http.HttpStatus;
 
 /*
- * Base per tutte le eccezioni applicative che mappano su un preciso
- * stato HTTP. Il GlobalExceptionHandler gestisce un solo tipo (ApiException)
- * e legge lo status da qui: aggiungere una nuova eccezione (es. 422) non
- * richiede toccare l'handler (OCP).
+ * La radice di tutte le nostre eccezioni: ognuna si porta dietro lo status
+ * HTTP che le corrisponde. Così il GlobalExceptionHandler ne gestisce un tipo
+ * solo e lo status lo legge da qui; se domani serve un nuovo errore (tipo un
+ * 422) basta fare la sottoclasse, senza mettere mano all'handler.
  */
 public abstract class ApiException extends RuntimeException {
 
