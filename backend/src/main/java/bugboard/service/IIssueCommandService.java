@@ -16,11 +16,11 @@ public interface IIssueCommandService {
 
     IssueResponseUser createIssue(CreateIssueRequest request, UUID sid, MultipartFile immagineFile);
 
-    void assignIssueToUser(int issueId, String userEmail, LocalDate expiringDate, UUID adminSID);
+    void assignIssueToUser(int issueId, String userEmail, LocalDate expiringDate, Long expectedVersion, UUID adminSID);
 
-    void aggiungiCommento(int idIssue, String testo, UUID sid);
+    void aggiungiCommento(int idIssue, String testo, Long expectedVersion, UUID sid);
 
-    void chiudiIssueUtente(int idIssue, UUID sid);
+    void chiudiIssueUtente(int idIssue, Long expectedVersion, UUID sid);
 
-    void chiudiIssueAdmin(int idIssue, UUID sid);
+    void chiudiIssueAdmin(int idIssue, Long expectedVersion, UUID sid);
 }

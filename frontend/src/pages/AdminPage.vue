@@ -147,12 +147,19 @@ function apriPopupAssegna(issue) {
   issueSelezionata.value = issue
   dataAssegnazione.value = ''
   dataScadenza.value = ''
+  // Riparto pulito a ogni apertura: senza questo, l'errore (o il successo) di
+  // un'assegnazione precedente resterebbe a video anche su un'altra issue.
+  emailAssegnatario.value = ''
+  assignError.value = ''
+  assignSuccess.value = false
   popupAssegnaAperto.value = true
 }
 
 function chiudiPopupAssegna() {
   popupAssegnaAperto.value = false
   issueSelezionata.value = null
+  assignError.value = ''
+  assignSuccess.value = false
 }
 
 async function submitAssegnazione() {
@@ -170,6 +177,7 @@ async function submitAssegnazione() {
       issueId: issueSelezionata.value?.id,
       userEmail: emailAssegnatario.value,
       dataScadenza: dataScadenza.value || null,
+      version: issueSelezionata.value?.version ?? null,
     }
     await api.put('/api/issues/assign', payload)
 
@@ -257,7 +265,8 @@ function logout() {
 
         <div class="flex items-center gap-2">
           <div class="w-px h-5 bg-ink-200 mx-1"></div>
-          <button class="flex items-center gap-2.5 pl-2 pr-3 py-1.5 rounded-lg hover:bg-ink-50 transition-colors group">
+          <button
+            class="flex items-center gap-2.5 pl-2 pr-3 py-1.5 rounded-lg pointer-events-none">
             <div class="w-7 h-7 rounded-full bg-brand-500 flex items-center justify-center">
               <span class="font-mono text-[11px] font-medium text-ink-900">{{ iniziali }}</span>
             </div>
@@ -291,7 +300,7 @@ function logout() {
             </template>
           </StatCard>
 
-          <StatCard label="Risolte" :value="statRisolte" subtitle="chiuse o completate" icon-bg-class="bg-green-50" value-color-class="text-green-600" anim-delay-class="delay-3">
+          <StatCard label="Risolte" :value="statRisolte" subtitle="completate" icon-bg-class="bg-green-50" value-color-class="text-green-600" anim-delay-class="delay-3">
             <template #icon>
               <svg class="w-3.5 h-3.5 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="20 6 9 17 4 12" />
@@ -436,7 +445,7 @@ function logout() {
                     </td>
                     <td class="px-4 py-3.5 text-right">
                     <button
-                      v-if="issue.stato !== 'CLOSED'"
+                      v-if="issue.stato !== 'CLOSED' && issue.stato !== 'DONE'"
                       type="button"
                       @click.stop="apriPopupAssegna(issue)"
                         class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold
@@ -465,15 +474,18 @@ function logout() {
         <h3 class="font-display text-lg font-semibold text-ink-900">
           Assegna issue <span class="font-mono text-sm text-ink-400">#{{ issueSelezionata?.id }}</span>
         </h3>
-
+      <div>
+      <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">
+       Data di scadenza (opzionale)
+      </label>
         <input
           v-model="dataScadenza"
           type="date"
           :min="oggi"
           class="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm text-ink-800
                  focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
-         /> Data di scadenza (opzionale)
-
+         /> 
+      </div>
       <div>
       <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">
         Email utente a cui assegnare

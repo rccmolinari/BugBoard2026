@@ -276,16 +276,11 @@ function logout() {
         <div class="flex items-center gap-2">
           <div class="w-px h-5 bg-ink-200 mx-1"></div>
           <button class="flex items-center gap-2.5 pl-2 pr-3 py-1.5 rounded-lg
-                         hover:bg-ink-50 transition-colors group">
+                         hover:bg-ink-50 transition-colors group pointer-events-none">
             <div class="w-7 h-7 rounded-full bg-brand-500 flex items-center justify-center">
               <span class="font-mono text-[11px] font-medium text-ink-900">{{ iniziali }}</span>
             </div>
             <span class="text-sm font-medium text-ink-700 hidden sm:inline">{{ utente.nome }}</span>
-            <svg class="w-3 h-3 text-ink-300 group-hover:text-ink-500 transition-colors hidden sm:block"
-                 viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="6 9 12 15 18 9"/>
-            </svg>
           </button>
         </div>
       </header>

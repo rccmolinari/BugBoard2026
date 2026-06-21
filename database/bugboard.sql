@@ -86,7 +86,8 @@ CREATE TABLE public.issue (
     commento text[],
     idcreatore integer NOT NULL,
     idassegnatario integer,
-    assegnato_a integer
+    assegnato_a integer,
+    version bigint DEFAULT 0 NOT NULL
 );
 
 

@@ -65,7 +65,8 @@ public interface IssueRepository extends JpaRepository<Issue, Integer> {
         "c.email, " +
         "a.email, " +
         "i.dataScadenza, " +
-        "i.dataCreazione) " +
+        "i.dataCreazione, " +
+        "i.version) " +
         "FROM Issue i " +
         "LEFT JOIN i.creatore c " +
         "LEFT JOIN i.assegnatoA a")

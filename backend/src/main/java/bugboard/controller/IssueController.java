@@ -61,7 +61,7 @@ public class IssueController {
     @PutMapping("/assign")
     public ResponseEntity<Void> assignIssueToUser(@RequestHeader(value = SID_HEADER, required = false) UUID sid,
                                                   @RequestBody AssignIssueRequest request) {
-        commandService.assignIssueToUser(request.getIssueId(), request.getUserEmail(), request.getDataScadenza(), sid);
+        commandService.assignIssueToUser(request.getIssueId(), request.getUserEmail(), request.getDataScadenza(), request.getVersion(), sid);
         return ResponseEntity.noContent().build();
     }
 
@@ -126,22 +126,25 @@ public class IssueController {
     @PostMapping("/{id}/commento")
     public ResponseEntity<Void> scriviCommento(@PathVariable int id,
                                                @RequestBody String testo,
+                                               @RequestParam(required = false) Long version,
                                                @RequestHeader(value = SID_HEADER, required = false) UUID sid) {
-        commandService.aggiungiCommento(id, testo, sid);
+        commandService.aggiungiCommento(id, testo, version, sid);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/chiudi/{id}")
     public ResponseEntity<Void> userChiudiIssue(@PathVariable int id,
+                                                @RequestParam(required = false) Long version,
                                                 @RequestHeader(value = SID_HEADER, required = false) UUID sid) {
-        commandService.chiudiIssueUtente(id, sid);
+        commandService.chiudiIssueUtente(id, version, sid);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/chiudi-admin/{id}")
     public ResponseEntity<Void> adminChiudiIssue(@PathVariable int id,
+                                                 @RequestParam(required = false) Long version,
                                                  @RequestHeader(value = SID_HEADER, required = false) UUID sid) {
-        commandService.chiudiIssueAdmin(id, sid);
+        commandService.chiudiIssueAdmin(id, version, sid);
         return ResponseEntity.noContent().build();
     }
 }

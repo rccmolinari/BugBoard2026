@@ -54,19 +54,27 @@ const statTodo     = computed(() => issues.value.filter(i => i.stato === 'TODO')
 const statProgress = computed(() => issues.value.filter(i => i.stato === 'IN_PROGRESS').length)
 const statCritici  = computed(() => issues.value.filter(i =>
   i.priorita === 4 &&
-  i.stato !== 'DONE' &&
-  i.stato !== 'CLOSED'
+  i.stato === 'IN_PROGRESS'
 ).length)
 
+// Due viste, in base all'hash #tutte-issue:
+//  - panoramica: solo i bug ancora in lavorazione (IN_PROGRESS);
+//  - "Tutte le issue": tutto, con i filtri.
 const issueFiltrate = computed(() => {
   const q = cerca.value.toLowerCase()
   const idQ = cercaId.value.trim()
-  return issues.value.filter(issue => {
+  const base = issues.value.filter(issue => {
     const matchTitolo = issue.titolo.toLowerCase().includes(q)
     const matchId     = !idQ || String(issue.id).includes(idQ)
     const matchStato  = !filtroStato.value || issue.stato === filtroStato.value
     return matchTitolo && matchId && matchStato
   })
+
+  if (!soloIssue.value) {
+    return base.filter(issue => issue.stato === 'IN_PROGRESS')
+  }
+
+  return base
 })
 
 const soloIssue = computed(() => route.hash === '#tutte-issue')
@@ -164,16 +172,11 @@ function logout() {
 
         <div class="flex items-center gap-2">
           <button class="flex items-center gap-2.5 pl-2 pr-3 py-1.5 rounded-lg
-                         hover:bg-ink-50 transition-colors group">
+                         hover:bg-ink-50 transition-colors group pointer-events-none">
             <div class="w-7 h-7 rounded-full bg-brand-500 flex items-center justify-center">
               <span class="font-mono text-[11px] font-medium text-ink-900">{{ iniziali }}</span>
             </div>
             <span class="text-sm font-medium text-ink-700 hidden sm:inline">{{ utente.nome }}</span>
-            <svg class="w-3 h-3 text-ink-300 group-hover:text-ink-500 transition-colors hidden sm:block"
-                 viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="6 9 12 15 18 9"/>
-            </svg>
           </button>
         </div>
       </header>
@@ -245,7 +248,7 @@ function logout() {
               </p>
             </div>
 
-            <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <div v-if="soloIssue" class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
               <div class="relative w-full sm:w-auto">
                 <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-ink-300 pointer-events-none"
                      viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -384,15 +387,6 @@ function logout() {
 
                 </tbody>
               </table>
-            </div>
-
-            <div class="border-t border-ink-100 px-5 py-3 flex items-center justify-between">
-              <span class="text-xs text-ink-400">
-                Mostrate {{ issueFiltrate.length }} di {{ issues.length }}
-              </span>
-              <a href="#" class="text-xs font-medium text-brand-600 hover:text-brand-700 transition-colors">
-                Vedi tutte le issue →
-              </a>
             </div>
           </div>
         </div>

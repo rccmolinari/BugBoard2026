@@ -19,6 +19,7 @@ import bugboard.model.Commento;
 @Data
 public class IssueSpecificAdmin {
         private Integer id;
+        private Long version;
         private String titolo;
         private String descrizione;
         private byte[] immagine;

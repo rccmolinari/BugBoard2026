@@ -184,7 +184,7 @@
         <!-- Footer user — scrivi commento + chiudi -->
         <div v-if="!isAdmin && issue && !caricamento"
             class="flex-shrink-0 border-t border-ink-100 px-5 py-4 space-y-2">
-        <template v-if="allowComment">
+        <template v-if="puoCommentare">
         <textarea
             v-model="nuovoCommento"
             rows="3"
@@ -209,7 +209,7 @@
             {{ invioCommento ? 'Invio…' : 'Invia commento' }}
         </button>
         </template>
-        <div v-if="ruolo !== 'readonly' && issue.stato !== 'DONE' && issue.stato !== 'CLOSED' && issue.stato !== 'EXPIRED'" class="pt-1">
+        <div v-if="puoChiudereUtente" class="pt-1">
           <p v-if="erroreChiusura" class="text-xs text-red-500 mb-1">{{ erroreChiusura }}</p>
           <button
             @click="chiudiIssue"
@@ -237,7 +237,7 @@
       <!-- Footer (solo admin) -->
       <div v-if="isAdmin && issue && !caricamento" class="flex-shrink-0 border-t border-ink-100 px-5 py-4 space-y-2">
         <button
-          v-if="issue.stato !== 'CLOSED'"
+          v-if="puoAgireAdmin"
           @click="$emit('assegna', issue)"
           class="w-full inline-flex items-center justify-center gap-2
                  px-4 py-2.5 rounded-lg text-sm font-semibold
@@ -252,7 +252,7 @@
           </svg>
           Assegna issue
         </button>
-        <div v-if="issue.stato !== 'CLOSED'">
+        <div v-if="puoAgireAdmin">
           <p v-if="erroreChiusura" class="text-xs text-red-500 mb-1">{{ erroreChiusura }}</p>
           <button
             @click="chiudiIssueAdmin"
@@ -299,10 +299,30 @@ const props = defineProps({
 const emit = defineEmits(['close', 'assegna', 'chiusa'])
 
 const commentiLocali = ref([])
+// Mi tengo da parte la versione che il client sta vedendo: la rimando al
+// backend a ogni modifica, così lui si accorge se nel frattempo la issue è
+// cambiata sotto mano (optimistic lock).
+const versioneLocale = ref(null)
 
 watch(() => props.issue, (nuova) => {
   commentiLocali.value = nuova?.commento ? [...nuova.commento] : []
+  versioneLocale.value = nuova?.version ?? null
 }, { immediate: true })
+
+// Regole di stato. Per l'utente una issue DONE/EXPIRED/CLOSED è "finita":
+// niente più commenti né chiusura. Per l'admin invece resta gestibile anche
+// da EXPIRED: si ferma solo a DONE e CLOSED.
+const STATI_FINE_UTENTE = ['DONE', 'EXPIRED', 'CLOSED']
+const STATI_FINE_ADMIN = ['DONE', 'CLOSED']
+const puoCommentare = computed(() =>
+  props.allowComment && props.issue && !STATI_FINE_UTENTE.includes(props.issue.stato)
+)
+const puoChiudereUtente = computed(() =>
+  props.ruolo !== 'readonly' && props.issue && !STATI_FINE_UTENTE.includes(props.issue.stato)
+)
+const puoAgireAdmin = computed(() =>
+  props.issue && !STATI_FINE_ADMIN.includes(props.issue.stato)
+)
 
 const commentiOrdinati = computed(() => {
   return [...commentiLocali.value].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
@@ -319,7 +339,9 @@ async function chiudiIssue() {
   chiusaInCorso.value = true
   erroreChiusura.value = ''
   try {
-    await api.post(`/api/issues/chiudi/${props.issue.id}`)
+    await api.post(`/api/issues/chiudi/${props.issue.id}`, null, {
+      params: { version: versioneLocale.value }
+    })
     emit('chiusa')
   } catch (e) {
     erroreChiusura.value = e?.response?.data?.message || 'Errore durante la chiusura.'
@@ -332,7 +354,9 @@ async function chiudiIssueAdmin() {
   chiusaInCorso.value = true
   erroreChiusura.value = ''
   try {
-    await api.post(`/api/issues/chiudi-admin/${props.issue.id}`)
+    await api.post(`/api/issues/chiudi-admin/${props.issue.id}`, null, {
+      params: { version: versioneLocale.value }
+    })
     emit('chiusa')
   } catch (e) {
     erroreChiusura.value = e?.response?.data?.message || 'Errore durante la chiusura.'
@@ -356,7 +380,10 @@ async function inviaCommento() {
     await api.post(
       `/api/issues/${props.issue.id}/commento`,
       nuovoCommento.value,
-      { headers: { 'Content-Type': 'text/plain' } }
+      {
+        headers: { 'Content-Type': 'text/plain' },
+        params: { version: versioneLocale.value }
+      }
     )
     nuovoCommento.value = ''
 
@@ -367,6 +394,9 @@ async function inviaCommento() {
 
     const res = await api.get(endpoint)
     commentiLocali.value = res.data.commento ?? []
+    // Il commento ha fatto salire la versione: mi riallineo, così l'azione
+    // successiva (un altro commento o la chiusura) non scatta un falso 409.
+    versioneLocale.value = res.data.version ?? versioneLocale.value
   } catch (e) {
     erroreCommento.value = e?.response?.data?.message || 'Errore durante l\'invio.'
   } finally {

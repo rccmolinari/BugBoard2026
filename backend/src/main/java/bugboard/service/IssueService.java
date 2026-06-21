@@ -19,6 +19,7 @@ import bugboard.dto.IssueSpecific;
 import bugboard.dto.IssueSpecificAdmin;
 import bugboard.event.IssueAssegnataEvent;
 import bugboard.exception.BadRequestException;
+import bugboard.exception.ConflictException;
 import bugboard.exception.ForbiddenException;
 import bugboard.exception.NotFoundException;
 import bugboard.mapper.IssueMapper;
@@ -136,30 +137,46 @@ public class IssueService implements IIssueQueryService, IIssueCommandService {
 
     @Override
     @Transactional
-    public void assignIssueToUser(int issueId, String userEmail, LocalDate expiringDate, UUID adminSID) {
+    public void assignIssueToUser(int issueId, String userEmail, LocalDate expiringDate, Long expectedVersion, UUID adminSID) {
         Utente admin = requireAdmin(adminSID);
 
         Issue issue = findIssueOr404(issueId);
+        checkVersion(issue, expectedVersion);
         Utente destinatario = utenteRepository.findByEmail(userEmail)
             .orElseThrow(() -> new NotFoundException("Utente destinatario non trovato: " + userEmail));
 
-        if (issue.getStato() == StatoIssue.CLOSED) {
-            throw new BadRequestException("Impossibile assegnare una issue chiusa");
+        if (issue.getStato() == StatoIssue.CLOSED || issue.getStato() == StatoIssue.DONE) {
+            throw new BadRequestException("Non si può assegnare una issue in stato " + issue.getStato());
         }
+
+        boolean eraScaduta = issue.getStato() == StatoIssue.EXPIRED;
 
         if (expiringDate != null) {
             issue.setDataScadenza(expiringDate.atTime(23, 59, 59));
+        } else if (eraScaduta) {
+            // Riprendo in mano una scaduta senza dare una nuova data: tolgo la
+            // vecchia scadenza (ormai passata), altrimenti tornerebbe subito EXPIRED.
+            issue.setDataScadenza(null);
         }
 
         issue.setAssegnatoA(destinatario);
         issue.setAssegnatario(admin);
+
+        // Assegnare o riassegnare rimette la issue in lavorazione: vale sia per
+        // le nuove (TODO) sia per quelle scadute che si riprendono in mano
+        // (EXPIRED), anche se le riassegni alla stessa persona. Prima lo faceva
+        // un trigger sul DB, ora la logica sta tutta qui.
+        if (issue.getStato() == StatoIssue.TODO || eraScaduta) {
+            issue.setStato(StatoIssue.IN_PROGRESS);
+        }
+
         issueRepository.save(issue);
         eventPublisher.publishEvent(new IssueAssegnataEvent(this, issue, destinatario, admin));
     }
 
     @Override
     @Transactional
-    public void aggiungiCommento(int idIssue, String testo, UUID sid) {
+    public void aggiungiCommento(int idIssue, String testo, Long expectedVersion, UUID sid) {
         Utente utente = requireUser(sid);
 
         if (testo == null || testo.trim().isEmpty()) {
@@ -167,6 +184,14 @@ public class IssueService implements IIssueQueryService, IIssueCommandService {
         }
 
         Issue issue = findIssueOr404(idIssue);
+        checkVersion(issue, expectedVersion);
+
+        if (issue.getStato() == StatoIssue.DONE
+                || issue.getStato() == StatoIssue.EXPIRED
+                || issue.getStato() == StatoIssue.CLOSED) {
+            throw new BadRequestException("Non si può commentare una issue in stato " + issue.getStato());
+        }
+
         if (issue.getCommento() == null) {
             issue.setCommento(new ArrayList<>());
         }
@@ -177,9 +202,10 @@ public class IssueService implements IIssueQueryService, IIssueCommandService {
 
     @Override
     @Transactional
-    public void chiudiIssueUtente(int idIssue, UUID sid) {
+    public void chiudiIssueUtente(int idIssue, Long expectedVersion, UUID sid) {
         Utente utente = requireUser(sid);
         Issue issue = findIssueOr404(idIssue);
+        checkVersion(issue, expectedVersion);
 
         if (issue.getAssegnatoA() == null || !issue.getAssegnatoA().getId().equals(utente.getId())) {
             throw new ForbiddenException("La issue non è assegnata a questo utente");
@@ -196,12 +222,13 @@ public class IssueService implements IIssueQueryService, IIssueCommandService {
 
     @Override
     @Transactional
-    public void chiudiIssueAdmin(int idIssue, UUID sid) {
+    public void chiudiIssueAdmin(int idIssue, Long expectedVersion, UUID sid) {
         requireAdmin(sid);
         Issue issue = findIssueOr404(idIssue);
+        checkVersion(issue, expectedVersion);
 
-        if (issue.getStato() == StatoIssue.CLOSED) {
-            throw new BadRequestException("La issue è già chiusa");
+        if (issue.getStato() == StatoIssue.CLOSED || issue.getStato() == StatoIssue.DONE) {
+            throw new BadRequestException("Non si può chiudere una issue in stato " + issue.getStato());
         }
 
         issue.setStato(StatoIssue.CLOSED);
@@ -231,5 +258,16 @@ public class IssueService implements IIssueQueryService, IIssueCommandService {
     private Issue findIssueOr404(int id) {
         return issueRepository.findById(id)
             .orElseThrow(() -> new NotFoundException("Issue non trovata: " + id));
+    }
+
+    // Se il client ci dice quale versione aveva sotto gli occhi, controllo che
+    // sia ancora quella attuale: se nel frattempo qualcuno ha toccato la issue
+    // le due versioni non combaciano e blocco tutto con un 409. Se il client
+    // non manda niente (null) lascio correre: a quel punto resta comunque la
+    // rete di sicurezza di @Version sui salvataggi davvero simultanei.
+    private void checkVersion(Issue issue, Long expectedVersion) {
+        if (expectedVersion != null && !expectedVersion.equals(issue.getVersion())) {
+            throw new ConflictException("La issue è stata modificata da un altro utente. Ricarica e riprova.");
+        }
     }
 }

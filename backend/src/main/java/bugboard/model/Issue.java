@@ -27,6 +27,13 @@ public class Issue {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
+    // Optimistic locking: Hibernate la incrementa a ogni UPDATE e la infila nel
+    // WHERE. Se due salvataggi sulla stessa issue si accavallano, il secondo
+    // tocca 0 righe e parte l'eccezione di lock (che diventa un 409).
+    @Version
+    @Column(nullable = false)
+    private Long version;
+
     @Column(nullable = false)
     private String titolo;
 

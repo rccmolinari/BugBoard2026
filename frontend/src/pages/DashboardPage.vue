@@ -150,16 +150,39 @@ const notificheOrdinate = computed(() =>
     new Date(b.dataCreazione) - new Date(a.dataCreazione)
   )
 )
+// La tabella serve due viste, in base all'hash #tutte-issue:
+//  - dashboard: solo le issue attive (no DONE/CLOSED/EXPIRED), ordinate per
+//    rilevanza (prima per stato, IN_PROGRESS prima di TODO, poi per scadenza
+//    più vicina; quelle senza scadenza in fondo);
+//  - "Tutte le issue": le mostra davvero tutte, più recenti prima.
+const ORDINE_STATO = { IN_PROGRESS: 0, TODO: 1 }
+
 const issueFiltrate = computed(() => {
   const q = cerca.value.toLowerCase()
   const idQ = cercaId.value.trim()
-  return issues.value.filter(issue => {
+  const base = issues.value.filter(issue => {
     const matchTitolo = issue.titolo.toLowerCase().includes(q)
     const matchId     = !idQ || String(issue.id).includes(idQ)
     const matchTipo   = !filtroTipo.value  || issue.tipo  === filtroTipo.value
     const matchStato  = !filtroStato.value || issue.stato === filtroStato.value
     return matchTitolo && matchId && matchTipo && matchStato
   })
+
+  // Sezione "Tutte le issue": tutto, più recenti prima.
+  if (soloIssue.value) {
+    return [...base].sort((a, b) => new Date(b.dataCreazione) - new Date(a.dataCreazione))
+  }
+
+  // Dashboard: solo le attive, per rilevanza (stato poi scadenza).
+  return base
+    .filter(issue => ORDINE_STATO[issue.stato] !== undefined)
+    .sort((a, b) => {
+      const ds = ORDINE_STATO[a.stato] - ORDINE_STATO[b.stato]
+      if (ds !== 0) return ds
+      const sa = a.dataScadenza ? new Date(a.dataScadenza).getTime() : Infinity
+      const sb = b.dataScadenza ? new Date(b.dataScadenza).getTime() : Infinity
+      return sa - sb
+    })
 })
 
 const soloIssue = computed(() => route.hash === '#tutte-issue')
@@ -526,16 +549,11 @@ async function submitSegnalazione() {
           <div class="w-px h-5 bg-ink-200 mx-1"></div>
 
           <button class="flex items-center gap-2.5 pl-2 pr-3 py-1.5 rounded-lg
-                         hover:bg-ink-50 transition-colors group">
-            <div class="w-7 h-7 rounded-full bg-brand-500 flex items-center justify-center">
+                         hover:bg-ink-50 transition-colors group pointer-events-none">
+            <div class="w-7 h-7 rounded-full bg-brand-500 flex items-center justify-center ">
               <span class="font-mono text-[11px] font-medium text-ink-900">{{ iniziali }}</span>
             </div>
             <span class="text-sm font-medium text-ink-700 hidden sm:inline">{{ utente.nome }}</span>
-            <svg class="w-3 h-3 text-ink-300 group-hover:text-ink-500 transition-colors hidden sm:block"
-                 viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="6 9 12 15 18 9"/>
-            </svg>
           </button>
 
         </div>
@@ -632,65 +650,6 @@ async function submitSegnalazione() {
             </div>
 
             <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-
-              <!-- Ricerca per titolo -->
-              <div class="relative w-full sm:w-auto">
-                <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-ink-300 pointer-events-none"
-                     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                     stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="11" cy="11" r="8"/>
-                  <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                </svg>
-                <input v-model="cerca"
-                       type="search"
-                       placeholder="Cerca per titolo…"
-                       class="pl-8 pr-3 py-1.5 text-sm rounded-lg border border-ink-200
-                              bg-white text-ink-800 placeholder-ink-300
-                              focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
-                              w-full sm:w-44 transition-colors" />
-              </div>
-
-              <!-- Ricerca per ID -->
-              <div class="relative w-full sm:w-auto">
-                <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-ink-300 pointer-events-none"
-                     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                     stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/>
-                  <line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/>
-                </svg>
-                <input v-model="cercaId"
-                       type="search"
-                       placeholder="Cerca per ID…"
-                       class="pl-8 pr-3 py-1.5 text-sm rounded-lg border border-ink-200
-                              bg-white text-ink-800 placeholder-ink-300
-                              focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
-                              w-full sm:w-32 transition-colors" />
-              </div>
-
-              <select v-model="filtroTipo"
-                      class="px-2.5 py-1.5 text-sm rounded-lg border border-ink-200
-                             bg-white text-ink-600 cursor-pointer
-                             focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
-                             transition-colors w-full sm:w-auto">
-                <option value="">Tutti i tipi</option>
-                <option value="BUG">Bug</option>
-                <option value="FEATURE">Feature</option>
-                <option value="QUESTION">Question</option>
-                <option value="DOCUMENTATION">Docs</option>
-              </select>
-
-              <select v-model="filtroStato"
-                      class="px-2.5 py-1.5 text-sm rounded-lg border border-ink-200
-                             bg-white text-ink-600 cursor-pointer
-                             focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
-                             transition-colors w-full sm:w-auto">
-                <option value="">Tutti gli stati</option>
-                <option value="TODO">Todo</option>
-                <option value="IN_PROGRESS">In Progress</option>
-                <option value="DONE">Done</option>
-                <option value="CLOSED">Closed</option>
-                <option value="EXPIRED">Expired</option>
-              </select>
 
             </div>
           </div>
@@ -790,16 +749,6 @@ async function submitSegnalazione() {
 
                 </tbody>
               </table>
-            </div>
-
-            <!-- Footer tabella -->
-            <div class="border-t border-ink-100 px-5 py-3 flex items-center justify-between">
-              <span class="text-xs text-ink-400">
-                Mostrate {{ issueFiltrate.length }} di {{ issues.length }}
-              </span>
-              <a href="#" class="text-xs font-medium text-brand-600 hover:text-brand-700 transition-colors">
-                Vedi tutte le issue →
-              </a>
             </div>
           </div>
 

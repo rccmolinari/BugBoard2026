@@ -15,6 +15,7 @@ import bugboard.model.Commento;
 @AllArgsConstructor
 public class IssueSpecific {
       private Integer id;
+      private Long version;
       private String titolo;
       private String descrizione;
       private byte[] immagine;

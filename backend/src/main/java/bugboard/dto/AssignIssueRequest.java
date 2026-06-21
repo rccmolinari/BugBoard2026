@@ -13,4 +13,5 @@ public class AssignIssueRequest {
     private int issueId;
     private String userEmail;
     private LocalDate dataScadenza;
+    private Long version; // versione che il client ha visto, per l'optimistic lock
 }

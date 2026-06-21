@@ -20,4 +20,5 @@ public class IssueResponse {
     private String assegnatoA;
     private LocalDateTime dataScadenza;
     private LocalDateTime dataCreazione;
+    private Long version;
 }

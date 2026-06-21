@@ -29,7 +29,8 @@ public class IssueMapper {
             issue.getCreatore() != null ? issue.getCreatore().getEmail() : null,
             issue.getAssegnatoA() != null ? issue.getAssegnatoA().getEmail() : null,
             issue.getDataScadenza(),
-            issue.getDataCreazione()
+            issue.getDataCreazione(),
+            issue.getVersion()
         );
     }
 
@@ -55,6 +56,7 @@ public class IssueMapper {
 
         IssueSpecific dto = new IssueSpecific();
         dto.setId(issue.getId());
+        dto.setVersion(issue.getVersion());
         dto.setTitolo(issue.getTitolo());
         dto.setDescrizione(issue.getDescrizione());
         dto.setImmagine(issue.getImmagine());
@@ -75,6 +77,7 @@ public class IssueMapper {
 
         IssueSpecificAdmin dto = new IssueSpecificAdmin();
         dto.setId(issue.getId());
+        dto.setVersion(issue.getVersion());
         dto.setTitolo(issue.getTitolo());
         dto.setDescrizione(issue.getDescrizione());
         dto.setPriorita(issue.getPriorita());
