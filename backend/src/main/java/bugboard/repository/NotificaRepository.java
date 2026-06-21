@@ -2,10 +2,8 @@ package bugboard.repository;
 
 import bugboard.model.Notifica;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
 import java.util.List;
 
-@Repository
 public interface NotificaRepository extends JpaRepository<Notifica, Integer> {
 
     // Le notifiche arrivate a un certo utente
