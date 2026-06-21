@@ -9,7 +9,6 @@ const route = useRoute()
 /* ── Stato del form ─────────────────────────────────────────── */
 const email       = ref('')
 const password    = ref('')
-const rememberMe  = ref(false)
 const showPassword = ref(false)
 
 const emailError    = ref(false)
@@ -218,20 +217,6 @@ function togglePassword() {
             <p v-show="passwordError" class="text-red-500 text-xs mt-1.5">
               La password è obbligatoria.
             </p>
-          </div>
-
-          <!-- Ricordami -->
-          <div class="anim-fade-up delay-4 mb-7 flex items-center gap-2.5">
-            <input
-              v-model="rememberMe"
-              type="checkbox"
-              id="rememberMe"
-              name="rememberMe"
-              class="w-4 h-4 rounded border-ink-300 accent-brand-500 cursor-pointer"
-            />
-            <label for="rememberMe" class="text-sm text-ink-500 cursor-pointer select-none">
-              Ricordami per 30 giorni
-            </label>
           </div>
 
           <!-- Errore credenziali errate -->
