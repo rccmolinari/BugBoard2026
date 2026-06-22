@@ -475,10 +475,11 @@ function logout() {
           Assegna issue <span class="font-mono text-sm text-ink-400">#{{ issueSelezionata?.id }}</span>
         </h3>
       <div>
-      <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">
+      <label for="assign-scadenza" class="text-xs font-medium text-ink-500 uppercase tracking-wide">
        Data di scadenza (opzionale)
       </label>
         <input
+          id="assign-scadenza"
           v-model="dataScadenza"
           type="date"
           :min="oggi"
@@ -487,11 +488,12 @@ function logout() {
          /> 
       </div>
       <div>
-      <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">
+      <label for="assign-email" class="text-xs font-medium text-ink-500 uppercase tracking-wide">
         Email utente a cui assegnare
       </label>
 
       <input
+        id="assign-email"
         v-model="emailAssegnatario"
         type="email"
         placeholder="utente@email.com"

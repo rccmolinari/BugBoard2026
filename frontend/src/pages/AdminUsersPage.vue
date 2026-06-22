@@ -132,7 +132,7 @@ function creaUtente() {
   if (!email || !email.includes('@')) { mostraMessaggio('Inserisci un\'email valida.', 'errore'); return }
   if (!password || password.length < 6) { mostraMessaggio('La password deve avere almeno 6 caratteri.', 'errore'); return }
 
-  if (utenti.value.find(u => u.email === email)) {
+  if (utenti.value.some(u => u.email === email)) {
     mostraMessaggio('Esiste già un utente con questa email.', 'errore')
     return
   }

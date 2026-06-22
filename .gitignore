@@ -1,2 +1,6 @@
 target/
 backend/src/main/resources/application.properties
+sonar-project.properties
+.scannerwork/.sonar_lock
+.scannerwork/report-task.txt
+.gitignore

@@ -312,16 +312,16 @@ watch(() => props.issue, (nuova) => {
 // Regole di stato. Per l'utente una issue DONE/EXPIRED/CLOSED è "finita":
 // niente più commenti né chiusura. Per l'admin invece resta gestibile anche
 // da EXPIRED: si ferma solo a DONE e CLOSED.
-const STATI_FINE_UTENTE = ['DONE', 'EXPIRED', 'CLOSED']
-const STATI_FINE_ADMIN = ['DONE', 'CLOSED']
+const STATI_FINE_UTENTE = new Set(['DONE', 'EXPIRED', 'CLOSED'])
+const STATI_FINE_ADMIN = new Set(['DONE', 'CLOSED'])
 const puoCommentare = computed(() =>
-  props.allowComment && props.issue && !STATI_FINE_UTENTE.includes(props.issue.stato)
+  props.allowComment && props.issue && !STATI_FINE_UTENTE.has(props.issue.stato)
 )
 const puoChiudereUtente = computed(() =>
-  props.ruolo !== 'readonly' && props.issue && !STATI_FINE_UTENTE.includes(props.issue.stato)
+  props.ruolo !== 'readonly' && props.issue && !STATI_FINE_UTENTE.has(props.issue.stato)
 )
 const puoAgireAdmin = computed(() =>
-  props.issue && !STATI_FINE_ADMIN.includes(props.issue.stato)
+  props.issue && !STATI_FINE_ADMIN.has(props.issue.stato)
 )
 
 const commentiOrdinati = computed(() => {

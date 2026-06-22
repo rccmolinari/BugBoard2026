@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Sidebar from '../components/Sidebar.vue'
 import StatCard from '../components/StatCard.vue'
@@ -7,7 +7,6 @@ import BadgeTipo from '../components/BadgeTipo.vue'
 import BadgeStato from '../components/BadgeStato.vue'
 import BadgePriorita from '../components/BadgePriorita.vue'
 import api from '../api'
-import { onMounted, onUnmounted } from 'vue'
 import IssueDetailPanel from '../components/IssueDetailPanel.vue'
 function getUtente() {
   const raw = sessionStorage.getItem('bb_utente')
@@ -408,14 +407,6 @@ async function submitSegnalazione() {
 
 <template>
   <div>
-    <!--  
-<img
-  v-if="issueNotifica.hasImmagine"
-  :src="`/api/issues/${issueNotifica.id}/immagine`"
-  alt="Immagine allegata"
-  class="w-full rounded-lg border border-ink-100 object-contain max-h-64"
-/>
--->
     <!-- Sidebar condivisa -->
     <Sidebar pagina="dashboard" :utente="utente" :is-open="sidebarAperta" @logout="logout" />
 
@@ -775,8 +766,9 @@ async function submitSegnalazione() {
 
         <!-- Titolo -->
         <div class="space-y-1">
-          <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Titolo *</label>
+          <label for="seg-titolo" class="text-xs font-medium text-ink-500 uppercase tracking-wide">Titolo *</label>
           <input
+            id="seg-titolo"
             v-model="segnalazione.titolo"
             type="text"
             placeholder="Descrivi brevemente il problema…"
@@ -787,8 +779,9 @@ async function submitSegnalazione() {
 
         <!-- Descrizione -->
         <div class="space-y-1">
-          <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Descrizione</label>
+          <label for="seg-descrizione" class="text-xs font-medium text-ink-500 uppercase tracking-wide">Descrizione</label>
           <textarea
+            id="seg-descrizione"
             v-model="segnalazione.descrizione"
             rows="4"
             placeholder="Aggiungi dettagli, passi per riprodurre, screenshot…"
@@ -799,11 +792,12 @@ async function submitSegnalazione() {
         </div>
         <!-- Immagine -->
         <div class="space-y-1">
-          <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">
+          <label for="seg-immagine" class="text-xs font-medium text-ink-500 uppercase tracking-wide">
             Immagine
           </label>
 
           <input
+            id="seg-immagine"
             type="file"
             accept="image/*"
             @change="handleImageUpload"
@@ -816,9 +810,10 @@ async function submitSegnalazione() {
         </div>
         <!-- Etichette -->
         <div class="space-y-1.5">
-          <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Etichette</label>
+          <label for="seg-etichetta" class="text-xs font-medium text-ink-500 uppercase tracking-wide">Etichette</label>
           <div class="flex gap-2">
             <input
+              id="seg-etichetta"
               v-model="nuovaEtichetta"
               type="text"
               placeholder="Aggiungi etichetta…"
@@ -849,8 +844,9 @@ async function submitSegnalazione() {
         <!-- Tipo + Priorità -->
         <div class="grid grid-cols-2 gap-3">
           <div class="space-y-1">
-            <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Tipo *</label>
+            <label for="seg-tipo" class="text-xs font-medium text-ink-500 uppercase tracking-wide">Tipo *</label>
             <select
+              id="seg-tipo"
               v-model="segnalazione.tipo"
               class="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm text-ink-700
                      focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 bg-white"
@@ -864,8 +860,9 @@ async function submitSegnalazione() {
           </div>
 
           <div class="space-y-1">
-            <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Priorità *</label>
+            <label for="seg-priorita" class="text-xs font-medium text-ink-500 uppercase tracking-wide">Priorità *</label>
             <select
+              id="seg-priorita"
               v-model="segnalazione.priorita"
               class="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm text-ink-700
                      focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 bg-white"
