@@ -44,15 +44,66 @@ async function apriIssue(id) {
 }
 const issues = ref([])
 
-// Caricamento issue: riusato da load iniziale, polling e dopo assegna/chiudi
+// Stato noto al client: id -> version. A ogni giro di polling lo confronto con
+// quello del server per capire quali issue sono nuove o cambiate.
+let versioniNote = new Map()
+
+function indicizzaVersioni(lista) {
+  versioniNote = new Map(lista.map(i => [i.id, i.version]))
+}
+
+// Caricamento completo: load iniziale e dopo assegna/chiudi. Riallinea anche
+// l'indice delle version.
 async function caricaIssue() {
   try {
     const response = await api.get('/api/issues')
     issues.value = response.data
     // più recenti prima
     issues.value.sort((a, b) => new Date(b.dataCreazione) - new Date(a.dataCreazione))
+    indicizzaVersioni(issues.value)
   } catch (error) {
     console.error('Errore durante il caricamento delle issue:', error)
+  }
+}
+
+// Polling leggero: chiedo solo [{id, version}] di tutte le issue, confronto con
+// quello che ho, e mi riprendo via /righe solo le issue nuove o cambiate.
+async function controllaAggiornamenti() {
+  try {
+    const { data: versioni } = await api.get('/api/issues/versions')
+    const idsServer = new Set(versioni.map(v => v.id))
+
+    const idsDaAggiornare = versioni
+      .filter(v => versioniNote.get(v.id) !== v.version)
+      .map(v => v.id)
+    const ciSonoRimozioni = [...versioniNote.keys()].some(id => !idsServer.has(id))
+
+    if (!idsDaAggiornare.length && !ciSonoRimozioni) return
+
+    // parto dalla lista attuale, togliendo eventuali issue sparite dal server
+    let lista = ciSonoRimozioni
+      ? issues.value.filter(i => idsServer.has(i.id))
+      : [...issues.value]
+
+    if (idsDaAggiornare.length) {
+      const { data: righe } = await api.get('/api/issues/righe', {
+        params: { ids: idsDaAggiornare.join(',') },
+      })
+      const perId = new Map(righe.map(r => [r.id, r]))
+      const idsEsistenti = new Set(lista.map(i => i.id))
+      // sostituisco le righe cambiate...
+      lista = lista.map(i => perId.get(i.id) ?? i)
+      // ...e aggiungo quelle nuove
+      for (const riga of righe) {
+        if (!idsEsistenti.has(riga.id)) lista.push(riga)
+      }
+      lista.sort((a, b) => new Date(b.dataCreazione) - new Date(a.dataCreazione))
+    }
+
+    issues.value = lista
+    indicizzaVersioni(issues.value)
+  } catch (error) {
+    console.error('Errore durante il controllo aggiornamenti:', error)
   }
 }
 
@@ -65,7 +116,7 @@ if (utente.sessionId) {
 // Polling: l'admin rivede le issue aggiornate ogni 5 secondi
 let pollingId = null
 onMounted(() => {
-  if (utente.sessionId) pollingId = setInterval(caricaIssue, 5000)
+  if (utente.sessionId) pollingId = setInterval(controllaAggiornamenti, 5000)
 })
 onUnmounted(() => clearInterval(pollingId))
 

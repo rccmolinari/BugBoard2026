@@ -12,6 +12,7 @@ import bugboard.dto.IssueResponse;
 import bugboard.dto.IssueResponseUser;
 import bugboard.dto.IssueSpecific;
 import bugboard.dto.IssueSpecificAdmin;
+import bugboard.dto.IssueVersion;
 
 import bugboard.exception.NotFoundException;
 import bugboard.model.Issue;
@@ -56,6 +57,20 @@ public class IssueController {
     @GetMapping
     public List<IssueResponse> getAllIssues(@RequestHeader(value = SID_HEADER, required = false) UUID sid) {
         return queryService.findAllForAdmin(sid);
+    }
+
+    // Polling admin leggero: solo id+version di tutte le issue. Il client confronta
+    // con la sua lista e poi richiede via /righe solo le righe nuove o cambiate.
+    @GetMapping("/versions")
+    public List<IssueVersion> getIssuesVersions(@RequestHeader(value = SID_HEADER, required = false) UUID sid) {
+        return queryService.getIssuesVersions(sid);
+    }
+
+    // Le righe complete (stesso shape della lista admin) per gli id richiesti.
+    @GetMapping("/righe")
+    public List<IssueResponse> getIssuesRows(@RequestParam(required = false) List<Integer> ids,
+                                             @RequestHeader(value = SID_HEADER, required = false) UUID sid) {
+        return queryService.getIssuesRows(ids, sid);
     }
 
     @PutMapping("/assign")

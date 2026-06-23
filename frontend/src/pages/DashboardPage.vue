@@ -133,7 +133,7 @@ const erroreDettaglio = ref('')
    COMPUTED 
    ══════════════════════════════════════════════════════════════ */
 const statTotale   = computed(() => issues.value.length)
-const statTodo     = computed(() => issues.value.filter(i => i.stato === 'TODO').length)
+const statTodo     = computed(() => issues.value.filter(i => i.stato === 'IN_PROGRESS').length)
 const statDone     = computed(() => issues.value.filter(i => i.stato === 'DONE').length)
 const statProssimeScadenza = computed(() => {
   const limite = new Date()

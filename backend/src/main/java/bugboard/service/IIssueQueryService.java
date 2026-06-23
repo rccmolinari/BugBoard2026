@@ -4,6 +4,7 @@ import bugboard.dto.IssueResponse;
 import bugboard.dto.IssueResponseUser;
 import bugboard.dto.IssueSpecific;
 import bugboard.dto.IssueSpecificAdmin;
+import bugboard.dto.IssueVersion;
 import bugboard.model.Issue;
 
 import java.util.List;
@@ -17,6 +18,13 @@ import java.util.UUID;
 public interface IIssueQueryService {
 
     List<IssueResponse> findAllForAdmin(UUID sid);
+
+    // Polling admin leggero: solo id+version di tutte le issue. Il client le
+    // confronta con quelle che ha e poi richiede le righe cambiate con getIssuesRows.
+    List<IssueVersion> getIssuesVersions(UUID sid);
+
+    // Le righe complete della lista admin per gli id indicati.
+    List<IssueResponse> getIssuesRows(List<Integer> ids, UUID sid);
 
     List<IssueResponse> findOnlyBug(UUID sid);
 

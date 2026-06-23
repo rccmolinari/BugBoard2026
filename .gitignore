@@ -4,3 +4,5 @@ sonar-project.properties
 .scannerwork/.sonar_lock
 .scannerwork/report-task.txt
 .gitignore
+Attivita_di_Testing_BugBoard.tex
+Attivita_di_Testing_BugBoard.docx

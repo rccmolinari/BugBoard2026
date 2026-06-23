@@ -17,6 +17,7 @@ import bugboard.dto.IssueResponse;
 import bugboard.dto.IssueResponseUser;
 import bugboard.dto.IssueSpecific;
 import bugboard.dto.IssueSpecificAdmin;
+import bugboard.dto.IssueVersion;
 import bugboard.event.IssueAssegnataEvent;
 import bugboard.exception.BadRequestException;
 import bugboard.exception.ConflictException;
@@ -66,6 +67,21 @@ public class IssueService implements IIssueQueryService, IIssueCommandService {
     public List<IssueResponse> findAllForAdmin(UUID sid) {
         requireAdmin(sid);
         return issueRepository.findAllIssuesSenzaImmagine();
+    }
+
+    @Override
+    public List<IssueVersion> getIssuesVersions(UUID sid) {
+        requireAdmin(sid);
+        return issueRepository.findAllVersions();
+    }
+
+    @Override
+    public List<IssueResponse> getIssuesRows(List<Integer> ids, UUID sid) {
+        requireAdmin(sid);
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        return issueRepository.findIssuesSenzaImmagineByIds(ids);
     }
 
     @Override
@@ -145,6 +161,11 @@ public class IssueService implements IIssueQueryService, IIssueCommandService {
         Utente destinatario = utenteRepository.findByEmail(userEmail)
             .orElseThrow(() -> new NotFoundException("Utente destinatario non trovato: " + userEmail));
 
+        // Le issue si assegnano solo agli utenti normali: non ad altri admin né ai readonly.
+        if (destinatario.getRole() != Utente.Role.USER) {
+            throw new BadRequestException("Si possono assegnare le issue solo a utenti normali");
+        }
+
         if (issue.getStato() == StatoIssue.CLOSED || issue.getStato() == StatoIssue.DONE) {
             throw new BadRequestException("Non si può assegnare una issue in stato " + issue.getStato());
         }
@@ -191,7 +212,9 @@ public class IssueService implements IIssueQueryService, IIssueCommandService {
                 || issue.getStato() == StatoIssue.CLOSED) {
             throw new BadRequestException("Non si può commentare una issue in stato " + issue.getStato());
         }
-
+        if (issue.getAssegnatoA() == null || !issue.getAssegnatoA().getId().equals(utente.getId())) {
+            throw new ForbiddenException("Solo l'utente a cui è assegnata la issue può commentarla");
+        }
         if (issue.getCommento() == null) {
             issue.setCommento(new ArrayList<>());
         }

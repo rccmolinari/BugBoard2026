@@ -4,6 +4,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 import bugboard.dto.IssueResponse;
+import bugboard.dto.IssueVersion;
 import bugboard.model.Issue;
 
 import java.util.List;
@@ -70,5 +71,30 @@ public interface IssueRepository extends JpaRepository<Issue, Integer> {
         "LEFT JOIN i.creatore c " +
         "LEFT JOIN i.assegnatoA a")
     List<IssueResponse> findAllIssuesSenzaImmagine();
+
+    // Solo id+version di tutte le issue: il polling admin confronta questo con
+    // quello che ha già e poi si riprende, via findIssuesSenzaImmagineByIds,
+    // solo le righe nuove o cambiate invece di ricaricare l'intera lista.
+    @Query("SELECT new bugboard.dto.IssueVersion(i.id, i.version) FROM Issue i")
+    List<IssueVersion> findAllVersions();
+
+    // Le righe della lista admin (stesso DTO di findAllIssuesSenzaImmagine) ma
+    // limitate agli id richiesti.
+    @Query("SELECT new bugboard.dto.IssueResponse(" +
+        "i.id, " +
+        "i.titolo, " +
+        "CAST(i.tipo AS String), " +
+        "i.priorita, " +
+        "CAST(i.stato AS String), " +
+        "c.email, " +
+        "a.email, " +
+        "i.dataScadenza, " +
+        "i.dataCreazione, " +
+        "i.version) " +
+        "FROM Issue i " +
+        "LEFT JOIN i.creatore c " +
+        "LEFT JOIN i.assegnatoA a " +
+        "WHERE i.id IN :ids")
+    List<IssueResponse> findIssuesSenzaImmagineByIds(List<Integer> ids);
 
 }
