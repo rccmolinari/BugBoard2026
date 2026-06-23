@@ -86,34 +86,24 @@ function togglePassword() {
 
         <!-- Claim centrale -->
         <div>
-          <h1 class="font-display text-white text-3xl lg:text-4xl font-bold leading-tight mb-4">
-            Traccia.<br />Assegna.<br />Risolvi.
-          </h1>
           <p class="text-ink-400 text-[15px] leading-relaxed max-w-xs">
-            La piattaforma collaborativa per gestire issue software,
-            dal bug critico alla richiesta di documentazione.
+            Sviluppato da:
           </p>
 
           <ul class="mt-8 space-y-3">
             <li class="flex items-center gap-3 text-ink-400 text-sm">
               <span class="w-1.5 h-1.5 rounded-full bg-brand-500 flex-shrink-0"></span>
-              Segnalazione rapida con priorità e allegati
+              Molinari Rocco
             </li>
             <li class="flex items-center gap-3 text-ink-400 text-sm">
               <span class="w-1.5 h-1.5 rounded-full bg-brand-500 flex-shrink-0"></span>
-              Assegnazione e notifiche in tempo reale
-            </li>
-            <li class="flex items-center gap-3 text-ink-400 text-sm">
-              <span class="w-1.5 h-1.5 rounded-full bg-brand-500 flex-shrink-0"></span>
-              Ruoli differenziati: admin, normale, readonly
+              Megna Daniele
             </li>
           </ul>
         </div>
 
         <div class="flex items-center gap-2">
           <span class="font-mono text-[11px] text-ink-600 tracking-wider uppercase">v1.0.0</span>
-          <span class="text-ink-700">·</span>
-          <span class="font-mono text-[11px] text-ink-600 tracking-wider uppercase">dev</span>
         </div>
 
       </div>
@@ -172,10 +162,6 @@ function togglePassword() {
               <label for="password" class="block text-xs font-mono font-medium text-ink-600 uppercase tracking-wider">
                 Password
               </label>
-              <button type="button"
-                      class="text-xs text-brand-600 hover:text-brand-700 transition-colors font-medium">
-                Password dimenticata?
-              </button>
             </div>
             <div class="relative">
               <input
