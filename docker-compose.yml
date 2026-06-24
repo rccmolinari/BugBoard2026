@@ -1,0 +1,30 @@
+# Esecuzione locale di frontend + backend insieme (integrazione/prova).
+# Riproduce la topologia di produzione: il browser parla solo col frontend,
+# che fa da reverse proxy verso il backend -> niente CORS.
+#
+# Il DB resta quello remoto: copia .env.example in .env e compila le credenziali.
+#   cp .env.example .env  &&  docker compose up --build
+# Poi apri  http://localhost:8080
+services:
+  backend:
+    build: ./backend
+    image: bugboard-backend:local
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+    expose:
+      - "8080"            # raggiungibile solo dalla rete interna del compose
+    # ports:              # scommenta solo per debuggare il backend dall'host
+    #   - "8080:8080"
+
+  frontend:
+    build: ./frontend
+    image: bugboard-frontend:local
+    environment:
+      BACKEND_URL: http://backend:8080   # nginx -> service "backend"
+    ports:
+      - "8080:80"         # apri http://localhost:8080
+    depends_on:
+      - backend

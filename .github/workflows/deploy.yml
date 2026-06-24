@@ -1,0 +1,105 @@
+name: CI/CD
+
+# CI su ogni PR verso main; build immagini + deploy solo sui push a main.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # --- CI -------------------------------------------------------------------
+  backend-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Unit test (Mockito, nessun DB richiesto)
+        run: mvn -B -ntp -f backend/pom.xml test
+
+  frontend-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+        working-directory: frontend
+      - run: npm run build
+        working-directory: frontend
+
+  # --- Build & push immagini su GHCR ---------------------------------------
+  build-and-push:
+    needs: [backend-test, frontend-build]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        service: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Nome immagine in minuscolo (richiesto da GHCR)
+        run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}/${{ matrix.service }}" >> "$GITHUB_ENV"
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: ./${{ matrix.service }}
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # --- Deploy via SSH (i due server girano in parallelo) -------------------
+  deploy-backend:
+    needs: build-and-push
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy backend
+        run: |
+          install -d -m 700 ~/.ssh
+          echo "${{ secrets.BE_SSH_KEY }}" > ~/.ssh/id_key
+          chmod 600 ~/.ssh/id_key
+          ssh-keyscan -H "${{ secrets.BE_SSH_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+          scp -i ~/.ssh/id_key deploy/docker-compose.backend.yml \
+            "${{ secrets.BE_SSH_USER }}@${{ secrets.BE_SSH_HOST }}:/opt/bugboard/docker-compose.yml"
+          ssh -i ~/.ssh/id_key "${{ secrets.BE_SSH_USER }}@${{ secrets.BE_SSH_HOST }}" \
+            'cd /opt/bugboard && docker compose pull && docker compose up -d'
+
+  deploy-frontend:
+    needs: build-and-push
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy frontend
+        run: |
+          install -d -m 700 ~/.ssh
+          echo "${{ secrets.FE_SSH_KEY }}" > ~/.ssh/id_key
+          chmod 600 ~/.ssh/id_key
+          ssh-keyscan -H "${{ secrets.FE_SSH_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+          scp -i ~/.ssh/id_key deploy/docker-compose.frontend.yml \
+            "${{ secrets.FE_SSH_USER }}@${{ secrets.FE_SSH_HOST }}:/opt/bugboard/docker-compose.yml"
+          ssh -i ~/.ssh/id_key "${{ secrets.FE_SSH_USER }}@${{ secrets.FE_SSH_HOST }}" \
+            'cd /opt/bugboard && docker compose pull && docker compose up -d'

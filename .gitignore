@@ -1,5 +1,7 @@
 target/
 backend/src/main/resources/application.properties
+.env
+.env.local
 sonar-project.properties
 .scannerwork/.sonar_lock
 .scannerwork/report-task.txt

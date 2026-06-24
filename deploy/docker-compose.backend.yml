@@ -1,0 +1,20 @@
+# Gira sul SERVER BACKEND. La pipeline lo copia in /opt/bugboard/docker-compose.yml
+# e lancia: docker compose pull && docker compose up -d
+#
+# Le credenziali DB stanno in /opt/bugboard/.env sul server (NON in CI):
+#   SPRING_DATASOURCE_URL=jdbc:postgresql://...:5432/database_progetto
+#   SPRING_DATASOURCE_USERNAME=...
+#   SPRING_DATASOURCE_PASSWORD=...
+services:
+  backend:
+    image: ghcr.io/rccmolinari/bugboard2026/backend:latest
+    container_name: bugboard-backend
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+    ports:
+      # Esposto al server frontend (chiudi la 8080 al resto del mondo via firewall).
+      - "8080:8080"

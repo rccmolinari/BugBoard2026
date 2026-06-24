@@ -1,0 +1,14 @@
+# Build artifacts e roba di IDE: fuori dal contesto di build
+target/
+*.iml
+.vscode/
+.idea/
+
+# Il file con le credenziali reali NON deve mai finire nell'immagine.
+# In container si usa solo application-docker.properties + variabili d'ambiente.
+src/main/resources/application.properties
+
+# Inutili nel contesto di build
+.git/
+Dockerfile
+.dockerignore
