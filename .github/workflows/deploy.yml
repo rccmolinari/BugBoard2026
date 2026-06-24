@@ -80,7 +80,7 @@ jobs:
       - name: Deploy backend
         run: |
           install -d -m 700 ~/.ssh
-          echo "${{ secrets.BE_SSH_KEY }}" > ~/.ssh/id_key
+          echo "${{ secrets.BE_SSH_KEY }}" | base64 -d > ~/.ssh/id_key
           chmod 600 ~/.ssh/id_key
           ssh-keyscan -H "${{ secrets.BE_SSH_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
           scp -i ~/.ssh/id_key deploy/docker-compose.backend.yml \
@@ -97,7 +97,7 @@ jobs:
       - name: Deploy frontend
         run: |
           install -d -m 700 ~/.ssh
-          echo "${{ secrets.FE_SSH_KEY }}" > ~/.ssh/id_key
+          echo "${{ secrets.FE_SSH_KEY }}" | base64 -d > ~/.ssh/id_key
           chmod 600 ~/.ssh/id_key
           ssh-keyscan -H "${{ secrets.FE_SSH_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
           scp -i ~/.ssh/id_key deploy/docker-compose.frontend.yml \
