@@ -306,7 +306,7 @@ function logout() {
                     <th class="text-left px-4 py-3 text-[10px] font-mono text-ink-400 uppercase tracking-wider whitespace-nowrap">Tipo</th>
                     <th class="text-left px-4 py-3 text-[10px] font-mono text-ink-400 uppercase tracking-wider whitespace-nowrap">Priorità</th>
                     <th class="text-left px-4 py-3 text-[10px] font-mono text-ink-400 uppercase tracking-wider whitespace-nowrap">Stato</th>
-                    <th class="text-left px-4 py-3 text-[10px] font-mono text-ink-400 uppercase tracking-wider whitespace-nowrap">Assegnata Da</th>
+                    <th class="text-left px-4 py-3 text-[10px] font-mono text-ink-400 uppercase tracking-wider whitespace-nowrap">Assegnata A</th>
                     <th class="text-left px-4 py-3 text-[10px] font-mono text-ink-400 uppercase tracking-wider whitespace-nowrap hidden lg:table-cell">Scadenza</th>
                   </tr>
                 </thead>
@@ -363,13 +363,13 @@ function logout() {
                     </td>
 
                     <td class="px-4 py-3.5 whitespace-nowrap">
-                      <div v-if="issue.assegnatoDa" class="flex items-center gap-2">
+                      <div v-if="issue.assegnatoA" class="flex items-center gap-2">
                         <div class="w-5 h-5 rounded-full bg-brand-500/20 flex items-center justify-center flex-shrink-0">
                           <span class="text-[9px] font-mono text-brand-700 font-medium">
-                            {{ inizialiDa(issue.assegnatoDa) }}
+                            {{ inizialiDa(issue.assegnatoA) }}
                           </span>
                         </div>
-                        <span class="text-sm text-ink-600">{{ issue.assegnatoDa }}</span>
+                        <span class="text-sm text-ink-600">{{ issue.assegnatoA }}</span>
                       </div>
                       <span v-else class="text-ink-300 text-sm">—</span>
                     </td>

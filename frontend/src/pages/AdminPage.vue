@@ -162,6 +162,7 @@ function rankIssue(i) {
 
 const ultimeIssue = computed(() => (
   [...issues.value]
+    .filter(i => i.stato !== 'DONE' && i.stato !== 'CLOSED' && i.stato !== 'IN_PROGRESS')
     .sort((a, b) => {
       const d = rankIssue(a) - rankIssue(b)
       if (d !== 0) return d

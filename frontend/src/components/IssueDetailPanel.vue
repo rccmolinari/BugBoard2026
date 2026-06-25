@@ -367,7 +367,7 @@ async function chiudiIssueAdmin() {
 
 const assegnatoA = computed(() => {
   if (!props.issue) return null
-  return props.ruolo === 'admin'
+  return props.ruolo === 'admin' || props.ruolo === 'readonly'
     ? props.issue.emailAssegnatoA
     : props.issue.emailAssegnatario
 })
@@ -387,10 +387,13 @@ async function inviaCommento() {
     )
     nuovoCommento.value = ''
 
-    // Ricarica i commenti aggiornati dal backend
-    const endpoint = props.ruolo === 'admin' || props.ruolo === 'readonly'
-      ? `/api/issues/dettagliAdmin/${props.issue.id}`
-      : `/api/issues/dettagli/${props.issue.id}`
+    let endpoint;
+    if (props.ruolo === 'admin')
+      endpoint = `/api/issues/dettagliAdmin/${props.issue.id}`
+    else if (props.ruolo === 'readonly')
+      endpoint = `/api/issues/dettagliStakeholder/${props.issue.id}`
+    else
+      endpoint = `/api/issues/dettagli/${props.issue.id}`   // utente normale ('normal')
 
     const res = await api.get(endpoint)
     commentiLocali.value = res.data.commento ?? []
