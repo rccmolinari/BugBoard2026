@@ -152,7 +152,7 @@ const notificheOrdinate = computed(() =>
 // La tabella serve due viste, in base all'hash #tutte-issue:
 //  - dashboard: solo le issue attive (no DONE/CLOSED/EXPIRED), ordinate per
 //    rilevanza (prima per stato, IN_PROGRESS prima di TODO, poi per scadenza
-//    più vicina; quelle senza scadenza in fondo);
+//    più vicina; quelle senza scadenza in fondo; a parità, priorità più alta);
 //  - "Tutte le issue": le mostra davvero tutte, più recenti prima.
 const ORDINE_STATO = { IN_PROGRESS: 0, TODO: 1 }
 
@@ -172,7 +172,7 @@ const issueFiltrate = computed(() => {
     return [...base].sort((a, b) => new Date(b.dataCreazione) - new Date(a.dataCreazione))
   }
 
-  // Dashboard: solo le attive, per rilevanza (stato poi scadenza).
+  // Dashboard: solo le attive, per rilevanza (stato, poi scadenza, poi priorità).
   return base
     .filter(issue => ORDINE_STATO[issue.stato] !== undefined)
     .sort((a, b) => {
@@ -180,7 +180,9 @@ const issueFiltrate = computed(() => {
       if (ds !== 0) return ds
       const sa = a.dataScadenza ? new Date(a.dataScadenza).getTime() : Infinity
       const sb = b.dataScadenza ? new Date(b.dataScadenza).getTime() : Infinity
-      return sa - sb
+      if (sa !== sb) return sa - sb
+      // A parità di scadenza, prima le più prioritarie (Critical=4 … Minimal=0).
+      return (b.priorita ?? 0) - (a.priorita ?? 0)
     })
 })
 
