@@ -26,7 +26,11 @@ import bugboard.repository.UserRepository;
 /*
  * Unit test di UserService, metodo deleteUser(sid, email).
  *
- *   [BLACK-BOX] each-choice puro  -> classi combinate, niente isolamento Myers (con masking).
+ *   [BLACK-BOX] equivalence-class testing, copertura each-choice: per ogni
+ *       parametro si individuano le classi VALIDE (V) e NON VALIDE (NV); ogni
+ *       classe compare in almeno un test e le NV vengono combinate in un solo
+ *       caso. Limite di MASKING: nel caso multi-NV si osserva solo la prima
+ *       eccezione, perciò la copertura piena delle NV sta nel white-box.
  *   [WHITE-BOX] condition coverage completa -> ogni operando a true e a false.
  */
 @ExtendWith(MockitoExtension.class)
@@ -53,18 +57,23 @@ class UserServiceTest {
     // ##############################################################
 
     /* ------------------------------------------------------------
-     * [BLACK-BOX] each-choice puro
+     * [BLACK-BOX] equivalence-class testing — each-choice
      *
-     * Caratteristiche/blocchi:
-     *   sid   : {admin, non-admin}          (2)
-     *   email : {esiste, non-esiste}        (2)
-     *   ruolo : {USER, READONLY, ADMIN}     (3)
-     * Max blocchi = 3  ->  3 test.
+     * Classi di equivalenza dei SOLI PARAMETRI del metodo — (V)/(NV).
+     *   sid (sessione che invoca):
+     *      (V)  sessione admin            -> requireAdmin supera
+     *      (NV) sessione non-admin        -> Forbidden  (null incluso qui)
+     *   email (utente da eliminare):
+     *      (V)  esiste, eliminabile       -> ruolo USER o READONLY -> delete
+     *      (NV) non esiste                -> NotFound
+     *      (NV) esiste, ruolo ADMIN       -> BadRequest (un admin non si elimina)
      *
-     *      | sid       | email      | ruolo    | esito osservato
-     * ECd1 | admin     | esiste     | USER     | delete eseguita
-     * ECd2 | non-admin | non-esiste | ADMIN    | Forbidden (resto MASCHERATO)
-     * ECd3 | admin     | esiste     | READONLY | delete eseguita
+     * Blocco massimo = 3 classi -> 3 test.
+     *
+     *      | sid           | email             | esito atteso
+     * ECd1 | admin    (V)  | eliminabile  (V)  | delete eseguita (target USER)
+     * ECd2 | non-admin(NV) | non-esiste  (NV)  | Forbidden (email MASCHERATA)
+     * ECd3 | admin    (V)  | esiste-ADMIN (NV) | BadRequest
      * ------------------------------------------------------------ */
 
     @Test
@@ -90,14 +99,15 @@ class UserServiceTest {
     }
 
     @Test
-    void ec_delete_3_adminEliminaReadonly() {
-        Utente target = utenteCon(Role.READONLY, "ro@test.it");
+    void ec_delete_3_targetAdmin_badRequest() {
+        // email -> referente ADMIN: classe NV del parametro email (un admin non si elimina).
+        Utente target = utenteCon(Role.ADMIN, "admin2@test.it");
         when(sessioneService.isAdmin(sid)).thenReturn(true);
-        when(utenteRepository.findByEmail("ro@test.it")).thenReturn(Optional.of(target));
+        when(utenteRepository.findByEmail("admin2@test.it")).thenReturn(Optional.of(target));
 
-        userService.deleteUser(sid, "ro@test.it");
-
-        verify(utenteRepository).delete(target);
+        assertThrows(BadRequestException.class,
+            () -> userService.deleteUser(sid, "admin2@test.it"));
+        verify(utenteRepository, never()).delete(any());
     }
 
     /* ------------------------------------------------------------

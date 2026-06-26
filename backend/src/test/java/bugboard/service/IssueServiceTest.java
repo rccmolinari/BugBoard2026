@@ -36,12 +36,14 @@ import bugboard.repository.UserRepository;
  *
  * Per ogni metodo ci sono DUE sezioni, una per criterio di progettazione:
  *
- *   [BLACK-BOX] each-choice puro:
- *       ogni classe di equivalenza di ogni parametro compare in almeno un
- *       test; le classi non valide vengono COMBINATE per minimizzare i test.
+ *   [BLACK-BOX] equivalence-class testing, copertura each-choice:
+ *       per ogni parametro si individuano le classi di equivalenza, distinte
+ *       in VALIDE (V) — l'input supera il relativo controllo — e NON VALIDE
+ *       (NV) — l'input fa scattare un'eccezione. Each-choice: ogni classe
+ *       (V o NV) compare in almeno un test.
  *       Limite noto: MASKING (il primo controllo che fallisce corto-circuita
- *       gli altri, quindi le classi non valide "successive" non vengono
- *       davvero esercitate). E' la ragione per cui serve anche il white-box.
+ *       gli altri, quindi in un caso multi-NV si osserva solo la prima
+ *       eccezione). E' la ragione per cui serve anche il white-box.
  *
  *   [WHITE-BOX] condition coverage completa:
  *       ogni singolo operando di ogni condizione composta (&&, ||) viene
@@ -93,47 +95,72 @@ class IssueServiceTest {
     // ##############################################################
 
     /* ------------------------------------------------------------
-     * [BLACK-BOX] each-choice puro
+     * [BLACK-BOX] equivalence-class testing — each-choice
      *
-     * Caratteristiche e blocchi:
-     *   adminSID  : {ADMIN, sessione-nulla, non-admin}      (3)
-     *   issueId   : {esiste, non-esiste}                    (2)
-     *   userEmail : {USER, non-esiste, esiste-non-USER}     (3)
-     *   stato     : {assegnabile, non-assegnabile}          (2)
-     *   version   : {null, valorizzata-uguale, diversa}     (3)
-     * Max blocchi = 3  ->  bastano 3 test.
+     * Classi di equivalenza dei parametri del metodo — (V) valida,
      *
-     *      | adminSID  | issueId    | userEmail   | stato         | version    | esito osservato
-     * EC1  | ADMIN     | esiste     | USER        | assegnabile   | null       | successo
-     * EC2  | nulla     | non-esiste | non-esiste  | non-assegn.   | uguale     | Forbidden (resto MASCHERATO)
-     * EC3  | non-admin | esiste     | non-USER    | assegnabile   | diversa    | Forbidden (resto MASCHERATO)
+     *   issueId:
+     *      (V)  esiste                  -> findIssueOr404 supera
+     *      (NV) non esiste              -> NotFound
+     *   userEmail (destinatario):
+     *      (V)  esiste, ruolo USER      -> destinatario lecito
+     *      (NV) non esiste              -> NotFound
+     *      (NV) esiste, ruolo non-USER  -> BadRequest (assegnabile solo a USER)
+     *   expiringDate (scadenza, opzionale):
+     *      (V)  null                    -> nessuna nuova scadenza
+     *      (V)  valorizzata             -> imposta la scadenza
+     *   expectedVersion (optimistic lock lato client):
+     *      (V)  null                    -> confronto saltato, prosegue
+     *      (V)  == corrente             -> confronto ok, prosegue
+     *      (NV) != corrente             -> Conflict (409)
+     *   adminSID (sessione che invoca):
+     *      (V)  sessione admin          -> requireAdmin supera
+     *      (NV) sessione nulla          -> Forbidden
+     *      (NV) sessione non-admin      -> Forbidden
+     *
+     * Blocco massimo = 3 classi -> 3 test. Le classi NV di parametri diversi
+     * sono COMBINATE in un caso solo; vale il MASKING (si osserva solo la
+     * prima eccezione). I blocchi di version == e != compaiono in EC2/EC3 ma
+     * sono mascherati dalla sessione: il loro effetto e' verificato dal
+     * white-box (cc_assign_5 !=, cc_assign_6 ==).
+     *
+     *      | issueId      | userEmail    | expiringDate  | version       | adminSID      | esito atteso
+     * EC1  | esiste  (V)  | USER    (V)  | valorizz. (V) | null      (V) | admin    (V)  | successo (scadenza impostata)
+     * EC2  | inesist.(NV) | inesist.(NV) | null      (V) | ==corr.   (V) | nulla   (NV)  | Forbidden (resto MASCHERATO)
+     * EC3  | esiste  (V)  | non-USER(NV) | null      (V) | !=corr.  (NV) | non-admin(NV) | Forbidden (resto MASCHERATO)
      * ------------------------------------------------------------ */
 
     @Test
     void ec_assign_1_tuttiValidi() {
+        // PARAMETRI tutti su classe valida: issueId esiste, userEmail esiste-USER,
+        // expiringDate valorizzata, version null, adminSID sessione admin.
         Issue issue = issue(StatoIssue.TODO, 0L);
         when(sessioneService.getUtenteBySessionId(adminSid)).thenReturn(admin("admin@test.it"));
         when(issueRepository.findById(10)).thenReturn(Optional.of(issue));
         when(utenteRepository.findByEmail("mario@test.it")).thenReturn(Optional.of(user(2, "mario@test.it")));
 
-        issueService.assignIssueToUser(10, "mario@test.it", null, null, adminSid);
+        LocalDate scadenza = LocalDate.now().plusDays(7);
+        issueService.assignIssueToUser(10, "mario@test.it", scadenza, null, adminSid);
 
+        assertEquals(scadenza.atTime(23, 59, 59), issue.getDataScadenza());
         assertEquals(StatoIssue.IN_PROGRESS, issue.getStato());
     }
 
     @Test
     void ec_assign_2_nonValideCombinate() {
-        // sessione nulla + issue inesistente + dest inesistente + version valorizzata.
+        // PARAMETRI: issueId inesistente + userEmail inesistente + expiringDate null
+        //            + version == corrente (nominale) + adminSID sessione nulla.
         // MASKING: la sessione nulla corto-circuita -> si osserva solo Forbidden.
         when(sessioneService.getUtenteBySessionId(adminSid)).thenReturn(null);
 
         assertThrows(ForbiddenException.class,
-            () -> issueService.assignIssueToUser(999, "ghost@test.it", null, 7L, adminSid));
+            () -> issueService.assignIssueToUser(999, "ghost@test.it", null, 0L, adminSid));
     }
 
     @Test
     void ec_assign_3_nonValideCombinate() {
-        // utente non-admin + destinatario non-USER + version diversa.
+        // PARAMETRI: issueId esistente + userEmail esiste-non-USER + expiringDate null
+        //            + version != corrente (nominale) + adminSID sessione non-admin.
         // MASKING: il non-admin corto-circuita -> si osserva solo Forbidden.
         when(sessioneService.getUtenteBySessionId(adminSid)).thenReturn(user(5, "user@test.it"));
 
@@ -296,21 +323,34 @@ class IssueServiceTest {
     // ##############################################################
 
     /* ------------------------------------------------------------
-     * [BLACK-BOX] each-choice puro
+     * [BLACK-BOX] equivalence-class testing — each-choice
      *
-     * Caratteristiche/blocchi:
-     *   sid       : {valido, nullo}                      (2)
-     *   testo     : {valido, null, vuoto}                (3)
-     *   idIssue   : {esiste, non-esiste}                 (2)
-     *   stato     : {commentabile, non-commentabile}     (2)
-     *   version   : {null, uguale, diversa}              (3)
-     *   ownership : {assegnata-a-me, non-a-me}           (2)
-     * Max blocchi = 3  ->  3 test.
+     * Classi di equivalenza dei SOLI PARAMETRI del metodo — (V)/(NV).
      *
-     *      | sid    | testo | idIssue    | version  | esito osservato
-     * ECc1 | valido | ok    | esiste     | null     | successo
-     * ECc2 | nullo  | null  | non-esiste | uguale   | Forbidden (resto MASCHERATO)
-     * ECc3 | valido | vuoto | esiste     | diversa  | BadRequest (resto MASCHERATO)
+     *   idIssue:
+     *      (V)  esiste                  -> findIssueOr404 supera
+     *      (NV) non esiste              -> NotFound
+     *   testo:
+     *      (V)  non vuoto               -> commento accettato
+     *      (NV) null                    -> BadRequest
+     *      (NV) vuoto / soli spazi      -> BadRequest
+     *   expectedVersion (optimistic lock lato client):
+     *      (V)  null                    -> confronto saltato, prosegue
+     *      (V)  == corrente             -> confronto ok, prosegue
+     *      (NV) != corrente             -> Conflict (409)
+     *   sid (sessione che invoca):
+     *      (V)  valida                  -> requireUser supera
+     *      (NV) non valida (incl. null) -> Forbidden
+     *
+     * Blocco massimo = 3 classi -> 3 test. Le classi NV sono COMBINATE;
+     * MASKING: si osserva solo la prima eccezione. I blocchi version == e !=
+     * compaiono in ECc2/ECc3 ma sono mascherati (sessione/testo non validi
+     * vengono prima): verificati dal white-box (cc_commento_7 ==, cc_commento_6 !=).
+     *
+     *      | idIssue     | testo       | version       | sid           | esito atteso
+     * ECc1 | esiste (V)  | non-vuoto(V)| null      (V) | valida   (V)  | successo
+     * ECc2 | inesist.(NV)| null    (NV)| ==corr.   (V) | non valida(NV)| Forbidden (resto MASCHERATO)
+     * ECc3 | esiste (V)  | vuoto   (NV)| !=corr.  (NV) | valida   (V)  | BadRequest (resto MASCHERATO)
      * ------------------------------------------------------------ */
 
     @Test
@@ -328,17 +368,19 @@ class IssueServiceTest {
 
     @Test
     void ec_commento_2_nonValideCombinate() {
-        // sid nullo + testo null + issue inesistente + version valorizzata.
+        // PARAMETRI: idIssue inesistente + testo null + version == corrente (nominale)
+        //            + sid sessione non valida (null).
         // MASKING: requireUser fallisce subito -> solo Forbidden.
         when(sessioneService.getUtenteBySessionId(userSid)).thenReturn(null);
 
         assertThrows(ForbiddenException.class,
-            () -> issueService.aggiungiCommento(999, null, 7L, userSid));
+            () -> issueService.aggiungiCommento(999, null, 0L, userSid));
     }
 
     @Test
     void ec_commento_3_nonValideCombinate() {
-        // testo vuoto + version diversa (+ sid valido).
+        // PARAMETRI: idIssue esistente + testo vuoto + version != corrente (nominale)
+        //            + sid sessione valida.
         // MASKING: il controllo sul testo precede quello sulla versione -> solo BadRequest.
         when(sessioneService.getUtenteBySessionId(userSid)).thenReturn(user(5, "mario@test.it"));
 
