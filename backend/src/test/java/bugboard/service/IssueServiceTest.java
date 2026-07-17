@@ -32,22 +32,19 @@ import bugboard.repository.IssueRepository;
 import bugboard.repository.UserRepository;
 
 /*
- * Unit test di IssueService (dipendenze mockate con Mockito, nessun DB).
+ * Test di unita' per IssueService: le dipendenze sono mockate con Mockito,
+ * quindi non serve un database.
  *
- * Per ogni metodo ci sono DUE sezioni, una per criterio di progettazione:
- *
- *   [BLACK-BOX] equivalence-class testing, copertura each-choice:
- *       per ogni parametro si individuano le classi di equivalenza, distinte
- *       in VALIDE (V) — l'input supera il relativo controllo — e NON VALIDE
- *       (NV) — l'input fa scattare un'eccezione. Each-choice: ogni classe
- *       (V o NV) compare in almeno un test.
- *       Limite noto: MASKING (il primo controllo che fallisce corto-circuita
- *       gli altri, quindi in un caso multi-NV si osserva solo la prima
- *       eccezione). E' la ragione per cui serve anche il white-box.
- *
- *   [WHITE-BOX] condition coverage completa:
- *       ogni singolo operando di ogni condizione composta (&&, ||) viene
- *       valutato sia a true sia a false almeno una volta.
+ * Per ogni metodo ci sono due gruppi di test. I test "ec_" seguono l'approccio
+ * black-box delle classi di equivalenza con criterio each-choice: per ogni
+ * parametro individuiamo le classi, indicate tra parentesi graffe, e ogni
+ * classe (valida o non valida) compare in almeno un test. I test "cc_" sono
+ * invece white-box e puntano alla condition coverage, cioe' ogni operando
+ * delle condizioni composte del codice deve risultare sia vero che falso
+ * almeno una volta. Servono entrambi: nei test black-box in cui combiniamo
+ * piu' classi non valide si osserva solo la prima eccezione lanciata, perche'
+ * il primo controllo che fallisce corto-circuita gli altri, quindi il
+ * black-box da solo non basterebbe a esercitare tutti i controlli.
  */
 @ExtendWith(MockitoExtension.class)
 class IssueServiceTest {
@@ -89,51 +86,37 @@ class IssueServiceTest {
         return i;
     }
 
-    // ##############################################################
-    //  METODO 1: assignIssueToUser(issueId, userEmail, expiringDate,
-    //                              expectedVersion, adminSID)
-    // ##############################################################
+    // ------------------- test di assignIssueToUser -------------------
 
-    /* ------------------------------------------------------------
-     * [BLACK-BOX] equivalence-class testing — each-choice
+    /*
+     * Parte black-box: classi di equivalenza, criterio each-choice.
      *
-     * Classi di equivalenza dei parametri del metodo — (V) valida,
+     * Per issueId le classi sono {issue esistente}, valida, e {issue
+     * inesistente}, non valida perche' porta a NotFound. Per userEmail:
+     * {utente esistente con ruolo USER} valida, {utente inesistente} non
+     * valida (NotFound), {utente esistente ma di ruolo diverso da USER} non
+     * valida (BadRequest, una issue si puo' assegnare solo a un USER). Per
+     * expiringDate, che e' opzionale, sono valide entrambe le classi {null}
+     * e {data valorizzata}. Per expectedVersion: {null} e {uguale alla
+     * versione corrente} valide, {diversa dalla versione corrente} non
+     * valida (Conflict). Per adminSID: {sessione di un admin} valida,
+     * {sessione nulla} e {sessione di un non admin} non valide (Forbidden).
      *
-     *   issueId:
-     *      (V)  esiste                  -> findIssueOr404 supera
-     *      (NV) non esiste              -> NotFound
-     *   userEmail (destinatario):
-     *      (V)  esiste, ruolo USER      -> destinatario lecito
-     *      (NV) non esiste              -> NotFound
-     *      (NV) esiste, ruolo non-USER  -> BadRequest (assegnabile solo a USER)
-     *   expiringDate (scadenza, opzionale):
-     *      (V)  null                    -> nessuna nuova scadenza
-     *      (V)  valorizzata             -> imposta la scadenza
-     *   expectedVersion (optimistic lock lato client):
-     *      (V)  null                    -> confronto saltato, prosegue
-     *      (V)  == corrente             -> confronto ok, prosegue
-     *      (NV) != corrente             -> Conflict (409)
-     *   adminSID (sessione che invoca):
-     *      (V)  sessione admin          -> requireAdmin supera
-     *      (NV) sessione nulla          -> Forbidden
-     *      (NV) sessione non-admin      -> Forbidden
-     *
-     * Blocco massimo = 3 classi -> 3 test. Le classi NV di parametri diversi
-     * sono COMBINATE in un caso solo; vale il MASKING (si osserva solo la
-     * prima eccezione). I blocchi di version == e != compaiono in EC2/EC3 ma
-     * sono mascherati dalla sessione: il loro effetto e' verificato dal
-     * white-box (cc_assign_5 !=, cc_assign_6 ==).
-     *
-     *      | issueId      | userEmail    | expiringDate  | version       | adminSID      | esito atteso
-     * EC1  | esiste  (V)  | USER    (V)  | valorizz. (V) | null      (V) | admin    (V)  | successo (scadenza impostata)
-     * EC2  | inesist.(NV) | inesist.(NV) | null      (V) | ==corr.   (V) | nulla   (NV)  | Forbidden (resto MASCHERATO)
-     * EC3  | esiste  (V)  | non-USER(NV) | null      (V) | !=corr.  (NV) | non-admin(NV) | Forbidden (resto MASCHERATO)
-     * ------------------------------------------------------------ */
+     * Con l'each-choice bastano tanti test quante sono le classi del
+     * parametro che ne ha di piu', cioe' tre. Nel primo tutti i parametri
+     * stanno su una classe valida; negli altri due le classi non valide dei
+     * vari parametri sono combinate tra loro, quindi si osserva solo la
+     * prima eccezione: il controllo sulla sessione viene eseguito per primo
+     * e maschera gli altri. Le classi sulla versione, che qui restano
+     * mascherate, vengono comunque esercitate dai test white-box cc_assign_5
+     * e cc_assign_6.
+     */
 
     @Test
     void ec_assign_1_tuttiValidi() {
-        // PARAMETRI tutti su classe valida: issueId esiste, userEmail esiste-USER,
-        // expiringDate valorizzata, version null, adminSID sessione admin.
+        // Tutti i parametri su una classe valida: {issue esistente},
+        // {destinatario con ruolo USER}, {scadenza valorizzata},
+        // {versione null}, {sessione admin}.
         Issue issue = issue(StatoIssue.TODO, 0L);
         when(sessioneService.getUtenteBySessionId(adminSid)).thenReturn(admin("admin@test.it"));
         when(issueRepository.findById(10)).thenReturn(Optional.of(issue));
@@ -148,9 +131,10 @@ class IssueServiceTest {
 
     @Test
     void ec_assign_2_nonValideCombinate() {
-        // PARAMETRI: issueId inesistente + userEmail inesistente + expiringDate null
-        //            + version == corrente (nominale) + adminSID sessione nulla.
-        // MASKING: la sessione nulla corto-circuita -> si osserva solo Forbidden.
+        // Classi non valide combinate: {issue inesistente}, {destinatario
+        // inesistente} e {sessione nulla}; la versione sta sulla classe valida
+        // {uguale alla corrente}. Il controllo sulla sessione fallisce per
+        // primo e maschera gli altri, quindi si osserva solo Forbidden.
         when(sessioneService.getUtenteBySessionId(adminSid)).thenReturn(null);
 
         assertThrows(ForbiddenException.class,
@@ -159,36 +143,34 @@ class IssueServiceTest {
 
     @Test
     void ec_assign_3_nonValideCombinate() {
-        // PARAMETRI: issueId esistente + userEmail esiste-non-USER + expiringDate null
-        //            + version != corrente (nominale) + adminSID sessione non-admin.
-        // MASKING: il non-admin corto-circuita -> si osserva solo Forbidden.
+        // Classi non valide combinate: {destinatario di ruolo non USER},
+        // {versione diversa dalla corrente} e {sessione di un non admin}.
+        // Anche qui la sessione viene controllata per prima e maschera il
+        // resto: si osserva solo Forbidden.
         when(sessioneService.getUtenteBySessionId(adminSid)).thenReturn(user(5, "user@test.it"));
 
         assertThrows(ForbiddenException.class,
             () -> issueService.assignIssueToUser(10, "admin2@test.it", null, 1L, adminSid));
     }
 
-    /* ------------------------------------------------------------
-     * [WHITE-BOX] condition coverage completa
+    /*
+     * Parte white-box: condition coverage.
      *
-     * Condizioni composte del metodo (e helper) e operando coperto:
-     *   requireUser   : user == null                         -> T:CC2  F:CC1
-     *   requireAdmin  : role != ADMIN                        -> T:CC3  F:CC1
-     *   findIssueOr404: Optional vuoto                       -> T:CC4  F:CC1
-     *   checkVersion  : expectedVersion != null   (C1)       -> T:CC5  F:CC1
-     *                   !expectedVersion.equals() (C2)       -> T:CC5  F:CC6
-     *   findByEmail   : Optional vuoto                       -> T:CC7  F:CC1
-     *   ruolo dest.   : role != USER                         -> T:CC8  F:CC1
-     *   stato         : stato == CLOSED           (C1)       -> T:CC9  F:CC1
-     *                   stato == DONE             (C2)       -> T:CC10 F:CC1
-     *   scadenza      : expiringDate != null                 -> T:CC6  F:CC1
-     *                   eraScaduta (else-if)                 -> T:CC11 F:CC12
-     *   riattivazione : stato == TODO             (C1)       -> T:CC1  F:CC11
-     *                   eraScaduta                (C2)       -> T:CC11 F:CC12
-     * ------------------------------------------------------------ */
+     * L'obiettivo e' far valutare ogni operando di ogni condizione del
+     * metodo, compresi gli helper requireAdmin, findIssueOr404 e
+     * checkVersion, sia a vero che a falso. cc_assign_1 e' il caso in cui
+     * tutti i controlli passano, quindi copre da solo il lato "si prosegue"
+     * di quasi tutte le condizioni; ognuno degli altri test fa scattare un
+     * controllo specifico: sessione nulla, utente non admin, issue
+     * inesistente, versione diversa e versione uguale, destinatario
+     * inesistente o di ruolo sbagliato, i due stati (CLOSED e DONE) in cui
+     * la issue non e' assegnabile e infine i due rami della riassegnazione,
+     * cioe' issue scaduta che torna in lavorazione e issue gia' in
+     * lavorazione che resta dov'e'.
+     */
 
     @Test
-    void cc_assign_1_valida_TODO() { // lato "prosegue" di tutte le condizioni; TODO -> IN_PROGRESS
+    void cc_assign_1_valida_TODO() { // caso valido: tutti i controlli passano e da TODO si va in IN_PROGRESS
         Utente dest = user(2, "mario@test.it");
         Issue issue = issue(StatoIssue.TODO, 0L);
         when(sessioneService.getUtenteBySessionId(adminSid)).thenReturn(admin("admin@test.it"));
@@ -204,7 +186,7 @@ class IssueServiceTest {
     }
 
     @Test
-    void cc_assign_2_sessioneNulla_forbidden() { // user == null : TRUE
+    void cc_assign_2_sessioneNulla_forbidden() { // la sessione non corrisponde a nessun utente
         when(sessioneService.getUtenteBySessionId(adminSid)).thenReturn(null);
 
         assertThrows(ForbiddenException.class,
@@ -212,7 +194,7 @@ class IssueServiceTest {
     }
 
     @Test
-    void cc_assign_3_nonAdmin_forbidden() { // role != ADMIN : TRUE
+    void cc_assign_3_nonAdmin_forbidden() { // sessione valida ma di un utente semplice, non admin
         when(sessioneService.getUtenteBySessionId(adminSid)).thenReturn(user(5, "user@test.it"));
 
         assertThrows(ForbiddenException.class,
@@ -220,7 +202,7 @@ class IssueServiceTest {
     }
 
     @Test
-    void cc_assign_4_issueInesistente_notFound() { // findById vuoto : TRUE
+    void cc_assign_4_issueInesistente_notFound() { // la issue cercata non esiste
         when(sessioneService.getUtenteBySessionId(adminSid)).thenReturn(admin("admin@test.it"));
         when(issueRepository.findById(10)).thenReturn(Optional.empty());
 
@@ -229,7 +211,7 @@ class IssueServiceTest {
     }
 
     @Test
-    void cc_assign_5_versioneDiversa_conflict() { // checkVersion C1=T, C2=T
+    void cc_assign_5_versioneDiversa_conflict() { // il client manda una versione diversa da quella corrente
         when(sessioneService.getUtenteBySessionId(adminSid)).thenReturn(admin("admin@test.it"));
         when(issueRepository.findById(10)).thenReturn(Optional.of(issue(StatoIssue.TODO, 2L)));
 
@@ -238,21 +220,21 @@ class IssueServiceTest {
     }
 
     @Test
-    void cc_assign_6_versioneUguale_conData() { // checkVersion C2=F ; expiringDate != null : TRUE
+    void cc_assign_6_versioneUguale_conData() { // versione uguale a quella corrente e scadenza impostata
         Issue issue = issue(StatoIssue.TODO, 5L);
         when(sessioneService.getUtenteBySessionId(adminSid)).thenReturn(admin("admin@test.it"));
         when(issueRepository.findById(10)).thenReturn(Optional.of(issue));
         when(utenteRepository.findByEmail("mario@test.it")).thenReturn(Optional.of(user(2, "mario@test.it")));
 
         LocalDate scadenza = LocalDate.now().plusDays(7);
-        issueService.assignIssueToUser(10, "mario@test.it", scadenza, 5L, adminSid); // expectedVersion == version
+        issueService.assignIssueToUser(10, "mario@test.it", scadenza, 5L, adminSid);
 
         assertEquals(scadenza.atTime(23, 59, 59), issue.getDataScadenza());
         assertEquals(StatoIssue.IN_PROGRESS, issue.getStato());
     }
 
     @Test
-    void cc_assign_7_destinatarioInesistente_notFound() { // findByEmail vuoto : TRUE
+    void cc_assign_7_destinatarioInesistente_notFound() { // l'email indicata non corrisponde a nessun utente
         when(sessioneService.getUtenteBySessionId(adminSid)).thenReturn(admin("admin@test.it"));
         when(issueRepository.findById(10)).thenReturn(Optional.of(issue(StatoIssue.TODO, 0L)));
         when(utenteRepository.findByEmail("ghost@test.it")).thenReturn(Optional.empty());
@@ -262,7 +244,7 @@ class IssueServiceTest {
     }
 
     @Test
-    void cc_assign_8_destinatarioNonUser_badRequest() { // role != USER : TRUE
+    void cc_assign_8_destinatarioNonUser_badRequest() { // il destinatario esiste ma e' un admin, non assegnabile
         when(sessioneService.getUtenteBySessionId(adminSid)).thenReturn(admin("admin@test.it"));
         when(issueRepository.findById(10)).thenReturn(Optional.of(issue(StatoIssue.TODO, 0L)));
         when(utenteRepository.findByEmail("admin2@test.it")).thenReturn(Optional.of(admin("admin2@test.it")));
@@ -272,7 +254,7 @@ class IssueServiceTest {
     }
 
     @Test
-    void cc_assign_9_statoClosed_badRequest() { // stato == CLOSED : TRUE (1° operando dell'OR)
+    void cc_assign_9_statoClosed_badRequest() { // issue chiusa, primo operando dell'or sullo stato
         when(sessioneService.getUtenteBySessionId(adminSid)).thenReturn(admin("admin@test.it"));
         when(issueRepository.findById(10)).thenReturn(Optional.of(issue(StatoIssue.CLOSED, 0L)));
         when(utenteRepository.findByEmail("mario@test.it")).thenReturn(Optional.of(user(2, "mario@test.it")));
@@ -282,7 +264,7 @@ class IssueServiceTest {
     }
 
     @Test
-    void cc_assign_10_statoDone_badRequest() { // stato == DONE : TRUE (2° operando dell'OR)
+    void cc_assign_10_statoDone_badRequest() { // issue completata, secondo operando dell'or sullo stato
         when(sessioneService.getUtenteBySessionId(adminSid)).thenReturn(admin("admin@test.it"));
         when(issueRepository.findById(10)).thenReturn(Optional.of(issue(StatoIssue.DONE, 0L)));
         when(utenteRepository.findByEmail("mario@test.it")).thenReturn(Optional.of(user(2, "mario@test.it")));
@@ -292,7 +274,7 @@ class IssueServiceTest {
     }
 
     @Test
-    void cc_assign_11_statoExpired_riportataInProgress() { // eraScaduta=T ; riattivazione C1=F, C2=T
+    void cc_assign_11_statoExpired_riportataInProgress() { // issue scaduta: la riassegnazione azzera la scadenza e la rimette in lavorazione
         Issue issue = issue(StatoIssue.EXPIRED, 0L);
         issue.setDataScadenza(LocalDateTime.now().minusDays(1));
         when(sessioneService.getUtenteBySessionId(adminSid)).thenReturn(admin("admin@test.it"));
@@ -306,7 +288,7 @@ class IssueServiceTest {
     }
 
     @Test
-    void cc_assign_12_riassegnaInProgress_restaInProgress() { // eraScaduta=F (else-if e riattivazione C2)
+    void cc_assign_12_riassegnaInProgress_restaInProgress() { // issue gia' in lavorazione e non scaduta
         Issue issue = issue(StatoIssue.IN_PROGRESS, 0L);
         when(sessioneService.getUtenteBySessionId(adminSid)).thenReturn(admin("admin@test.it"));
         when(issueRepository.findById(10)).thenReturn(Optional.of(issue));
@@ -318,43 +300,32 @@ class IssueServiceTest {
         verify(issueRepository).save(issue);
     }
 
-    // ##############################################################
-    //  METODO 2: aggiungiCommento(idIssue, testo, expectedVersion, sid)
-    // ##############################################################
+    // ------------------- test di aggiungiCommento -------------------
 
-    /* ------------------------------------------------------------
-     * [BLACK-BOX] equivalence-class testing — each-choice
+    /*
+     * Parte black-box: classi di equivalenza, criterio each-choice.
      *
-     * Classi di equivalenza dei SOLI PARAMETRI del metodo — (V)/(NV).
+     * Per idIssue le classi sono {issue esistente}, valida, e {issue
+     * inesistente}, non valida (NotFound). Per testo: {testo non vuoto}
+     * valida, {null} e {vuoto o di soli spazi} non valide, entrambe
+     * BadRequest. Per expectedVersion: {null} e {uguale alla versione
+     * corrente} valide, {diversa dalla versione corrente} non valida
+     * (Conflict). Per sid: {sessione valida} valida, {sessione non valida o
+     * nulla} non valida (Forbidden).
      *
-     *   idIssue:
-     *      (V)  esiste                  -> findIssueOr404 supera
-     *      (NV) non esiste              -> NotFound
-     *   testo:
-     *      (V)  non vuoto               -> commento accettato
-     *      (NV) null                    -> BadRequest
-     *      (NV) vuoto / soli spazi      -> BadRequest
-     *   expectedVersion (optimistic lock lato client):
-     *      (V)  null                    -> confronto saltato, prosegue
-     *      (V)  == corrente             -> confronto ok, prosegue
-     *      (NV) != corrente             -> Conflict (409)
-     *   sid (sessione che invoca):
-     *      (V)  valida                  -> requireUser supera
-     *      (NV) non valida (incl. null) -> Forbidden
-     *
-     * Blocco massimo = 3 classi -> 3 test. Le classi NV sono COMBINATE;
-     * MASKING: si osserva solo la prima eccezione. I blocchi version == e !=
-     * compaiono in ECc2/ECc3 ma sono mascherati (sessione/testo non validi
-     * vengono prima): verificati dal white-box (cc_commento_7 ==, cc_commento_6 !=).
-     *
-     *      | idIssue     | testo       | version       | sid           | esito atteso
-     * ECc1 | esiste (V)  | non-vuoto(V)| null      (V) | valida   (V)  | successo
-     * ECc2 | inesist.(NV)| null    (NV)| ==corr.   (V) | non valida(NV)| Forbidden (resto MASCHERATO)
-     * ECc3 | esiste (V)  | vuoto   (NV)| !=corr.  (NV) | valida   (V)  | BadRequest (resto MASCHERATO)
-     * ------------------------------------------------------------ */
+     * Il parametro con piu' classi e' il testo, che ne ha tre, quindi
+     * bastano tre test. Le classi non valide sono combinate: in
+     * ec_commento_2 fallisce per primo il controllo sulla sessione e si
+     * osserva solo Forbidden, in ec_commento_3 il controllo sul testo
+     * precede quello sulla versione e si osserva solo BadRequest. I due casi
+     * sulla versione, qui mascherati, sono coperti dai white-box
+     * cc_commento_6 e cc_commento_7.
+     */
 
     @Test
     void ec_commento_1_tuttiValidi() {
+        // Tutti i parametri su una classe valida: {issue esistente},
+        // {testo non vuoto}, {versione null}, {sessione valida}.
         Utente u = user(5, "mario@test.it");
         Issue issue = issue(StatoIssue.IN_PROGRESS, 0L);
         issue.setAssegnatoA(u);
@@ -368,9 +339,10 @@ class IssueServiceTest {
 
     @Test
     void ec_commento_2_nonValideCombinate() {
-        // PARAMETRI: idIssue inesistente + testo null + version == corrente (nominale)
-        //            + sid sessione non valida (null).
-        // MASKING: requireUser fallisce subito -> solo Forbidden.
+        // Classi non valide combinate: {issue inesistente}, {testo null} e
+        // {sessione non valida}; la versione sta su {uguale alla corrente}.
+        // Il controllo sulla sessione fallisce per primo, quindi si osserva
+        // solo Forbidden.
         when(sessioneService.getUtenteBySessionId(userSid)).thenReturn(null);
 
         assertThrows(ForbiddenException.class,
@@ -379,34 +351,31 @@ class IssueServiceTest {
 
     @Test
     void ec_commento_3_nonValideCombinate() {
-        // PARAMETRI: idIssue esistente + testo vuoto + version != corrente (nominale)
-        //            + sid sessione valida.
-        // MASKING: il controllo sul testo precede quello sulla versione -> solo BadRequest.
+        // Classi non valide combinate: {testo vuoto} e {versione diversa
+        // dalla corrente}, con sessione e issue valide. Il controllo sul
+        // testo precede quello sulla versione, quindi si osserva solo
+        // BadRequest.
         when(sessioneService.getUtenteBySessionId(userSid)).thenReturn(user(5, "mario@test.it"));
 
         assertThrows(BadRequestException.class,
             () -> issueService.aggiungiCommento(10, "   ", 1L, userSid));
     }
 
-    /* ------------------------------------------------------------
-     * [WHITE-BOX] condition coverage completa
+    /*
+     * Parte white-box: condition coverage di aggiungiCommento.
      *
-     *   requireUser : user == null                  -> T:WC2  F:WC1
-     *   testo       : testo == null        (C1)     -> T:WC3  F:WC1
-     *                 trim().isEmpty()     (C2)     -> T:WC4  F:WC1
-     *   findById    : Optional vuoto                -> T:WC5  F:WC1
-     *   checkVersion: expectedVersion != null (C1)  -> T:WC6  F:WC1
-     *                 !equals()            (C2)     -> T:WC6  F:WC7
-     *   stato       : == DONE              (C1)     -> T:WC8  F:WC1
-     *                 == EXPIRED           (C2)     -> T:WC9  F:WC1
-     *                 == CLOSED            (C3)     -> T:WC10 F:WC1
-     *   ownership   : assegnatoA == null   (C1)     -> T:WC11 F:WC1
-     *                 !id.equals()         (C2)     -> T:WC12 F:WC1
-     *   lista       : commento == null              -> T:WC13 F:WC1
-     * ------------------------------------------------------------ */
+     * Come sopra, cc_commento_1 e' il caso valido che copre il lato "si
+     * prosegue" di tutti i controlli, mentre gli altri test li fanno fallire
+     * uno alla volta: sessione nulla, testo null, testo di soli spazi, issue
+     * inesistente, versione diversa e versione uguale, i tre stati in cui
+     * non si puo' commentare (DONE, EXPIRED e CLOSED, un operando dell'or
+     * ciascuno), i due casi sull'assegnatario (issue senza assegnatario e
+     * issue assegnata a qualcun altro) e la lista commenti null che il
+     * metodo deve inizializzare.
+     */
 
     @Test
-    void cc_commento_1_valido() { // lato "prosegue" di tutte le condizioni
+    void cc_commento_1_valido() { // caso valido: il commento viene aggiunto con testo e autore giusti
         Utente u = user(5, "mario@test.it");
         Issue issue = issue(StatoIssue.IN_PROGRESS, 0L);
         issue.setAssegnatoA(u);
@@ -422,7 +391,7 @@ class IssueServiceTest {
     }
 
     @Test
-    void cc_commento_2_sessioneNulla_forbidden() { // user == null : TRUE
+    void cc_commento_2_sessioneNulla_forbidden() { // la sessione non corrisponde a nessun utente
         when(sessioneService.getUtenteBySessionId(userSid)).thenReturn(null);
 
         assertThrows(ForbiddenException.class,
@@ -430,7 +399,7 @@ class IssueServiceTest {
     }
 
     @Test
-    void cc_commento_3_testoNull_badRequest() { // testo == null : TRUE
+    void cc_commento_3_testoNull_badRequest() { // testo null
         when(sessioneService.getUtenteBySessionId(userSid)).thenReturn(user(5, "mario@test.it"));
 
         assertThrows(BadRequestException.class,
@@ -438,7 +407,7 @@ class IssueServiceTest {
     }
 
     @Test
-    void cc_commento_4_testoVuoto_badRequest() { // testo==null : FALSE, trim().isEmpty() : TRUE
+    void cc_commento_4_testoVuoto_badRequest() { // testo presente ma di soli spazi
         when(sessioneService.getUtenteBySessionId(userSid)).thenReturn(user(5, "mario@test.it"));
 
         assertThrows(BadRequestException.class,
@@ -446,7 +415,7 @@ class IssueServiceTest {
     }
 
     @Test
-    void cc_commento_5_issueInesistente_notFound() { // findById vuoto : TRUE
+    void cc_commento_5_issueInesistente_notFound() { // la issue non esiste
         when(sessioneService.getUtenteBySessionId(userSid)).thenReturn(user(5, "mario@test.it"));
         when(issueRepository.findById(10)).thenReturn(Optional.empty());
 
@@ -455,7 +424,7 @@ class IssueServiceTest {
     }
 
     @Test
-    void cc_commento_6_versioneDiversa_conflict() { // checkVersion C1=T, C2=T
+    void cc_commento_6_versioneDiversa_conflict() { // versione diversa da quella corrente
         Issue issue = issue(StatoIssue.IN_PROGRESS, 2L);
         when(sessioneService.getUtenteBySessionId(userSid)).thenReturn(user(5, "mario@test.it"));
         when(issueRepository.findById(10)).thenReturn(Optional.of(issue));
@@ -465,20 +434,20 @@ class IssueServiceTest {
     }
 
     @Test
-    void cc_commento_7_versioneUguale_ok() { // checkVersion C2=F
+    void cc_commento_7_versioneUguale_ok() { // versione uguale a quella corrente: il confronto passa
         Utente u = user(5, "mario@test.it");
         Issue issue = issue(StatoIssue.IN_PROGRESS, 5L);
         issue.setAssegnatoA(u);
         when(sessioneService.getUtenteBySessionId(userSid)).thenReturn(u);
         when(issueRepository.findById(10)).thenReturn(Optional.of(issue));
 
-        issueService.aggiungiCommento(10, "ciao", 5L, userSid); // expectedVersion == version
+        issueService.aggiungiCommento(10, "ciao", 5L, userSid);
 
         assertEquals(1, issue.getCommento().size());
     }
 
     @Test
-    void cc_commento_8_statoDone_badRequest() { // stato == DONE : TRUE
+    void cc_commento_8_statoDone_badRequest() { // non si commenta una issue DONE
         Utente u = user(5, "mario@test.it");
         Issue issue = issue(StatoIssue.DONE, 0L);
         issue.setAssegnatoA(u);
@@ -490,7 +459,7 @@ class IssueServiceTest {
     }
 
     @Test
-    void cc_commento_9_statoExpired_badRequest() { // == DONE : F, == EXPIRED : TRUE
+    void cc_commento_9_statoExpired_badRequest() { // non si commenta una issue EXPIRED
         Utente u = user(5, "mario@test.it");
         Issue issue = issue(StatoIssue.EXPIRED, 0L);
         issue.setAssegnatoA(u);
@@ -502,7 +471,7 @@ class IssueServiceTest {
     }
 
     @Test
-    void cc_commento_10_statoClosed_badRequest() { // == DONE : F, == EXPIRED : F, == CLOSED : TRUE
+    void cc_commento_10_statoClosed_badRequest() { // non si commenta una issue CLOSED
         Utente u = user(5, "mario@test.it");
         Issue issue = issue(StatoIssue.CLOSED, 0L);
         issue.setAssegnatoA(u);
@@ -514,7 +483,7 @@ class IssueServiceTest {
     }
 
     @Test
-    void cc_commento_11_assegnatoANull_forbidden() { // ownership: assegnatoA == null : TRUE
+    void cc_commento_11_assegnatoANull_forbidden() { // la issue non ha nessun assegnatario
         Issue issue = issue(StatoIssue.IN_PROGRESS, 0L);
         issue.setAssegnatoA(null);
         when(sessioneService.getUtenteBySessionId(userSid)).thenReturn(user(5, "mario@test.it"));
@@ -525,7 +494,7 @@ class IssueServiceTest {
     }
 
     @Test
-    void cc_commento_12_altroAssegnatario_forbidden() { // assegnatoA != null : F, !id.equals() : TRUE
+    void cc_commento_12_altroAssegnatario_forbidden() { // la issue e' assegnata a un altro utente
         Issue issue = issue(StatoIssue.IN_PROGRESS, 0L);
         issue.setAssegnatoA(user(2, "altro@test.it"));
         when(sessioneService.getUtenteBySessionId(userSid)).thenReturn(user(5, "mario@test.it"));
@@ -536,7 +505,7 @@ class IssueServiceTest {
     }
 
     @Test
-    void cc_commento_13_listaCommentiNull_ok() { // commento == null : TRUE (viene inizializzata)
+    void cc_commento_13_listaCommentiNull_ok() { // lista commenti null: viene inizializzata dal metodo
         Utente u = user(5, "mario@test.it");
         Issue issue = issue(StatoIssue.IN_PROGRESS, 0L);
         issue.setAssegnatoA(u);

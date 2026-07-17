@@ -24,14 +24,16 @@ import bugboard.model.Utente.Role;
 import bugboard.repository.UserRepository;
 
 /*
- * Unit test di UserService, metodo deleteUser(sid, email).
+ * Test di unita' per UserService, in particolare per deleteUser(sid, email).
+ * Repository e servizio di sessione sono mockati con Mockito.
  *
- *   [BLACK-BOX] equivalence-class testing, copertura each-choice: per ogni
- *       parametro si individuano le classi VALIDE (V) e NON VALIDE (NV); ogni
- *       classe compare in almeno un test e le NV vengono combinate in un solo
- *       caso. Limite di MASKING: nel caso multi-NV si osserva solo la prima
- *       eccezione, perciò la copertura piena delle NV sta nel white-box.
- *   [WHITE-BOX] condition coverage completa -> ogni operando a true e a false.
+ * Come per gli altri servizi ci sono i test black-box sulle classi di
+ * equivalenza (criterio each-choice: ogni classe, indicata tra parentesi
+ * graffe, compare in almeno un test) e i test white-box per la condition
+ * coverage, in cui ogni condizione deve risultare sia vera che falsa.
+ * Quando piu' classi non valide finiscono nello stesso test si osserva solo
+ * la prima eccezione lanciata, e i controlli cosi' mascherati vengono
+ * ripresi dal white-box.
  */
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
@@ -52,32 +54,29 @@ class UserServiceTest {
         return u;
     }
 
-    // ##############################################################
-    //  METODO 3: deleteUser(sid, email)
-    // ##############################################################
+    // ------------------- test di deleteUser -------------------
 
-    /* ------------------------------------------------------------
-     * [BLACK-BOX] equivalence-class testing — each-choice
+    /*
+     * Parte black-box: classi di equivalenza, criterio each-choice.
      *
-     * Classi di equivalenza dei SOLI PARAMETRI del metodo — (V)/(NV).
-     *   sid (sessione che invoca):
-     *      (V)  sessione admin            -> requireAdmin supera
-     *      (NV) sessione non-admin        -> Forbidden  (null incluso qui)
-     *   email (utente da eliminare):
-     *      (V)  esiste, eliminabile       -> ruolo USER o READONLY -> delete
-     *      (NV) non esiste                -> NotFound
-     *      (NV) esiste, ruolo ADMIN       -> BadRequest (un admin non si elimina)
+     * Per sid le classi sono {sessione di un admin}, valida, e {sessione di
+     * un non admin o nulla}, non valida perche' porta a Forbidden. Per email
+     * le classi sono tre: {utente esistente con ruolo USER o READONLY},
+     * valida perche' e' un utente eliminabile, {utente inesistente} non
+     * valida (NotFound) e {utente esistente con ruolo ADMIN} non valida
+     * (BadRequest, un amministratore non si puo' eliminare).
      *
-     * Blocco massimo = 3 classi -> 3 test.
-     *
-     *      | sid           | email             | esito atteso
-     * ECd1 | admin    (V)  | eliminabile  (V)  | delete eseguita (target USER)
-     * ECd2 | non-admin(NV) | non-esiste  (NV)  | Forbidden (email MASCHERATA)
-     * ECd3 | admin    (V)  | esiste-ADMIN (NV) | BadRequest
-     * ------------------------------------------------------------ */
+     * Il parametro con piu' classi e' email, che ne ha tre, quindi bastano
+     * tre test. In ec_delete_2 le classi non valide dei due parametri sono
+     * combinate: il controllo sull'admin viene eseguito per primo, quindi si
+     * osserva solo Forbidden e la classe dell'email resta mascherata (viene
+     * comunque ripresa dai test white-box).
+     */
 
     @Test
     void ec_delete_1_adminEliminaUser() {
+        // Entrambi i parametri su una classe valida: {sessione admin} e
+        // {utente eliminabile}, qui di ruolo USER.
         Utente target = utenteCon(Role.USER, "mario@test.it");
         when(sessioneService.isAdmin(sid)).thenReturn(true);
         when(utenteRepository.findByEmail("mario@test.it")).thenReturn(Optional.of(target));
@@ -89,8 +88,9 @@ class UserServiceTest {
 
     @Test
     void ec_delete_2_nonValideCombinate() {
-        // non-admin + email inesistente + ruolo non eliminabile.
-        // MASKING: il controllo admin fallisce subito -> solo Forbidden.
+        // Classi non valide combinate: {sessione di un non admin} e {utente
+        // inesistente}. Il controllo sull'admin fallisce per primo, quindi
+        // si osserva solo Forbidden.
         when(sessioneService.isAdmin(sid)).thenReturn(false);
 
         assertThrows(ForbiddenException.class,
@@ -100,7 +100,8 @@ class UserServiceTest {
 
     @Test
     void ec_delete_3_targetAdmin_badRequest() {
-        // email -> referente ADMIN: classe NV del parametro email (un admin non si elimina).
+        // Classe non valida di email: {utente esistente con ruolo ADMIN},
+        // un admin non si puo' eliminare.
         Utente target = utenteCon(Role.ADMIN, "admin2@test.it");
         when(sessioneService.isAdmin(sid)).thenReturn(true);
         when(utenteRepository.findByEmail("admin2@test.it")).thenReturn(Optional.of(target));
@@ -110,17 +111,17 @@ class UserServiceTest {
         verify(utenteRepository, never()).delete(any());
     }
 
-    /* ------------------------------------------------------------
-     * [WHITE-BOX] condition coverage completa
-     *
-     *   requireAdmin : !isAdmin(sid)                 -> T:WD2  F:WD1
-     *   findByEmail  : Optional vuoto                -> T:WD3  F:WD1
-     *   ruolo        : ruolo != USER      (C1)       -> T:WD4  F:WD1
-     *                  ruolo != READONLY  (C2)       -> T:WD4  F:WD5
-     * ------------------------------------------------------------ */
+    /*
+     * Parte white-box: condition coverage di deleteUser. cc_delete_1 e' il
+     * caso valido che copre il lato "si prosegue" dei controlli; poi c'e'
+     * un test per la sessione non admin, uno per l'email inesistente e due
+     * per la condizione composta sul ruolo: con un ADMIN entrambi gli
+     * operandi sono veri e scatta il BadRequest, con un READONLY il secondo
+     * operando e' falso e l'eliminazione va a buon fine.
+     */
 
     @Test
-    void cc_delete_1_user_ok() { // !isAdmin=F, ruolo!=USER (C1)=F  -> elimina
+    void cc_delete_1_user_ok() { // caso valido: un admin elimina un utente USER
         Utente target = utenteCon(Role.USER, "mario@test.it");
         when(sessioneService.isAdmin(sid)).thenReturn(true);
         when(utenteRepository.findByEmail("mario@test.it")).thenReturn(Optional.of(target));
@@ -131,7 +132,7 @@ class UserServiceTest {
     }
 
     @Test
-    void cc_delete_2_nonAdmin_forbidden() { // !isAdmin : TRUE
+    void cc_delete_2_nonAdmin_forbidden() { // la sessione non e' di un admin
         when(sessioneService.isAdmin(sid)).thenReturn(false);
 
         assertThrows(ForbiddenException.class,
@@ -140,7 +141,7 @@ class UserServiceTest {
     }
 
     @Test
-    void cc_delete_3_inesistente_notFound() { // findByEmail vuoto : TRUE
+    void cc_delete_3_inesistente_notFound() { // l'email non corrisponde a nessun utente
         when(sessioneService.isAdmin(sid)).thenReturn(true);
         when(utenteRepository.findByEmail("ghost@test.it")).thenReturn(Optional.empty());
 
@@ -149,7 +150,7 @@ class UserServiceTest {
     }
 
     @Test
-    void cc_delete_4_admin_badRequest() { // ruolo != USER (C1)=T, ruolo != READONLY (C2)=T
+    void cc_delete_4_admin_badRequest() { // il bersaglio e' un ADMIN, non eliminabile
         Utente target = utenteCon(Role.ADMIN, "admin@test.it");
         when(sessioneService.isAdmin(sid)).thenReturn(true);
         when(utenteRepository.findByEmail("admin@test.it")).thenReturn(Optional.of(target));
@@ -160,7 +161,7 @@ class UserServiceTest {
     }
 
     @Test
-    void cc_delete_5_readonly_ok() { // ruolo != USER (C1)=T, ruolo != READONLY (C2)=F  -> elimina
+    void cc_delete_5_readonly_ok() { // il bersaglio e' READONLY, eliminabile come un USER
         Utente target = utenteCon(Role.READONLY, "ro@test.it");
         when(sessioneService.isAdmin(sid)).thenReturn(true);
         when(utenteRepository.findByEmail("ro@test.it")).thenReturn(Optional.of(target));
