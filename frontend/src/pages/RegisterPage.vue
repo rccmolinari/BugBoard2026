@@ -96,14 +96,13 @@ function togglePassword() {
             Crea il tuo<br />account.
           </h1>
           <p class="text-ink-400 text-[15px] leading-relaxed max-w-xs">
-            Compila i dati per registrarti. Il collegamento al database lo configurerai tu.
+            Compila i dati per registrarti.
           </p>
         </div>
 
         <div class="flex items-center gap-2">
           <span class="font-mono text-[11px] text-ink-600 tracking-wider uppercase">v1.0.0</span>
           <span class="text-ink-700">·</span>
-          <span class="font-mono text-[11px] text-ink-600 tracking-wider uppercase">dev</span>
         </div>
       </div>
     </div>
